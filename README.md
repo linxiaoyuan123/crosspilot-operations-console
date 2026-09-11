@@ -99,7 +99,6 @@ npm test
 ├── .github/workflows/ci.yml
 ├── docs/
 │   ├── architecture.md
-│   ├── demo-script.md
 │   └── screenshots/
 ├── public/
 │   ├── app.js
@@ -124,17 +123,6 @@ npm test
 - `knowledge_articles`：故障现象、解决方案和标签。
 - `activities`：系统操作轨迹。
 - `diagnostics`：网络检查历史。
-
-## 面试演示顺序
-
-1. 在运行概览展示工单、交付和风险统计。
-2. 新建一张 P1 工单，然后更新状态和解决记录。
-3. 在实施交付中把项目从部署中更新到验证中。
-4. 在诊断工具执行本应用健康检查，再检查一个 DNS 或 TCP 目标。
-5. 展示知识库检索和新增方案。
-6. 打开 SQLite 数据文件和 Docker Compose 配置，说明部署与持久化方式。
-
-更完整的两分钟演示稿见 [docs/demo-script.md](./docs/demo-script.md)。
 
 ## License
 
