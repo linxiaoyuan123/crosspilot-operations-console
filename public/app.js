@@ -179,12 +179,13 @@ function initScrollUX() {
   const progressLine = companion.querySelector('.companion-progress');
   const restLine = companion.querySelector('.companion-rest');
   const dot = companion.querySelector('.companion-dot');
+  const scrollContainer = document.querySelector('.content') || document.scrollingElement || document.documentElement;
   let scheduled = false;
 
   const update = () => {
     scheduled = false;
-    const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
-    const ratio = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+    const max = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0);
+    const ratio = max > 0 ? Math.min(scrollContainer.scrollTop / max, 1) : 0;
     progress.style.width = `${ratio * 100}%`;
     companion.classList.toggle('is-visible', max > 1);
 
@@ -219,9 +220,9 @@ function initScrollUX() {
     if (event.animationName === 'back-top-drop') backTop.classList.remove('is-visible', 'is-hiding', 'is-settled');
   });
 
-  backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-  companionNode.addEventListener('click', () => window.scrollBy({ top: Math.round(window.innerHeight * 0.82), behavior: 'smooth' }));
-  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  backTop.addEventListener('click', () => scrollContainer.scrollTo({ top: 0, behavior: 'smooth' }));
+  companionNode.addEventListener('click', () => scrollContainer.scrollBy({ top: Math.round(scrollContainer.clientHeight * 0.82), behavior: 'smooth' }));
+  scrollContainer.addEventListener('scroll', scheduleUpdate, { passive: true });
   window.addEventListener('resize', scheduleUpdate, { passive: true });
 
   if ('ResizeObserver' in window) {
@@ -277,6 +278,7 @@ async function loadCurrentView(isRefresh = false) {
   if (!isRefresh) app.innerHTML = loadingTemplate();
   try {
     await loader();
+    window.dispatchEvent(new Event('resize'));
   } catch (error) {
     app.innerHTML = errorTemplate(error.message);
   }
