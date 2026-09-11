@@ -291,6 +291,7 @@ function checkLabel(type) {
     system: '环境预检',
     network: '网络连通性',
     database: '数据库连接',
+    backup: '备份恢复方案',
     app: '应用健康'
   }[type] || type;
 }

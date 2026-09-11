@@ -37,7 +37,7 @@ import {
   updateSupportCase
 } from './store.js';
 import { collectSystemInfo, runNetworkDiagnostic, runSystemCheck, summarizeStatus } from './diagnostics.js';
-import { DANGEROUS_CONFIRMATION, csvFromRows, executeDatabaseQuery, withDatabaseAdapter } from './database.js';
+import { DANGEROUS_CONFIRMATION, csvFromRows, executeDatabaseQuery, generateBackupPlan, withDatabaseAdapter } from './database.js';
 import { generateReport } from './reports.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -332,6 +332,34 @@ async function handleApi({ db, dataDirectory, request, response, requestUrl }) {
       limit: boundedLimit(body.limit, 1000, 5000)
     });
     return sendDownload(response, csvFromRows(result.rows), 'text/csv; charset=utf-8', `data-export-${today()}.csv`);
+  }
+
+  if (method === 'POST' && pathname === '/api/db/backup-plan') {
+    const body = await readJsonBody(request);
+    const projectId = optionalId(body.projectId);
+    if (projectId && !getProject(db, projectId)) return sendJson(response, 404, { error: '实施项目不存在' });
+    const connection = resolveConnectionProfile(db, body);
+    const plan = generateBackupPlan(connection, {
+      operation: enumValue(body.operation, ['backup', 'restore'], 'backup'),
+      artifactPath: requireText(body.artifactPath, '备份文件路径', 500),
+      dataDirectory
+    });
+    const saved = saveCheckRun(db, {
+      projectId,
+      type: 'backup',
+      target: connection.name || connection.kind,
+      status: 'warning',
+      summary: `已生成${plan.operationLabel}方案，执行前需要人工审批`,
+      details: [{
+        key: plan.operation,
+        label: `${plan.operationLabel}方案`,
+        expected: '经过人工审批并在变更窗口执行',
+        actual: '命令已生成，未自动执行',
+        status: 'warning',
+        detail: '执行前确认备份目录、空间、权限和回滚方案；命令内容不写入报告。'
+      }]
+    });
+    return sendJson(response, 201, { ...saved, plan });
   }
 
   if (method === 'GET' && pathname === '/api/cases') {

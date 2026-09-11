@@ -26,7 +26,7 @@ DeployMate 是单进程本地工作台。`src/server.js` 启动 HTTP 服务，`s
 | --- | --- |
 | `src/app.js` | HTTP 路由、输入校验、静态资源、报告下载 |
 | `src/store.js` | SQLite 表结构、迁移、演示数据、业务查询 |
-| `src/database.js` | SQLite / MySQL / SQL Server 适配器、SQL 安全、CSV |
+| `src/database.js` | SQLite / MySQL / SQL Server 适配器、SQL 安全、备份恢复方案、CSV |
 | `src/diagnostics.js` | 主机、DNS、TCP、HTTP、Ping、服务健康检查 |
 | `src/reports.js` | 交付报告生成、格式转换和敏感字段清理 |
 | `public/app.js` | 单页前端、页面状态、表单和交互 |
@@ -43,9 +43,10 @@ DeployMate 是单进程本地工作台。`src/server.js` 启动 HTTP 服务，`s
 
 ### 检查与数据库
 
-- `check_runs`、`check_results`：系统、网络和数据库检查记录。
+- `check_runs`、`check_results`：系统、网络、数据库和备份恢复方案记录。
 - `database_profiles`：数据库类型、地址、端口、库名和用户名。密码不落库。
 - `data_validations`：交付前 SQL 校验模板、期望值、实际值和结论。
+- 备份恢复方案只保存生成状态；命令正文和服务器路径不写入报告。
 
 ### 技术支持
 

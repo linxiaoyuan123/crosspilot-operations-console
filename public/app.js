@@ -79,6 +79,7 @@ const state = {
   validations: [],
   schema: [],
   selectedTable: '',
+  backupPlan: null,
   queryResult: null,
   cases: [],
   selectedCase: null,
@@ -475,7 +476,7 @@ function renderDatabase() {
   app.innerHTML = `
     <section class="view-head">
       <div><div class="project-kicker">${h(state.project.code)} · 数据库交付</div><h2>客户数据核验与导出</h2><p>统一连接 SQLite、MySQL 和 SQL Server，支持结构浏览、只读 SQL、校验模板和 CSV 导出。</p></div>
-      <div class="head-actions"><button class="button primary" data-action="new-profile">${icon('plus')}新增数据库连接</button></div>
+      <div class="head-actions"><button class="button secondary" data-action="backup-plan" ${profile ? '' : 'disabled'}>${icon('download')}备份恢复方案</button><button class="button primary" data-action="new-profile">${icon('plus')}新增数据库连接</button></div>
     </section>
 
     <section class="db-toolbar panel">
@@ -796,6 +797,8 @@ async function handleClick(event) {
       state.project = null;
       await loadCurrentView(true);
     }
+    if (action === 'backup-plan') openBackupPlanModal();
+    if (action === 'copy-backup-command') await copyBackupCommand();
     if (action === 'new-profile') openProfileModal();
     if (action === 'new-validation') openValidationModal();
     if (action === 'test-profile') await testProfile();
@@ -850,6 +853,7 @@ async function handleSubmit(event) {
     if (formId === 'network-check-form') await submitNetworkCheck(data);
     if (formId === 'profile-form') await submitProfile(data);
     if (formId === 'sql-form') await submitSql(data);
+    if (formId === 'backup-plan-form') await submitBackupPlan(data);
     if (formId === 'validation-form') await submitValidation(data);
     if (formId === 'case-form') await submitCase(form, data);
     if (formId === 'case-event-form') await submitCaseEvent(data);
@@ -956,6 +960,25 @@ async function submitValidation(data) {
   closeModal();
   showToast('数据校验模板已创建');
   await loadCurrentView(true);
+}
+
+async function submitBackupPlan(data) {
+  const result = await api('/api/db/backup-plan', {
+    method: 'POST',
+    body: {
+      projectId: state.projectId,
+      profileId: state.profileId,
+      password: document.querySelector('#db-password')?.value || '',
+      operation: data.operation,
+      artifactPath: data.artifactPath
+    }
+  });
+  state.backupPlan = result.plan;
+  openModal({
+    title: result.plan.operation === 'backup' ? '数据库备份执行方案' : '数据库恢复执行方案',
+    wide: true,
+    content: renderBackupPlan(result.plan)
+  });
 }
 
 async function submitCase(form, data) {
@@ -1111,6 +1134,41 @@ function openTaskModal(task = null, stage = '') {
       <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存任务</button></div>
     </form>`
   });
+}
+
+function openBackupPlanModal() {
+  const profile = state.profiles.find((item) => item.id === state.profileId);
+  if (!profile) return;
+  openModal({
+    title: '生成备份 / 恢复方案',
+    content: `<form id="backup-plan-form" class="form-grid">
+      ${field('当前连接', `<input value="${escapeAttr(profile.name)} · ${escapeAttr(databaseKindLabel(profile.kind))}" disabled>`)}
+      ${field('操作类型', `<select name="operation">${options({ backup: '备份', restore: '恢复' }, 'backup')}</select>`)}
+      ${field('备份文件路径 *', '<input name="artifactPath" required placeholder="例如：D:\\backup\\customer-erp.bak">', true)}
+      <p class="form-note span-2">只生成可人工核对的命令，不会自动执行。数据库密码需要在实际执行时由操作人员交互输入。</p>
+      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">生成方案</button></div>
+    </form>`
+  });
+}
+
+function renderBackupPlan(plan) {
+  return `<div class="backup-plan">
+    ${resultBox('warning', `${plan.operationLabel}方案已生成`, `${plan.kind.toUpperCase()} · ${plan.label}`)}
+    <section class="command-card">
+      <header><strong>人工执行命令</strong><button class="button secondary" type="button" data-action="copy-backup-command">${icon('clipboard')}复制命令</button></header>
+      <pre>${h(plan.command)}</pre>
+    </section>
+    <section class="safety-card">
+      <strong>执行前检查</strong>
+      <ul>${plan.safetyNotes.map((note) => `<li>${h(note)}</li>`).join('')}</ul>
+    </section>
+  </div>`;
+}
+
+async function copyBackupCommand() {
+  if (!state.backupPlan?.command) return;
+  await navigator.clipboard.writeText(state.backupPlan.command);
+  showToast('命令已复制');
 }
 
 function openProfileModal() {
@@ -1315,7 +1373,7 @@ function phaseLabel(value) {
 }
 
 function checkLabel(value) {
-  return { system: '环境预检', network: '网络检查', database: '数据库连接', app: '应用健康' }[value] || value || '检查';
+  return { system: '环境预检', network: '网络检查', database: '数据库连接', backup: '备份恢复方案', app: '应用健康' }[value] || value || '检查';
 }
 
 function databaseKindLabel(value) {

@@ -42,6 +42,7 @@ DeployMate 不是项目经理使用的全局进度看板，而是实施工程师
 - 数据库、表和视图结构浏览
 - 只读 SQL 查询与查询结果预览
 - 交付前数据校验模板和结果留档
+- 备份与恢复命令生成，只生成人工核对的方案，不自动执行高风险恢复
 - 当前表或查询结果导出 CSV
 - MySQL Docker 演示环境，用于验证非 SQLite 连接流程
 
@@ -152,6 +153,7 @@ MySQL 容器首次创建时会自动执行 [`docker/mysql/init/01-demo.sql`](./d
 | `POST` | `/api/db/query` | 只读 SQL 或受控写操作 |
 | `GET/POST` | `/api/db/validations` | 数据校验模板 |
 | `POST` | `/api/db/validate` | 执行数据校验 |
+| `POST` | `/api/db/backup-plan` | 生成备份或恢复命令并留档 |
 | `POST` | `/api/db/export` | 导出 CSV |
 | `GET/POST` | `/api/cases` | 问题单 |
 | `GET/PATCH` | `/api/cases/:id` | 问题详情与更新 |

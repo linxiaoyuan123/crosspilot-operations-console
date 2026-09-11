@@ -2358,6 +2358,57 @@ button:disabled {
   margin: 2px 0 0;
 }
 
+.backup-plan {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.command-card,
+.safety-card {
+  background: rgba(8, 22, 35, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.command-card header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.command-card header > strong,
+.safety-card > strong {
+  color: #e5f1f9;
+  font-size: 11px;
+}
+
+.command-card pre {
+  background: #07131f;
+  border: 1px solid rgba(120, 230, 196, 0.12);
+  border-radius: 6px;
+  color: #bdeee3;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.65;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.safety-card ul {
+  color: #91a8ba;
+  display: grid;
+  font-size: 10px;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
 .mini-table {
   border: 1px solid var(--line);
   border-radius: 8px;

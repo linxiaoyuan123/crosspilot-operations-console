@@ -184,6 +184,44 @@ test('SQL safety blocks writes in read-only mode and requires confirmation for D
   assert.equal(dangerousWithConfirmation.body.mode, 'dangerous');
 });
 
+test('backup and restore plans are generated without persisting secrets', async () => {
+  const profiles = await request('/api/db/profiles?projectId=1');
+  const profile = profiles.body.items.find((item) => item.kind === 'sqlite');
+
+  const backup = await jsonRequest('/api/db/backup-plan', 'POST', {
+    projectId: 1,
+    profileId: profile.id,
+    password: 'must-not-be-returned',
+    operation: 'backup',
+    artifactPath: 'backups/demo-erp-backup.db'
+  });
+  assert.equal(backup.response.status, 201);
+  assert.equal(backup.body.check_type, 'backup');
+  assert.equal(backup.body.status, 'warning');
+  assert.equal(backup.body.plan.operation, 'backup');
+  assert.match(backup.body.plan.command, /sqlite3/);
+  assert.match(backup.body.plan.command, /\.backup/);
+  assert.doesNotMatch(JSON.stringify(backup.body), /must-not-be-returned/);
+
+  const restore = await jsonRequest('/api/db/backup-plan', 'POST', {
+    projectId: 1,
+    profileId: profile.id,
+    operation: 'restore',
+    artifactPath: 'backups/demo-erp-backup.db'
+  });
+  assert.equal(restore.response.status, 201);
+  assert.equal(restore.body.plan.operation, 'restore');
+  assert.match(restore.body.plan.command, /\.restore/);
+  assert.ok(restore.body.plan.safetyNotes.some((note) => /覆盖/.test(note)));
+
+  const missingPath = await jsonRequest('/api/db/backup-plan', 'POST', {
+    profileId: profile.id,
+    operation: 'backup',
+    artifactPath: ''
+  });
+  assert.equal(missingPath.response.status, 400);
+});
+
 test('data validation executes a saved template', async () => {
   const validations = await request('/api/db/validations?projectId=1');
   assert.equal(validations.response.status, 200);

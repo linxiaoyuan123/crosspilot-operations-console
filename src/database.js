@@ -478,3 +478,71 @@ function databaseError(message, statusCode = 400) {
 }
 
 export { DANGEROUS_CONFIRMATION, MAX_QUERY_ROWS };
+export function generateBackupPlan(connection, options = {}) {
+  const operation = options.operation === 'restore' ? 'restore' : 'backup';
+  const artifactPath = String(options.artifactPath || '').trim();
+  if (!artifactPath) throw databaseError('备份文件路径不能为空');
+  if (artifactPath.length > 500) throw databaseError('备份文件路径不能超过 500 个字符');
+
+  const kind = String(connection.kind || '').toLowerCase();
+  const operationLabel = operation === 'backup' ? '备份' : '恢复';
+  const commonNotes = [
+    '命令只用于人工核对，DeployMate 不会自动执行。',
+    '执行前确认变更窗口、备份目录空间、数据库权限和回滚方案。',
+    '不要将数据库密码写入命令、工单、日志或交付报告。'
+  ];
+  if (operation === 'restore') {
+    commonNotes.unshift('恢复操作会覆盖或合并现有数据，必须先完成独立备份并取得书面确认。');
+  }
+
+  let command = '';
+  let label = '';
+
+  if (kind === 'sqlite') {
+    const databasePath = resolveSqlitePath(connection.filePath, options.dataDirectory);
+    label = 'SQLite CLI';
+    command = operation === 'backup'
+      ? `sqlite3 ${quoteCommandValue(databasePath)} ".backup ${quoteSqliteDotPath(artifactPath)}"`
+      : `sqlite3 ${quoteCommandValue(databasePath)} ".restore ${quoteSqliteDotPath(artifactPath)}"`;
+  } else if (kind === 'mysql') {
+    const host = connection.host || '127.0.0.1';
+    const port = connection.port || 3306;
+    const databaseName = connection.databaseName || '';
+    const username = connection.username || 'root';
+    if (!databaseName) throw databaseError('MySQL 数据库名不能为空');
+    label = 'MySQL Client';
+    command = operation === 'backup'
+      ? `mysqldump --host ${quoteCommandValue(host)} --port ${port} --password --user ${quoteCommandValue(username)} --single-transaction --routines --events --result-file=${quoteCommandValue(artifactPath)} ${quoteCommandValue(databaseName)}`
+      : `mysql --host ${quoteCommandValue(host)} --port ${port} --password --user ${quoteCommandValue(username)} ${quoteCommandValue(databaseName)} < ${quoteCommandValue(artifactPath)}`;
+  } else if (kind === 'sqlserver' || kind === 'mssql') {
+    const databaseName = connection.databaseName || '';
+    if (!databaseName) throw databaseError('SQL Server 数据库名不能为空');
+    label = 'SQL Server T-SQL';
+    command = operation === 'backup'
+      ? `BACKUP DATABASE ${quoteSqlServerIdentifier(databaseName)} TO DISK = N'${artifactPath.replaceAll("'", "''")}' WITH COMPRESSION, CHECKSUM, STATS = 10;`
+      : `RESTORE DATABASE ${quoteSqlServerIdentifier(databaseName)} FROM DISK = N'${artifactPath.replaceAll("'", "''")}' WITH REPLACE, RECOVERY, STATS = 10;`;
+  } else {
+    throw databaseError('暂不支持该数据库类型');
+  }
+
+  return {
+    operation,
+    operationLabel,
+    kind,
+    label,
+    artifactPath,
+    command,
+    safetyNotes: commonNotes
+  };
+}
+function quoteCommandValue(value) {
+  return `"${String(value).replaceAll('"', '\\"')}"`;
+}
+
+function quoteSqliteDotPath(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function quoteSqlServerIdentifier(value) {
+  return `[${String(value).replaceAll(']', ']]')}]`;
+}
