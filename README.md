@@ -13,7 +13,7 @@
 - **解决方案知识库**：沉淀问题现象、处理方案、分类和标签。
 - **SQLite 数据持久化**：内置数据库初始化、索引和演示数据，无外部数据库依赖。
 - **零第三方运行依赖**：仅使用 Node.js 内置模块和标准化前端。
-- **可部署交付**：包含 Dockerfile、Docker Compose、健康检查和 GitHub Actions 配置模板。
+- **可部署交付**：包含 Dockerfile、Docker Compose、健康检查和 GitHub Actions。
 
 ## 快速运行
 
@@ -96,7 +96,7 @@ npm test
 
 ```text
 .
-├── ci/github-actions.yml.example
+├── .github/workflows/ci.yml
 ├── docs/
 │   ├── architecture.md
 │   ├── demo-script.md
