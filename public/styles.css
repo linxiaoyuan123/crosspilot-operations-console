@@ -313,6 +313,7 @@ svg {
   gap: 10px;
   justify-content: space-between;
   margin-bottom: 18px;
+  padding-inline: 16px;
 }
 
 .page-actions-copy {
@@ -903,8 +904,28 @@ select {
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.diagnostic-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.diagnostic-table th:nth-child(1) { width: 12%; }
+.diagnostic-table th:nth-child(2) { width: 33%; }
+.diagnostic-table th:nth-child(3) { width: 16%; }
+.diagnostic-table th:nth-child(4) { width: 17%; }
+.diagnostic-table th:nth-child(5) { width: 22%; }
+
+.diagnostic-table th,
+.diagnostic-table td { padding-inline: 10px; }
+
+.diagnostic-table td { overflow-wrap: anywhere; }
+.diagnostic-table td:nth-child(1),
+.diagnostic-table td:nth-child(3),
+.diagnostic-table td:nth-child(4),
+.diagnostic-table td:nth-child(5) { white-space: nowrap; }
 
 .system-grid {
   display: grid;
