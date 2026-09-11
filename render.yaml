@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: supportops-console
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: DB_PATH
+        value: /app/data/supportops.db

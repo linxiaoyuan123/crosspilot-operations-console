@@ -1,0 +1,16 @@
+services:
+  supportops:
+    build: .
+    container_name: supportops-console
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3100
+      DB_PATH: /app/data/supportops.db
+    ports:
+      - "3100:3100"
+    volumes:
+      - supportops-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  supportops-data:

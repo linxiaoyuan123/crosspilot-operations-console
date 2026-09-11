@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SupportOps Console - 实施交付与技术支持工作台">
+    <meta name="theme-color" content="#102a2b">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <title>SupportOps Console</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">SO</span>
+          <span class="brand-copy">
+            <strong>SupportOps</strong>
+            <small>Service Console</small>
+          </span>
+        </div>
+
+        <nav class="main-nav" aria-label="主导航">
+          <button class="nav-item is-active" type="button" data-nav="dashboard">
+            <span data-icon="dashboard"></span><span>运行概览</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="tickets">
+            <span data-icon="tickets"></span><span>工单中心</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="deployments">
+            <span data-icon="deployments"></span><span>实施交付</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="diagnostics">
+            <span data-icon="diagnostics"></span><span>诊断工具</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="knowledge">
+            <span data-icon="knowledge"></span><span>知识库</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="service-state">
+            <span class="status-dot" id="sidebar-status-dot"></span>
+            <div>
+              <strong id="sidebar-status-label">服务检查中</strong>
+              <small>v1.0.0 · Local</small>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false">
+            <span data-icon="menu"></span>
+          </button>
+          <div class="topbar-title">
+            <span class="eyebrow">技术运营中心</span>
+            <h1 id="page-title">运行概览</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="sync-state" id="api-status">
+              <span class="status-dot"></span><span>API 正常</span>
+            </span>
+            <button class="icon-button" id="refresh-button" type="button" title="刷新当前页面" aria-label="刷新当前页面">
+              <span data-icon="refresh"></span>
+            </button>
+          </div>
+        </header>
+
+        <main class="content" id="app" aria-live="polite"></main>
+      </div>
+    </div>
+
+    <div id="modal-root"></div>
+    <div class="toast-stack" id="toast-root" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
