@@ -155,7 +155,7 @@ function initScrollUX() {
       <div class="companion-rest"></div>
       <div class="companion-dot"></div>
       <button class="companion-node" type="button" aria-label="向下浏览一屏">
-        <span class="companion-core">SO</span>
+        <img class="companion-pig" src="/pig.png" alt="">
         <span class="companion-bubble">浏览 0%</span>
       </button>`;
     document.body.append(companion);
