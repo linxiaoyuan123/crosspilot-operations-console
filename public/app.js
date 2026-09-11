@@ -179,7 +179,7 @@ function initScrollUX() {
   const progressLine = companion.querySelector('.companion-progress');
   const restLine = companion.querySelector('.companion-rest');
   const dot = companion.querySelector('.companion-dot');
-  const scrollContainer = document.querySelector('.content') || document.scrollingElement || document.documentElement;
+  const scrollContainer = document.querySelector('.workspace') || document.scrollingElement || document.documentElement;
   let scheduled = false;
 
   const update = () => {
