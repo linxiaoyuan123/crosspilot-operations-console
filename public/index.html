@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SupportOps Console - 实施交付与技术支持工作台">
-    <meta name="theme-color" content="#07111d">
+    <meta name="description" content="DeployMate 实施交付工作台 - 面向软件实施与技术支持工程师的交付工具">
+    <meta name="theme-color" content="#123b3a">
     <link rel="icon" href="/pig.png" type="image/png">
     <link rel="apple-touch-icon" href="/pig.png">
-    <title>SupportOps Console</title>
+    <title>DeployMate 实施交付工作台</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -16,23 +16,29 @@
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt=""></span>
           <span class="brand-copy">
-            <strong>SupportOps</strong>
-            <small>Service Console</small>
+            <strong>DeployMate</strong>
+            <small>实施交付工作台</small>
           </span>
         </div>
 
         <nav class="main-nav" aria-label="主导航">
-          <button class="nav-item is-active" type="button" data-nav="dashboard">
-            <span data-icon="dashboard"></span><span>运行概览</span>
+          <button class="nav-item is-active" type="button" data-nav="workbench">
+            <span data-icon="workbench"></span><span>今日工作台</span>
           </button>
-          <button class="nav-item" type="button" data-nav="tickets">
-            <span data-icon="tickets"></span><span>工单中心</span>
+          <button class="nav-item" type="button" data-nav="projects">
+            <span data-icon="projects"></span><span>实施项目</span>
           </button>
-          <button class="nav-item" type="button" data-nav="deployments">
-            <span data-icon="deployments"></span><span>实施交付</span>
+          <button class="nav-item" type="button" data-nav="preflight">
+            <span data-icon="preflight"></span><span>环境预检</span>
           </button>
-          <button class="nav-item" type="button" data-nav="diagnostics">
-            <span data-icon="diagnostics"></span><span>诊断工具</span>
+          <button class="nav-item" type="button" data-nav="database">
+            <span data-icon="database"></span><span>数据库交付</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="cases">
+            <span data-icon="cases"></span><span>技术支持</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="handover">
+            <span data-icon="handover"></span><span>培训验收</span>
           </button>
           <button class="nav-item" type="button" data-nav="knowledge">
             <span data-icon="knowledge"></span><span>知识库</span>
@@ -44,7 +50,7 @@
             <span class="status-dot" id="sidebar-status-dot"></span>
             <div>
               <strong id="sidebar-status-label">服务检查中</strong>
-              <small>v1.0.0 · Local</small>
+              <small>v2.0.0 · 本地工作台</small>
             </div>
           </div>
         </div>
@@ -56,10 +62,14 @@
             <span data-icon="menu"></span>
           </button>
           <div class="topbar-title">
-            <span class="eyebrow">技术运营中心</span>
-            <h1 id="page-title">运行概览</h1>
+            <span class="eyebrow" id="page-eyebrow">现场交付</span>
+            <h1 id="page-title">今日工作台</h1>
           </div>
           <div class="topbar-actions">
+            <label class="project-switcher" for="global-project">
+              <span>当前项目</span>
+              <select id="global-project" aria-label="切换当前实施项目"></select>
+            </label>
             <span class="sync-state" id="api-status">
               <span class="status-dot"></span><span>API 正常</span>
             </span>
@@ -74,6 +84,16 @@
     </div>
 
     <div id="modal-root"></div>
+    <div class="scroll-companion" id="scroll-companion" aria-hidden="true">
+      <span class="companion-rail"></span>
+      <span class="companion-progress" id="companion-progress"></span>
+      <button class="companion-node" id="companion-node" type="button" tabindex="-1" aria-label="返回顶部">
+        <img class="companion-pig" src="/pig.png" alt="">
+        <span class="companion-bubble">回到顶部</span>
+      </button>
+      <span class="companion-dot" id="companion-dot"></span>
+    </div>
+
     <div class="toast-stack" id="toast-root" aria-live="polite"></div>
     <script type="module" src="/app.js"></script>
   </body>

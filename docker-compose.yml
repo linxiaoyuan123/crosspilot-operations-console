@@ -1,16 +1,39 @@
 services:
-  supportops:
+  deploymate:
     build: .
-    container_name: supportops-console
+    container_name: deploymate-console
     environment:
       HOST: 0.0.0.0
       PORT: 3100
-      DB_PATH: /app/data/supportops.db
+      DB_PATH: /app/data/deploymate.db
     ports:
       - "3100:3100"
     volumes:
-      - supportops-data:/app/data
+      - deploymate-data:/app/data
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    profiles: ["mysql"]
+    container_name: deploymate-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: deploymate-root
+      MYSQL_DATABASE: deploymate_demo
+      MYSQL_USER: deploymate
+      MYSQL_PASSWORD: deploymate
+    ports:
+      - "3307:3306"
+    volumes:
+      - deploymate-mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
 volumes:
-  supportops-data:
+  deploymate-data:
+  deploymate-mysql-data:

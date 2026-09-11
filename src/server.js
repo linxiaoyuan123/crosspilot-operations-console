@@ -5,7 +5,7 @@ const host = process.env.HOST || '127.0.0.1';
 const { server, db } = createApp();
 
 server.listen(port, host, () => {
-  console.log(`SupportOps Console running at http://${host}:${port}`);
+  console.log(`DeployMate implementation delivery workbench running at http://${host}:${port}`);
 });
 
 function shutdown(signal) {
