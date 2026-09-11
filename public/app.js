@@ -89,6 +89,8 @@ function init() {
   });
 
   const initialView = window.location.hash.replace('#', '');
+  initVisualEffects();
+
   if (VIEW_META[initialView]) {
     state.view = initialView;
     pageTitle.textContent = VIEW_META[initialView].title;
@@ -99,6 +101,163 @@ function init() {
 
   checkHealth();
   loadCurrentView();
+}
+
+function initVisualEffects() {
+  if (prefersReducedMotion()) return;
+  initAmbientLayer();
+  initScrollUX();
+}
+
+function initAmbientLayer() {
+  let layer = document.querySelector('#ambient-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'ambient-layer';
+    layer.className = 'ambient-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.prepend(layer);
+  }
+
+  if (layer.childElementCount) return;
+  const colors = ['rgba(114,221,255,.72)', 'rgba(126,231,199,.66)', 'rgba(255,213,128,.48)', 'rgba(255,157,141,.42)'];
+  const count = window.innerWidth < 680 ? 14 : 28;
+  const particles = Array.from({ length: count }, (_, index) => {
+    const left = (index * 37 + 9) % 100;
+    const size = 6 + ((index * 5) % 8);
+    const drift = 22 + ((index * 29) % 74);
+    const duration = 13 + ((index * 7) % 12);
+    const delay = -((index * 11) % 19);
+    const color = colors[index % colors.length];
+    return `<span class="ambient-particle" style="--left:${left}%;--size:${size}px;--drift:${drift}px;--duration:${duration}s;--delay:${delay}s;--particle-color:${color}"></span>`;
+  });
+  layer.innerHTML = particles.join('');
+}
+
+function initScrollUX() {
+  let progress = document.querySelector('#scroll-progress');
+  if (!progress) {
+    progress = document.createElement('div');
+    progress.id = 'scroll-progress';
+    progress.className = 'scroll-progress';
+    progress.setAttribute('aria-hidden', 'true');
+    document.body.append(progress);
+  }
+
+  let companion = document.querySelector('#scroll-companion');
+  if (!companion) {
+    companion = document.createElement('div');
+    companion.id = 'scroll-companion';
+    companion.className = 'scroll-companion';
+    companion.innerHTML = `
+      <div class="companion-rail"></div>
+      <div class="companion-progress"></div>
+      <div class="companion-rest"></div>
+      <div class="companion-dot"></div>
+      <button class="companion-node" type="button" aria-label="向下浏览一屏">
+        <span class="companion-core">SO</span>
+        <span class="companion-bubble">浏览 0%</span>
+      </button>`;
+    document.body.append(companion);
+  }
+
+  let backTop = document.querySelector('#back-to-top');
+  if (!backTop) {
+    backTop = document.createElement('button');
+    backTop.id = 'back-to-top';
+    backTop.className = 'back-to-top';
+    backTop.type = 'button';
+    backTop.title = '回到顶部';
+    backTop.setAttribute('aria-label', '回到顶部');
+    backTop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5.25 14.75 6.75-6.75 6.75 6.75"></path></svg>';
+    document.body.append(backTop);
+  }
+
+  const companionNode = companion.querySelector('.companion-node');
+  const bubble = companion.querySelector('.companion-bubble');
+  const rail = companion.querySelector('.companion-rail');
+  const progressLine = companion.querySelector('.companion-progress');
+  const restLine = companion.querySelector('.companion-rest');
+  const dot = companion.querySelector('.companion-dot');
+  let scheduled = false;
+
+  const update = () => {
+    scheduled = false;
+    const max = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+    const ratio = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+    progress.style.width = `${ratio * 100}%`;
+    companion.classList.toggle('is-visible', max > 1);
+
+    const travel = Math.max((rail?.clientHeight || 0) - 2, 0);
+    const travelTop = 8 + travel * ratio;
+    companionNode.style.top = `${travelTop}px`;
+    dot.style.top = `${travelTop}px`;
+    progressLine.style.height = `${travel * ratio + 1}px`;
+    restLine.style.top = `${travelTop}px`;
+    bubble.textContent = `浏览 ${Math.round(ratio * 100)}%`;
+
+    const shouldShow = ratio > 0.035;
+    if (shouldShow && !backTop.classList.contains('is-visible')) {
+      backTop.classList.remove('is-hiding', 'is-settled');
+      void backTop.offsetWidth;
+      backTop.classList.add('is-visible');
+    }
+    if (!shouldShow && backTop.classList.contains('is-visible')) {
+      backTop.classList.remove('is-settled');
+      backTop.classList.add('is-hiding');
+    }
+  };
+
+  const scheduleUpdate = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(update);
+  };
+
+  backTop.addEventListener('animationend', (event) => {
+    if (event.animationName === 'back-top-throw') backTop.classList.add('is-settled');
+    if (event.animationName === 'back-top-drop') backTop.classList.remove('is-visible', 'is-hiding', 'is-settled');
+  });
+
+  backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  companionNode.addEventListener('click', () => window.scrollBy({ top: Math.round(window.innerHeight * 0.82), behavior: 'smooth' }));
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate, { passive: true });
+
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(scheduleUpdate).observe(app);
+  }
+  scheduleUpdate();
+}
+
+function animateMetrics(root) {
+  if (prefersReducedMotion()) return;
+  root.querySelectorAll('.metric-value').forEach((element) => {
+    const target = Number(element.textContent.replaceAll(',', '').trim());
+    if (!Number.isFinite(target)) return;
+    const duration = 620;
+    const startedAt = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      element.textContent = number(Math.round(target * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+function animateProgress(root) {
+  if (prefersReducedMotion()) return;
+  root.querySelectorAll('.progress-track > span').forEach((bar, index) => {
+    const target = bar.style.width || '0%';
+    bar.style.width = '0%';
+    window.setTimeout(() => { bar.style.width = target; }, 110 + index * 65);
+  });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function navigate(view) {
@@ -182,6 +341,8 @@ async function loadDashboard() {
     </div>
   `;
   bindDataIcons();
+  animateMetrics(app);
+  animateProgress(app);
 }
 
 async function loadTickets() {
@@ -215,6 +376,7 @@ async function loadDeployments() {
     ${items.length ? `<section class="deployment-grid">${items.map(deploymentCard).join('')}</section>` : emptyState('暂无实施项目', '创建项目后，交付进度会显示在这里。')}
   `;
   bindDataIcons();
+  animateProgress(app);
 }
 
 async function loadDiagnostics() {
@@ -249,7 +411,7 @@ async function loadDiagnostics() {
         <section class="panel">
           <div class="panel-header"><div class="panel-title"><strong>诊断记录</strong><span>最近执行的网络检查</span></div></div>
           <div class="panel-body panel-body-flush">
-            ${history.items.length ? `<div class="table-wrap"><table><thead><tr><th>类型</th><th>目标</th><th>结果</th><th>耗时</th><th>时间</th></tr></thead><tbody>${history.items.map((item) => `<tr><td>${escapeHtml(item.check_type.toUpperCase())}</td><td class="cell-muted">${escapeHtml(item.target)}</td><td>${statusBadge(item.status)}</td><td>${item.latency_ms == null ? '--' : `${item.latency_ms} ms`}</td><td class="cell-muted">${formatDate(item.created_at)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('暂无诊断记录', '执行一次网络检查后会保留结果。')}
+            ${history.items.length ? `<div class="table-wrap"><table class="responsive-table diagnostic-table"><thead><tr><th>类型</th><th>目标</th><th>结果</th><th>耗时</th><th>时间</th></tr></thead><tbody>${history.items.map((item) => `<tr><td data-label="类型">${escapeHtml(item.check_type.toUpperCase())}</td><td class="cell-muted" data-label="目标">${escapeHtml(item.target)}</td><td data-label="结果">${statusBadge(item.status)}</td><td data-label="耗时">${item.latency_ms == null ? '--' : `${item.latency_ms} ms`}</td><td class="cell-muted" data-label="时间">${formatDate(item.created_at)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('暂无诊断记录', '执行一次网络检查后会保留结果。')}
           </div>
         </section>
       </div>
@@ -271,6 +433,7 @@ async function loadDiagnostics() {
     </div>
   `;
   bindDataIcons();
+  animateProgress(app);
   syncDiagnosticFields();
 }
 
@@ -306,16 +469,16 @@ function ticketTable(items, compact = false) {
   if (!items.length) return emptyState('暂无工单', '创建工单后会显示在这里。');
   return `
     <div class="table-wrap">
-      <table>
+      <table class="responsive-table ticket-table">
         <thead><tr><th>工单</th><th>客户</th><th>优先级</th><th>状态</th><th>负责人</th>${compact ? '' : '<th>更新时间</th>'}</tr></thead>
         <tbody>${items.map((ticket) => `
           <tr class="ticket-row" data-ticket-id="${ticket.id}">
-            <td><div class="ticket-title"><strong>${escapeHtml(ticket.title)}</strong><span>${escapeHtml(ticket.ticket_no)} · ${escapeHtml(ticket.category || '未分类')}</span></div></td>
-            <td>${escapeHtml(ticket.customer)}</td>
-            <td>${priorityBadge(ticket.priority)}</td>
-            <td>${statusBadge(ticket.status)}</td>
-            <td>${escapeHtml(ticket.assignee || '未分配')}</td>
-            ${compact ? '' : `<td class="cell-muted">${formatDate(ticket.updated_at)}</td>`}
+            <td data-label="工单"><div class="ticket-title"><strong>${escapeHtml(ticket.title)}</strong><span>${escapeHtml(ticket.ticket_no)} · ${escapeHtml(ticket.category || '未分类')}</span></div></td>
+            <td data-label="客户">${escapeHtml(ticket.customer)}</td>
+            <td data-label="优先级">${priorityBadge(ticket.priority)}</td>
+            <td data-label="状态">${statusBadge(ticket.status)}</td>
+            <td data-label="负责人">${escapeHtml(ticket.assignee || '未分配')}</td>
+            ${compact ? '' : `<td class="cell-muted" data-label="更新时间">${formatDate(ticket.updated_at)}</td>`}
           </tr>`).join('')}</tbody>
       </table>
     </div>
@@ -627,7 +790,7 @@ function updateHistoryPanel(panel, items) {
     wrap.innerHTML = emptyState('暂无诊断记录', '执行一次网络检查后会保留结果。');
     return;
   }
-  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>类型</th><th>目标</th><th>结果</th><th>耗时</th><th>时间</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(item.check_type.toUpperCase())}</td><td class="cell-muted">${escapeHtml(item.target)}</td><td>${statusBadge(item.status)}</td><td>${item.latency_ms == null ? '--' : `${item.latency_ms} ms`}</td><td class="cell-muted">${formatDate(item.created_at)}</td></tr>`).join('')}</tbody></table></div>`;
+  wrap.innerHTML = `<div class="table-wrap"><table class="responsive-table diagnostic-table"><thead><tr><th>类型</th><th>目标</th><th>结果</th><th>耗时</th><th>时间</th></tr></thead><tbody>${items.map((item) => `<tr><td data-label="类型">${escapeHtml(item.check_type.toUpperCase())}</td><td class="cell-muted" data-label="目标">${escapeHtml(item.target)}</td><td data-label="结果">${statusBadge(item.status)}</td><td data-label="耗时">${item.latency_ms == null ? '--' : `${item.latency_ms} ms`}</td><td class="cell-muted" data-label="时间">${formatDate(item.created_at)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 function syncDiagnosticFields() {
