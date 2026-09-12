@@ -5,6 +5,9 @@ const STORAGE_KEYS = {
   cardBorder: 'crosspilot-card-border',
   followTheme: 'crosspilot-follow-theme',
   wallpaper: 'crosspilot-wallpaper-mode',
+  fullscreenLayout: 'crosspilot-fullscreen-layout',
+  overlayBlur: 'crosspilot-overlay-blur',
+  cardOpacity: 'crosspilot-card-opacity',
   bannerTitle: 'crosspilot-banner-title',
   carousel: 'crosspilot-carousel',
   waves: 'crosspilot-waves',
@@ -18,7 +21,10 @@ const DEFAULT_SETTINGS = {
   density: 'comfortable',
   cardBorder: false,
   followTheme: true,
-  wallpaper: 'immersive',
+  wallpaper: 'fullscreen',
+  fullscreenLayout: 'classic',
+  overlayBlur: 0,
+  cardOpacity: 100,
   bannerTitle: true,
   carousel: true,
   waves: true,
@@ -87,13 +93,21 @@ function applyStoredSettings() {
   settings.cardBorder = readBoolean(STORAGE_KEYS.cardBorder, DEFAULT_SETTINGS.cardBorder);
   settings.followTheme = readBoolean(STORAGE_KEYS.followTheme, DEFAULT_SETTINGS.followTheme);
   settings.wallpaper = readSetting(STORAGE_KEYS.wallpaper, DEFAULT_SETTINGS.wallpaper);
+  const legacyWallpaper = { immersive: 'fullscreen', compact: 'banner', solid: 'none' }[settings.wallpaper];
+  if (legacyWallpaper) settings.wallpaper = legacyWallpaper;
+  settings.fullscreenLayout = readSetting(STORAGE_KEYS.fullscreenLayout, DEFAULT_SETTINGS.fullscreenLayout);
+  settings.overlayBlur = Number(readSetting(STORAGE_KEYS.overlayBlur, DEFAULT_SETTINGS.overlayBlur));
+  settings.cardOpacity = Number(readSetting(STORAGE_KEYS.cardOpacity, DEFAULT_SETTINGS.cardOpacity));
   settings.bannerTitle = readBoolean(STORAGE_KEYS.bannerTitle, DEFAULT_SETTINGS.bannerTitle);
   settings.carousel = readBoolean(STORAGE_KEYS.carousel, DEFAULT_SETTINGS.carousel);
   settings.waves = readBoolean(STORAGE_KEYS.waves, DEFAULT_SETTINGS.waves);
   settings.gradient = readBoolean(STORAGE_KEYS.gradient, DEFAULT_SETTINGS.gradient);
   settings.sakura = readBoolean(STORAGE_KEYS.sakura, DEFAULT_SETTINGS.sakura);
   settings.typewriter = readBoolean(STORAGE_KEYS.typewriter, DEFAULT_SETTINGS.typewriter);
-  if (!['immersive', 'compact', 'solid'].includes(settings.wallpaper)) settings.wallpaper = DEFAULT_SETTINGS.wallpaper;
+  if (!['banner', 'fullscreen', 'overlay', 'none'].includes(settings.wallpaper)) settings.wallpaper = DEFAULT_SETTINGS.wallpaper;
+  if (!['classic', 'hero'].includes(settings.fullscreenLayout)) settings.fullscreenLayout = DEFAULT_SETTINGS.fullscreenLayout;
+  settings.overlayBlur = Number.isFinite(settings.overlayBlur) ? Math.min(20, Math.max(0, settings.overlayBlur)) : DEFAULT_SETTINGS.overlayBlur;
+  settings.cardOpacity = Number.isFinite(settings.cardOpacity) ? Math.min(100, Math.max(20, settings.cardOpacity)) : DEFAULT_SETTINGS.cardOpacity;
   applyVisualSettings();
   syncSettingControls();
 }
@@ -110,6 +124,13 @@ function applyVisualSettings() {
   root.classList.toggle('cp-sakura-off', !settings.sakura);
   root.classList.toggle('cp-typewriter-off', !settings.typewriter);
   root.dataset.wallpaperMode = settings.wallpaper;
+  root.dataset.fullscreenLayout = settings.fullscreenLayout;
+  root.style.setProperty('--cp-overlay-blur', `${settings.overlayBlur}px`);
+  root.style.setProperty('--cp-card-opacity', String(settings.cardOpacity / 100));
+  root.classList.toggle('cp-card-opacity-custom', settings.cardOpacity < 100);
+  root.classList.toggle('cp-wallpaper-overlay', settings.wallpaper === 'overlay');
+  root.classList.toggle('cp-wallpaper-none', settings.wallpaper === 'none');
+  root.classList.toggle('cp-fullscreen-hero', settings.wallpaper === 'fullscreen' && settings.fullscreenLayout === 'hero');
   syncVideoAvailability();
 }
 
@@ -125,6 +146,23 @@ function syncSettingControls() {
   getElements('[data-cp-density]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.cpDensity === settings.density));
   });
+  getElements('[data-cp-layout]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.cpLayout === settings.fullscreenLayout));
+  });
+  const overlayBlur = getElement('#cp-overlay-blur');
+  const overlayBlurValue = getElement('#cp-overlay-blur-value');
+  const cardOpacity = getElement('#cp-card-opacity');
+  const cardOpacityValue = getElement('#cp-card-opacity-value');
+  if (overlayBlur) overlayBlur.value = String(settings.overlayBlur);
+  if (overlayBlurValue) overlayBlurValue.textContent = `${settings.overlayBlur.toFixed(1)}px`;
+  if (cardOpacity) cardOpacity.value = String(settings.cardOpacity);
+  if (cardOpacityValue) cardOpacityValue.textContent = `${Math.round(settings.cardOpacity)}%`;
+  const showLayout = settings.wallpaper === 'fullscreen';
+  getElement('[data-cp-layout-heading]')?.toggleAttribute('hidden', !showLayout);
+  getElement('[data-cp-layout-group]')?.toggleAttribute('hidden', !showLayout);
+  const showTransparency = settings.wallpaper === 'overlay' || (settings.wallpaper === 'fullscreen' && settings.fullscreenLayout === 'hero');
+  getElement('[data-cp-transparency-heading]')?.toggleAttribute('hidden', !showTransparency);
+  getElement('[data-cp-transparency-group]')?.toggleAttribute('hidden', !showTransparency);
 }
 
 function initSearch() {
@@ -167,7 +205,7 @@ function initSearch() {
     activeSearchIndex = matches.length ? 0 : -1;
     panel.innerHTML = matches.length
       ? matches.map((item, index) => `
-          <button class="cp-search-result${index === activeSearchIndex ? ' is-active' : ''}" type="button" role="option" data-search-view="${item.view}" data-search-index="${index}" aria-selected="${index === activeSearchIndex}">
+          <button class="cp-search-result${index === activeSearchIndex ? ' is-active' : ''}" type="button" role="option" data-search-view="${item.view}" data-search-index="${index}"${item.productId ? ` data-search-product-id="${item.productId}"` : ''}${item.actionId ? ` data-search-action-id="${item.actionId}"` : ''}${item.knowledgeId ? ` data-search-knowledge-id="${item.knowledgeId}"` : ''} aria-selected="${index === activeSearchIndex}">
             <span class="cp-search-type">${escapeHtml(item.type)}</span>
             <span class="cp-search-copy"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.description || '')}</small></span>
             <span class="cp-search-arrow" aria-hidden="true">→</span>
@@ -179,10 +217,13 @@ function initSearch() {
   const selectResult = (button) => {
     if (!button) return;
     const view = button.dataset.searchView;
+    const productId = button.dataset.searchProductId || null;
+    const actionId = button.dataset.searchActionId || null;
+    const knowledgeId = button.dataset.searchKnowledgeId || null;
     closePanel();
     input.value = '';
     clear.hidden = true;
-    window.dispatchEvent(new CustomEvent('crosspilot:navigate', { detail: { view } }));
+    window.dispatchEvent(new CustomEvent('crosspilot:search-navigate', { detail: { view, productId, actionId, knowledgeId } }));
   };
 
   input.addEventListener('focus', async () => {
@@ -257,6 +298,7 @@ async function ensureSearchIndex() {
         title: `${item.sku} · ${item.title}`,
         description: `Listing ${item.listing_score} 分 · 净利率 ${item.margin_percent}%`,
         view: 'listings',
+        productId: item.id,
         type: 'SKU',
         keywords: `${item.sku} ${item.title} ${item.category || ''} ${item.asin || ''}`
       });
@@ -266,6 +308,7 @@ async function ensureSearchIndex() {
         title: item.title || '未命名运营动作',
         description: `${item.category || '运营'} · ${statusLabel(item.status)} · ${item.owner || '未分配'}`,
         view: actionView(item.category),
+        actionId: item.id,
         type: '动作',
         keywords: `${item.title || ''} ${item.description || ''} ${item.category || ''} ${item.owner || ''}`
       });
@@ -275,6 +318,7 @@ async function ensureSearchIndex() {
         title: item.title,
         description: item.summary || item.category || '运营知识',
         view: 'reviews',
+        knowledgeId: item.id,
         type: '知识',
         keywords: `${item.title || ''} ${item.summary || ''} ${item.category || ''} ${item.tags || ''}`
       });
@@ -394,7 +438,7 @@ function initHeroVideo() {
   };
 
   button.addEventListener('click', async () => {
-    if (settings.wallpaper === 'solid') {
+    if (settings.wallpaper === 'none') {
       showEnhancementToast('纯色背景模式下没有播放视频的空间。', 'error');
       return;
     }
@@ -479,6 +523,28 @@ function initThemeCustomizer() {
       applyVisualSettings();
       syncSettingControls();
     });
+  });
+  getElements('[data-cp-layout]').forEach((control) => {
+    control.addEventListener('click', () => {
+      settings.fullscreenLayout = control.dataset.cpLayout === 'hero' ? 'hero' : 'classic';
+      writeSetting(STORAGE_KEYS.fullscreenLayout, settings.fullscreenLayout);
+      applyVisualSettings();
+      syncSettingControls();
+    });
+  });
+  const overlayBlur = getElement('#cp-overlay-blur');
+  overlayBlur?.addEventListener('input', () => {
+    settings.overlayBlur = Math.min(20, Math.max(0, Number(overlayBlur.value) || 0));
+    writeSetting(STORAGE_KEYS.overlayBlur, settings.overlayBlur);
+    applyVisualSettings();
+    syncSettingControls();
+  });
+  const cardOpacity = getElement('#cp-card-opacity');
+  cardOpacity?.addEventListener('input', () => {
+    settings.cardOpacity = Math.min(100, Math.max(20, Number(cardOpacity.value) || 100));
+    writeSetting(STORAGE_KEYS.cardOpacity, settings.cardOpacity);
+    applyVisualSettings();
+    syncSettingControls();
   });
   getElements('[data-cp-setting]').forEach((control) => {
     control.addEventListener('click', () => {
@@ -618,7 +684,7 @@ function closeActivePanel() {
 function syncVideoAvailability() {
   const button = getElement('#cp-video-toggle');
   if (!button) return;
-  const disabled = settings.wallpaper === 'solid';
+  const disabled = settings.wallpaper === 'none';
   button.disabled = disabled;
   button.title = disabled ? '纯色背景模式下不可播放视频' : '播放主页背景视频';
   if (disabled) {

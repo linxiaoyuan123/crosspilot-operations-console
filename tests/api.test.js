@@ -248,6 +248,18 @@ test('static shell is branded as CrossPilot and preserves the visual baseline', 
   assert.match(html, /cp-hero-video/);
   assert.match(html, /cp-theme-panel/);
   assert.match(html, /data-cp-color-mode="light"/);
+  assert.match(html, /data-cp-wallpaper="banner"/);
+  assert.match(html, /data-cp-wallpaper="fullscreen"/);
+  assert.match(html, /data-cp-wallpaper="overlay"/);
+  assert.match(html, /data-cp-wallpaper="none"/);
+  assert.match(html, /data-cp-layout="classic"/);
+  assert.match(html, /data-cp-layout="hero"/);
+  assert.match(html, /cp-overlay-blur/);
+  assert.match(html, /cp-card-opacity/);
+  assert.match(html, /firefly-controls\.css/);
+  assert.doesNotMatch(html, /id="api-status"/);
+  assert.doesNotMatch(html, /id="refresh-button"/);
+  assert.doesNotMatch(html, /Ctrl\+K|Ctrl K/);
 
   const enhancementCss = await request('/enhancements.css');
   assert.match(enhancementCss.body, /html\[data-theme="light"\] \.cp-global-search/);

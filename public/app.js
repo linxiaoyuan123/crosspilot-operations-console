@@ -47,7 +47,30 @@ const ICON_PATHS = {
   message: '<path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 12h5"/>',
   file: '<path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/>',
   database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'
+  // Filled Firefly-style variants intentionally override the baseline outline icons above.
+  ,music: '<path d="M7.175 19.825Q6 18.65 6 17t1.175-2.825T10 13q.575 0 1.063.138t.937.412V4q0-.425.288-.712T13 3h4q.425 0 .713.288T18 4v2q0 .425-.288.713T17 7h-3v10q0 1.65-1.175 2.825T10 21t-2.825-1.175"/>'
+  ,play: '<path d="M8 17.175V6.825q0-.425.3-.713t.7-.287q.125 0 .263.037t.262.113l8.15 5.175q.225.15.338.375t.112.475-.112.475-.338.375l-8.15 5.175q-.125.075-.262.113T9 18.175q-.4 0-.7-.288t-.3-.712"/>'
+  ,pause: '<path d="M16 19q-.825 0-1.412-.587T14 17V7q0-.825.588-1.412T16 5t1.413.588T18 7v10q0 .825-.587 1.413T16 19m-8 0q-.825 0-1.412-.587T6 17V7q0-.825.588-1.412T8 5t1.413.588T10 7v10q0 .825-.587 1.413T8 19"/>'
+  ,palette: '<path d="M12 22q-2.05 0-3.875-.788t-3.187-2.15t-2.15-3.187T2 12q0-2.075.813-3.9t2.2-3.175T8.25 2.788T12.2 2q2 0 3.775.688t3.113 1.9t2.125 2.875T22 11.05q0 2.875-1.75 4.413T16 17h-1.85q-.225 0-.312.125t-.088.275q0 .3.375.863t.375 1.287q0 1.25-.687 1.85T12 22m-4.425-9.425Q8 12.15 8 11.5t-.425-1.075T6.5 10t-1.075.425T5 11.5t.425 1.075T6.5 13t1.075-.425m3-4Q11 8.15 11 7.5t-.425-1.075T9.5 6t-1.075.425T8 7.5t.425 1.075T9.5 9t1.075-.425m5 0Q16 8.15 16 7.5t-.425-1.075T14.5 6t-1.075.425T13 7.5t.425 1.075T14.5 9t1.075-.425m3 4Q19 12.15 19 11.5t-.425-1.075T17.5 10t-1.075.425T16 11.5t.425 1.075T17.5 13t1.075-.425M12 20q.225 0 .363-.125t.137-.325q0-.35-.375-.825T11.75 17.3q0-1.05.725-1.675T14.25 15H16q1.65 0 2.825-.962T20 11.05q0-3.025-2.312-5.038T12.2 4Q8.8 4 6.4 6.325T4 12q0 3.325 2.338 5.663T12 20"/>'
+  ,sun: '<path d="M11 3V2q0-.425.288-.712T12 1t.713.288T13 2v1q0 .425-.288.713T12 4t-.712-.288T11 3m0 19v-1q0-.425.288-.712T12 20t.713.288T13 21v1q0 .425-.288.713T12 23t-.712-.288T11 22m11-9h-1q-.425 0-.712-.288T20 12t.288-.712T21 11h1q.425 0 .713.288T23 12t-.288.713T22 13M3 13H2q-.425 0-.712-.288T1 12t.288-.712T2 11h1q.425 0 .713.288T4 12t-.288.713T3 13m16.75-7.325l-.35.35q-.275.275-.687.275T18 6q-.275-.275-.288-.687t.263-.713l.375-.375q.275-.3.7-.3t.725.3t.288.725t-.313.725M6.025 19.4l-.375.375q-.275.3-.7.3t-.725-.3t-.288-.725t.313-.725l.35-.35q.275-.275.688-.275T6 18q.275.275.288.688t-.263.712m12.3.35l-.35-.35q-.275-.275-.275-.687T18 18q.275-.275.688-.287t.712.262l.375.375q.3.275.3.7t-.3.725t-.725.288t-.725-.313M4.6 6.025l-.375-.375q-.3-.275-.3-.7t.3-.725t.725-.288t.725.313l.35.35q.275.275.275.688T6 6q-.275.275-.687.288T4.6 6.025M7.75 16.25Q6 14.5 6 12t1.75-4.25T12 6t4.25 1.75T18 12t-1.75 4.25T12 18t-4.25-1.75m7.088-1.412Q16 13.675 16 12t-1.162-2.838T12 8T9.162 9.163T8 12t1.163 2.838T12 16t2.838-1.162M12 12"/>'
+  ,moon: '<path d="M12 21q-3.775 0-6.387-2.613T3 12q0-3.45 2.25-5.988T11 3.05q.325-.05.575.088t.4.362t.163.525t-.188.575q-.425.65-.638 1.375T11.1 7.5q0 2.25 1.575 3.825T16.5 12.9q.775 0 1.538-.225t1.362-.625q.275-.175.563-.162t.512.137q.25.125.388.375t.087.6q-.35 3.45-2.937 5.725T12 21m0-2q2.2 0 3.95-1.213t2.55-3.162q-.5.125-1 .2t-1 .075q-3.075 0-5.238-2.163T9.1 7.5q0-.5.075-1t.2-1q-1.95.8-3.163 2.55T5 12q0 2.9 2.05 4.95T12 19m-.25-6.75"/>'
+  ,monitor: '<path d="M10.2 13.7h3.65l.625 1.825q.075.2.263.338t.412.137q.375 0 .588-.312t.087-.663l-2.85-7.55q-.075-.225-.275-.35T12.275 7h-.55q-.225 0-.425.125t-.275.35L8.175 15q-.125.35.088.675t.612.325q.25 0 .438-.137t.262-.363zm.45-1.3l1.3-3.75h.1l1.3 3.75zm-2 7.6H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12t.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5t.738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737t-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5t-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"/>'
+  ,wallpaper: '<path d="M5 21q-.825 0-1.412-.587T3 19v-6h2v6h6v2zm8 0v-2h6v-6h2v6q0 .825-.587 1.413T19 21zm-7-4l3-4l2.25 3l3-4L18 17zm-3-6V5q0-.825.588-1.412T5 3h6v2H5v6zm16 0V5h-6V3h6q.825 0 1.413.588T21 5v6zm-4.575-1.425Q14 9.15 14 8.5t.425-1.075T15.5 7t1.075.425T17 8.5t-.425 1.075T15.5 10t-1.075-.425"/>'
+  ,imageOutline: '<path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm0-2h14V5H5zm1-2h12l-3.75-5l-3 4L9 13zm-1 2V5z"/>'
+  ,overlay: '<path d="M4 21q-.825 0-1.412-.587T2 19V8q0-.425.288-.712T3 7t.713.288T4 8v11h14q.425 0 .713.288T19 20t-.288.713T18 21zm4-4q-.825 0-1.412-.587T6 15V4q0-.425.288-.712T7 3h15q.425 0 .713.288T23 4v11q0 .825-.587 1.413T21 17zm0-2h13V5H8zm3-3h2q.425 0 .713-.288T14 11V8q0-.425-.288-.712T13 7h-2q-.425 0-.712.288T10 8v3q0 .425.288.713T11 12m5 0h2q.425 0 .713-.288T19 11t-.288-.712T18 10h-2q-.425 0-.712.288T15 11t.288.713T16 12m0-3h2q.425 0 .713-.288T19 8t-.288-.712T18 7h-2q-.425 0-.712.288T15 8t.288.713T16 9m-8 6V5z"/>'
+  ,hideImage: '<path d="m21 18.15l-2-2V5H7.85l-2-2H19q.825 0 1.413.588T21 5zm-1.2 4.45L18.2 21H5q-.825 0-1.412-.587T3 19V5.8L1.4 4.2l1.4-1.4l18.4 18.4zM6 17l3-4l2.25 3l.825-1.1L5 7.825V19h11.175l-2-2zm4.6-3.6"/>'
+  ,viewDay: '<path d="M3 20v-2h18v2zM3 6V4h18v2zm2 10q-.825 0-1.412-.587T3 14v-4q0-.825.588-1.412T5 8h14q.825 0 1.413.588T21 10v4q0 .825-.587 1.413T19 16zm0-2h14v-4H5zm0-4v4z"/>'
+  ,desktopLandscape: '<path d="M7 16h7q.425 0 .713-.288T15 15v-3q0-.425-.288-.712T14 11H7q-.425 0-.712.288T6 12v3q0 .425.288.713T7 16m2.213-6.712q.212.212.537.212H16q.2 0 .35.15t.15.35v2.25q0 .325.213.538t.537.212t.538-.213t.212-.537V10q0-.825-.587-1.412T16 8H9.75q-.325 0-.537.213T9 8.75t.213.538M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.587 1.413T20 20zm0-2h16V6H4zm0 0V6z"/>'
+  ,titlecase: '<path d="M8.6 16.925V8.6H6.425q-.35 0-.588-.225T5.6 7.8t.237-.575T6.425 7H12.5q.35 0 .575.225t.225.575t-.225.575t-.575.225h-2.2v8.325q0 .35-.25.588t-.6.237t-.6-.238t-.25-.587m6.25-5.375h-.625q-.3 0-.512-.213t-.213-.512t.213-.512t.512-.213h.625V8.75q0-.35.238-.587t.587-.238t.588.238t.237.587v1.35h1.125q.3 0 .513.213t.212.512t-.213.513t-.512.212H16.5v3.7q0 .575.263.9t.712.325h.225q.275-.025.488.187t.212.513q0 .35-.187.55t-.513.25q-.125.025-.25.025h-.25q-1.1 0-1.725-.638T14.85 15.6z"/>'
+  ,carousel: '<path d="M2 15V9q0-.825.588-1.412T4 7t1.413.588T6 9v6q0 .825-.587 1.413T4 17t-1.412-.587T2 15m7 4q-.825 0-1.412-.587T7 17V7q0-.825.588-1.412T9 5h6q.825 0 1.413.588T17 7v10q0 .825-.587 1.413T15 19zm9-4V9q0-.825.588-1.412T20 7t1.413.588T22 9v6q0 .825-.587 1.413T20 17t-1.412-.587T18 15m-9 2h6V7H9zm3-5"/>'
+  ,airwave: '<path d="M18.75 8.65q-.675.675-1.55 1.025t-1.75.35t-1.725-.337T12.2 8.65l-1.875-1.875q-.375-.375-.85-.562T8.5 6.025t-.975.188t-.85.562L5.5 7.95q-.3.3-.7.288t-.7-.313t-.3-.712t.3-.713l1.15-1.15q.675-.675 1.525-1.012T8.5 4t1.713.337t1.512 1.013L13.6 7.225q.4.4.875.588T15.45 8t.988-.187t.887-.588L18.5 6.05q.3-.3.713-.3t.712.3t.3.713t-.3.712zm0 5q-.675.675-1.537 1.013T15.474 15t-1.737-.337T12.2 13.65l-1.875-1.875q-.375-.375-.85-.562t-.975-.188t-.975.188t-.85.562L5.5 12.95q-.275.275-.687.288T4.1 12.95q-.3-.275-.312-.7t.287-.725L5.25 10.35q.675-.675 1.525-1.012T8.5 9t1.713.338t1.512 1.012l1.875 1.875q.4.4.875.588t.975.187t.988-.187t.887-.588L18.5 11.05q.3-.3.713-.3t.712.3t.3.713t-.3.712zm-.025 5q-.675.675-1.525 1.013T15.475 20t-1.737-.337T12.2 18.65l-1.9-1.875q-.375-.375-.85-.562t-.975-.188t-.975.188t-.85.562L5.475 17.95q-.275.275-.687.288t-.713-.288q-.275-.275-.275-.7t.275-.7l1.175-1.2q.675-.675 1.525-1.012T8.5 14t1.713.338t1.512 1.012l1.875 1.875q.4.4.888.588t.987.187t.975-.187t.875-.588L18.5 16.05q.3-.3.7-.288t.7.313q.275.3.288.7t-.288.7z"/>'
+  ,gradient: '<path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21zm6-10v2h2v-2zm-4 0v2h2v-2zm2 2v2h2v-2zm4 0v2h2v-2zm-8 0v2h2v-2zm10-2v2h2v2h2v-2h-2v-2zm-8 4v2H5v2h2v-2h2v2h2v-2h2v2h2v-2h2v2h2v-2h-2v-2h-2v2h-2v-2h-2v2H9v-2zm12-4v2zm0 4v2z"/>'
+  ,flower: '<path d="M18.5 12A3.5 3.5 0 0 0 22 8.5A6.5 6.5 0 0 0 15.5 2A3.5 3.5 0 0 0 12 5.5A3.5 3.5 0 0 0 8.5 2A6.5 6.5 0 0 0 2 8.5A3.5 3.5 0 0 0 5.5 12A3.5 3.5 0 0 0 2 15.5A6.5 6.5 0 0 0 8.5 22a3.5 3.5 0 0 0 3.5-3.5a3.5 3.5 0 0 0 3.5 3.5a6.5 6.5 0 0 0 6.5-6.5a3.5 3.5 0 0 0-3.5-3.5M12 16a4 4 0 0 1-4-4a4 4 0 0 1 4-4a4 4 0 0 1 4 4a4 4 0 0 1-4 4m2.5-4a2.5 2.5 0 0 1-2.5 2.5A2.5 2.5 0 0 1 9.5 12A2.5 2.5 0 0 1 12 9.5a2.5 2.5 0 0 1 2.5 2.5"/>'
+  ,search: '<path d="m19.6 21l-6.3-6.3q-.75.6-1.725.95T9.5 16q-2.725 0-4.612-1.888T3 9.5t1.888-4.612T9.5 3t4.613 1.888T16 9.5q0 1.1-.35 2.075T14.7 13.3l6.3 6.3zM9.5 14q1.875 0 3.188-1.312T14 9.5t-1.312-3.187T9.5 5T6.313 6.313T5 9.5t1.313 3.188T9.5 14"/>'
+  ,borderOuter: '<path d="M11.288 8.713Q11 8.425 11 8t.288-.712T12 7t.713.288T13 8t-.288.713T12 9t-.712-.288m-4 4Q7 12.426 7 12t.288-.712T8 11t.713.288T9 12t-.288.713T8 13t-.712-.288m4 0Q11 12.426 11 12t.288-.712T12 11t.713.288T13 12t-.288.713T12 13t-.712-.288m4 0Q15 12.426 15 12t.288-.712T16 11t.713.288T17 12t-.288.713T16 13t-.712-.288m-4 4Q11 16.426 11 16t.288-.712T12 15t.713.288T13 16t-.288.713T12 17t-.712-.288M5 19h14V5H5zm0 2q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21z"/>'
 };
+
+const FILLED_ICONS = new Set(['music', 'play', 'pause', 'palette', 'sun', 'moon', 'monitor', 'wallpaper', 'imageOutline', 'overlay', 'hideImage', 'viewDay', 'desktopLandscape', 'titlecase', 'carousel', 'airwave', 'gradient', 'flower', 'search', 'borderOuter']);
 
 const VIEW_META = {
   overview: { title: '运营总览', eyebrow: '经营驾驶舱' },
@@ -153,11 +176,11 @@ function init() {
   initAppHeader();
   initNavTools();
   document.querySelectorAll('[data-nav]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.nav)));
-  document.querySelector('#refresh-button').addEventListener('click', () => loadCurrentView(true));
   window.addEventListener('crosspilot:navigate', (event) => {
     const view = event.detail?.view;
     if (VIEW_META[view]) navigate(view);
   });
+  window.addEventListener('crosspilot:search-navigate', (event) => handleSearchNavigation(event.detail || {}));
   storeSelect.addEventListener('change', async () => {
     state.storeId = Number(storeSelect.value) || null;
     state.selectedProductId = null;
@@ -404,7 +427,7 @@ function renderListings() {
           ${filtered.map((item) => `<button type="button" class="${item.id === selected?.id ? 'is-active' : ''}" data-action="select-product" data-id="${item.id}"><span>${h(item.sku)}</span><strong>${h(item.title)}</strong><small>Listing ${item.listing_score}/100 · 净利率 ${item.margin_percent}%</small></button>`).join('') || emptyBlock('没有匹配商品', '调整关键词后再试。')}
         </div>
       </section>
-      <section class="panel cp-product-detail">
+      <section class="panel cp-product-detail" id="product-detail" data-product-id="${selected?.id || ''}">
         ${selected ? renderListingDetail(selected) : emptyBlock('暂无商品', '导入商品表现报表后即可评分。')}
       </section>
     </div>
@@ -624,7 +647,7 @@ function renderRiskProducts(products, currency) {
 }
 
 function actionCompact(item) {
-  return `<article class="cp-action-item"><span class="cp-priority priority-${h(item.priority)}">${h(PRIORITY_LABELS[item.priority] || item.priority)}</span><div><strong>${h(item.title)}</strong><p>${h(item.category)} · ${h(item.owner || '待分配')} · ${h(item.due_date || '未设截止')}</p></div><div class="cp-action-buttons"><button class="icon-button small" data-action="manage-action" data-id="${item.id}" title="查看或更新动作">${icon('edit', 14)}</button><button class="icon-button small" data-action="complete-action" data-id="${item.id}" title="快速完成">${icon('check', 14)}</button></div></article>`;
+  return `<article class="cp-action-item" data-action-id="${item.id}"><span class="cp-priority priority-${h(item.priority)}">${h(PRIORITY_LABELS[item.priority] || item.priority)}</span><div><strong>${h(item.title)}</strong><p>${h(item.category)} · ${h(item.owner || '待分配')} · ${h(item.due_date || '未设截止')}</p></div><div class="cp-action-buttons"><button class="icon-button small" data-action="manage-action" data-id="${item.id}" title="查看或更新动作">${icon('edit', 14)}</button><button class="icon-button small" data-action="complete-action" data-id="${item.id}" title="快速完成">${icon('check', 14)}</button></div></article>`;
 }
 
 function healthRow(item) {
@@ -783,8 +806,7 @@ async function handleClick(event) {
       renderImports();
     }
     if (action === 'open-knowledge') {
-      const article = await api(`/api/knowledge/${id}`);
-      openModal({ title: article.title, wide: true, content: `<div class="article-detail"><div class="article-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看 · ${formatDateTime(article.created_at)}</small></div><section><h4>问题现象</h4><p>${h(article.symptom)}</p></section><section><h4>解决方案</h4><p class="pre-line">${h(article.solution)}</p></section><div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div></div>` });
+      await openKnowledgeArticle(id);
     }
     if (action === 'new-knowledge') openKnowledgeModal();
     if (action === 'refresh') await loadCurrentView(true);
@@ -893,7 +915,7 @@ async function refreshActions() {
 
 function openActionModal(item = null) {
   openModal({
-    title: item ? '处理运营动作' : '新增运营动作',
+    title: item ? item.title : '新增运营动作',
     wide: true,
     content: `<form id="action-form" class="form-grid">
       <input type="hidden" name="id" value="${item?.id || ''}">
@@ -960,6 +982,58 @@ async function navigate(view) {
   if (changed) requestAnimationFrame(scrollToContentStart);
 }
 
+async function handleSearchNavigation(detail) {
+  const productId = Number(detail.productId) || null;
+  const actionId = Number(detail.actionId) || null;
+  const knowledgeId = Number(detail.knowledgeId) || null;
+
+  if (productId) {
+    state.selectedProductId = productId;
+    state.productQuery = '';
+    await navigate('listings');
+    highlightSearchTarget('[data-product-id="' + productId + '"]');
+    return;
+  }
+
+  if (actionId) {
+    const item = await api(`/api/actions/${actionId}`);
+    const targetView = actionViewForCategory(item.category);
+    if (VIEW_META[targetView]) await navigate(targetView);
+    openActionModal(item);
+    return;
+  }
+
+  if (knowledgeId) {
+    state.reviewTab = 'knowledge';
+    await navigate('reviews');
+    await openKnowledgeArticle(knowledgeId);
+    return;
+  }
+
+  if (VIEW_META[detail.view]) await navigate(detail.view);
+}
+
+function actionViewForCategory(category) {
+  return { '广告': 'ads', '库存': 'inventory', 'Listing': 'listings', '售后': 'aftersales', '数据': 'imports' }[category] || 'overview';
+}
+
+function highlightSearchTarget(selector) {
+  window.requestAnimationFrame(() => {
+    const target = document.querySelector(selector);
+    if (!target) return;
+    target.classList.remove('cp-search-target');
+    void target.offsetWidth;
+    target.classList.add('cp-search-target');
+    target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    window.setTimeout(() => target.classList.remove('cp-search-target'), 2600);
+  });
+}
+
+async function openKnowledgeArticle(id) {
+  const article = await api(`/api/knowledge/${id}`);
+  openModal({ title: article.title, wide: true, content: `<div class="article-detail"><div class="article-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看 · ${formatDateTime(article.created_at)}</small></div><section><h4>问题现象</h4><p>${h(article.symptom)}</p></section><section><h4>解决方案</h4><p class="pre-line">${h(article.solution)}</p></section><div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div></div>` });
+}
+
 function updateViewChrome() {
   const meta = VIEW_META[state.view];
   pageTitle.textContent = meta.title;
@@ -1007,6 +1081,7 @@ function initHeroTypewriter() {
 
 async function checkHealth() {
   const apiStatus = document.querySelector('#api-status');
+  if (!apiStatus) return;
   try {
     await api('/api/health');
     apiStatus.classList.add('is-online');
@@ -1047,7 +1122,9 @@ function errorTemplate(message) {
 }
 
 function icon(name, size = 18) {
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.overview}</svg>`;
+  const filled = FILLED_ICONS.has(name);
+  const paint = filled ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" ${paint} aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.overview}</svg>`;
 }
 
 function reportTypeLabel(value) {
