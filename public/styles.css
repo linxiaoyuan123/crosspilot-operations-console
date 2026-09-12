@@ -820,7 +820,7 @@ button:disabled {
 .hero-banner {
   background:
     linear-gradient(180deg, rgba(5, 12, 24, 0.12), rgba(5, 12, 24, 0.42)),
-    url('/assets/hero-firefly.avif') center 38% / cover no-repeat;
+    url('/assets/hero-crosspilot.avif') center 38% / cover no-repeat;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 14px;
   box-shadow: 0 20px 54px rgba(0, 0, 0, 0.24);

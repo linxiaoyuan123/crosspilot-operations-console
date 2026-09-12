@@ -1,4 +1,4 @@
-/* Firefly-style hero shell with a fixed navigation progress header. */
+/* CrossPilot hero shell with a fixed navigation progress header. */
 body::before {
   display: none;
 }
@@ -235,17 +235,17 @@ body::before {
 
 .hero-slide-1 {
   animation-delay: 0s;
-  background-image: url('/assets/hero-firefly.avif');
+  background-image: url('/assets/hero-crosspilot.avif');
 }
 
 .hero-slide-2 {
   animation-delay: -8s;
-  background-image: url('/assets/hero-firefly-2.avif');
+  background-image: url('/assets/hero-crosspilot-2.avif');
 }
 
 .hero-slide-3 {
   animation-delay: -16s;
-  background-image: url('/assets/hero-firefly-3.avif');
+  background-image: url('/assets/hero-crosspilot-3.avif');
 }
 
 @keyframes hero-slide-cycle {

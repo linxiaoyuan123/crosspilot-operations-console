@@ -232,7 +232,7 @@ npm test
 │   ├── enhancements.js
 │   ├── crosspilot.css
 │   ├── final-shell.css
-│   ├── firefly-controls.css
+│   ├── theme-controls.css
 │   ├── nav-shell.css
 │   ├── index.html
 │   └── styles.css

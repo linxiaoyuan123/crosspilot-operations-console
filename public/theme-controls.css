@@ -1,4 +1,4 @@
-/* Firefly-inspired wallpaper modes, fullscreen layouts and transparency controls. */
+/* CrossPilot wallpaper modes, fullscreen layouts and transparency controls. */
 :root {
   --cp-overlay-blur: 0px;
   --cp-fullscreen-blur: 0px;
@@ -156,7 +156,7 @@ html[data-wallpaper-mode="none"] .hero-banner {
   display: none;
 }
 
-/* Keep the original carousel and video processing, but only blur where Firefly does. */
+/* Keep the original carousel and video processing, blurring only the wallpaper layer. */
 html[data-wallpaper-mode="banner"] :is(.hero-slides, .cp-hero-video-layer),
 html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="classic"] :is(.hero-slides, .cp-hero-video-layer),
 html[data-wallpaper-mode="none"] :is(.hero-slides, .cp-hero-video-layer) {
