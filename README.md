@@ -136,6 +136,12 @@ CrossPilot 不是单纯的数据看板，而是围绕运营人员每天实际要
 
 ## 快速启动
 
+### Windows 一键启动
+
+双击项目根目录的 `start-crosspilot.bat`。脚本会检查运行环境、首次自动安装依赖、启动服务，并在页面可以访问后自动打开浏览器。如果服务已经在运行，脚本会直接打开页面。
+
+### 手动启动
+
 环境要求：Node.js 22.5 或更高版本。
 
 ```bash
@@ -223,10 +229,13 @@ npm test
 │   ├── reports.js
 │   ├── server.js
 │   └── store.js
+├── scripts/
+│   └── launch.mjs
 ├── tests/api.test.js
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml
+├── start-crosspilot.bat
 └── package.json
 ```
 

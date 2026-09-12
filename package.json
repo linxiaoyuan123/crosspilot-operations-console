@@ -9,9 +9,10 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "launch": "node scripts/launch.mjs",
     "dev": "node --watch src/server.js",
     "test": "node --test",
-    "check": "node --check src/app.js && node --check src/store.js && node --check src/metrics.js && node --check src/imports.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js"
+    "check": "node --check scripts/launch.mjs && node --check src/app.js && node --check src/store.js && node --check src/metrics.js && node --check src/imports.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js"
   },
   "keywords": [
     "cross-border-ecommerce",
