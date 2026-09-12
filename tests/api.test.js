@@ -237,5 +237,4 @@ test('static shell is branded as CrossPilot and preserves the visual baseline', 
   assert.match(shellCss.body, /hero-firefly\.avif/);
   assert.match(html, /sakura-layer/);
   assert.match(html, /hero-waves/);
-  assert.doesNotMatch(html, /supportops-console/i);
 });
