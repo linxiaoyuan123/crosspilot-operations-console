@@ -761,7 +761,41 @@ button:disabled {
 }
 
 .dashboard-grid > .span-2 {
-  grid-row: span 2;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.dashboard-grid > .panel:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.dashboard-grid > .panel:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.dashboard-grid > .panel:nth-child(4) {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.dashboard-grid > .workbench-activity {
+  align-self: stretch;
+  display: grid;
+  grid-column: 2;
+  grid-row: 3;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.workbench-activity .activity-line {
+  grid-auto-rows: minmax(56px, 1fr);
+}
+
+.dashboard-grid > .panel:nth-child(4),
+.two-column > .panel {
+  align-self: stretch;
+  height: auto;
 }
 
 .task-stack,
@@ -1352,6 +1386,56 @@ button:disabled {
   font-size: 10px;
   line-height: 1.5;
   margin: 10px 14px 14px;
+}
+
+.latest-network {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 14px 14px;
+  padding: 11px 12px;
+}
+
+.latest-network-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.latest-network-copy strong {
+  color: #e5f1f9;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.latest-network-copy p {
+  color: #8299ad;
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.latest-network-side {
+  align-content: center;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.latest-network-side time {
+  color: #6f879b;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.latest-network.is-empty {
+  align-content: center;
+  min-height: 82px;
 }
 
 .form-grid {
@@ -2654,7 +2738,13 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-grid > .span-2 {
+  .dashboard-grid > .span-2,
+  .dashboard-grid > .panel:nth-child(2),
+  .dashboard-grid > .panel:nth-child(3),
+  .dashboard-grid > .panel:nth-child(4),
+  .dashboard-grid > .workbench-activity {
+    align-self: auto;
+    grid-column: auto;
     grid-row: auto;
   }
 
@@ -3716,4 +3806,9 @@ html[data-font-mode="original"] .font-toggle::after {
 @media (max-width: 760px) {
   .app-header-actions { grid-column: 1; grid-row: 2; }
   .app-header .main-nav { grid-column: 1; grid-row: 3; }
+}
+
+.two-column > .panel {
+  align-self: stretch;
+  height: auto;
 }

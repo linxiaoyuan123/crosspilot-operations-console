@@ -333,13 +333,12 @@ function renderWorkbench() {
           <button data-nav="knowledge">${icon('knowledge')}<span>知识沉淀</span><small>问题转解决方案</small></button>
         </div>
       </article>
-    </section>
 
-    <section class="panel">
-      <header class="panel-head">
-        <div><span class="panel-kicker">处理轨迹</span><h3>最近项目动态</h3></div>
-      </header>
-      <div class="activity-line">
+      <article class="panel workbench-activity">
+        <header class="panel-head">
+          <div><span class="panel-kicker">处理轨迹</span><h3>最近项目动态</h3></div>
+        </header>
+        <div class="activity-line">
         ${data.recentEvents.length ? data.recentEvents.map((event) => `
           <div class="activity-row">
             <span class="activity-dot"></span>
@@ -347,7 +346,8 @@ function renderWorkbench() {
             <time>${relativeTime(event.created_at)}</time>
           </div>
         `).join('') : emptyBlock('暂无处理动态', '问题受理、诊断和解决记录会显示在这里。')}
-      </div>
+        </div>
+      </article>
     </section>
   `;
 }
@@ -418,6 +418,7 @@ function renderProjects() {
 
 function renderPreflight() {
   const info = state.system;
+  const latestNetworkCheck = state.checks.find((item) => item.check_type === 'network');
   app.innerHTML = `
     <section class="view-head">
       <div><div class="project-kicker">${h(state.project.code)} · 环境预检</div><h2>部署前环境与网络检查</h2><p>检查系统资源、端口、DNS、HTTP、系统服务和数据库连接，结果自动留档。</p></div>
@@ -459,6 +460,28 @@ function renderPreflight() {
           <div class="form-actions span-2"><button class="button primary" type="submit">${icon('play')}执行网络检查</button></div>
         </form>
         <p class="form-note">检查会从运行 DeployMate 的机器发起，适合验证安装电脑到客户服务器、数据库和业务服务之间的连通性。</p>
+        ${latestNetworkCheck ? `
+          <div class="latest-network">
+            <div class="latest-network-copy">
+              <span class="panel-kicker">最近网络记录</span>
+              <strong>${h(latestNetworkCheck.target)}</strong>
+              <p>${h(latestNetworkCheck.summary)}</p>
+            </div>
+            <div class="latest-network-side">
+              ${statusBadge(latestNetworkCheck.status)}
+              <time>${relativeTime(latestNetworkCheck.created_at)}</time>
+              <a class="text-button" href="/api/reports/check/${latestNetworkCheck.id}?format=html" target="_blank">查看报告</a>
+            </div>
+          </div>
+        ` : `
+          <div class="latest-network is-empty">
+            <div class="latest-network-copy">
+              <span class="panel-kicker">最近网络记录</span>
+              <strong>尚未执行网络检查</strong>
+              <p>选择检查类型并执行后，摘要会显示在这里。</p>
+            </div>
+          </div>
+        `}
       </article>
     </section>
 
