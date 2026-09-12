@@ -64,6 +64,13 @@ const STATUS_LABELS = {
   archived: '已归档'
 };
 
+const HERO_PHRASES = [
+  '检查每台服务器，让上线风险提前暴露。',
+  '核验每一张数据表，让交付结果可追踪。',
+  '跟完每一个问题，让客户支持形成闭环。',
+  '整理每一次验收，让项目经验真正沉淀。'
+];
+
 const PRIORITY_LABELS = { critical: 'P0 紧急', high: 'P1 高', medium: 'P2 中', low: 'P3 低' };
 const CATEGORY_LABELS = { account: '账号角色', training: '用户培训', acceptance: '项目验收', document: '交付文档' };
 
@@ -99,6 +106,9 @@ const scrollCompanion = document.querySelector('#scroll-companion');
 const companionProgress = document.querySelector('#companion-progress');
 const companionDot = document.querySelector('#companion-dot');
 const companionNode = document.querySelector('#companion-node');
+const heroTypewriter = document.querySelector('#hero-typewriter');
+const shellLeft = document.querySelector('#shell-left');
+const shellRight = document.querySelector('#shell-right');
 
 init();
 
@@ -109,6 +119,7 @@ function init() {
   applyFontMode(readFontMode());
   initFontToggle();
   initSakura();
+  initHeroTypewriter();
   document.querySelectorAll('[data-nav]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.nav));
   });
@@ -168,6 +179,7 @@ async function loadCurrentView(force = false) {
   } catch (error) {
     app.innerHTML = errorTemplate(error.message);
   }
+  renderShellSidebars();
 }
 
 async function loadWorkbench() {
@@ -1319,6 +1331,105 @@ function updateViewChrome() {
   document.querySelectorAll('[data-nav]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.nav === state.view);
   });
+}
+
+function renderShellSidebars() {
+  if (!shellLeft || !shellRight) return;
+  const project = state.workbench?.project || state.project || state.projects.find((item) => item.id === state.projectId) || null;
+  const projectStats = state.projects.find((item) => item.id === state.projectId);
+  const totalTasks = projectStats?.total_tasks || 0;
+  const doneTasks = projectStats?.completed_tasks || 0;
+  const progress = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const nextTask = state.workbench?.nextTasks?.[0];
+  const openCases = state.workbench?.openCases?.length ?? state.cases.filter((item) => !['resolved', 'closed'].includes(item.status)).length;
+  const checkCount = state.workbench?.recentChecks?.length ?? state.checks.length;
+  const pendingHandover = state.workbench?.pendingHandover?.length ?? state.handover.filter((item) => item.status !== 'done').length;
+
+  shellLeft.innerHTML = project ? `
+    <section class="aside-section aside-project">
+      <div class="aside-section-head"><span>当前项目</span><small>${h(project.code)}</small></div>
+      <h2>${h(project.project_name)}</h2>
+      <p>${h(project.customer)} · ${h(project.environment)}</p>
+      <dl class="aside-facts">
+        <div><dt>当前阶段</dt><dd>${h(phaseLabel(project.phase))}</dd></div>
+        <div><dt>负责人</dt><dd>${h(project.owner || '待分配')}</dd></div>
+        <div><dt>计划上线</dt><dd>${h(project.go_live_date || '未设置')}</dd></div>
+      </dl>
+    </section>
+    <section class="aside-section">
+      <div class="aside-section-head"><span>实施进度</span><strong>${progress}%</strong></div>
+      <div class="aside-progress"><i style="width:${progress}%"></i></div>
+      <div class="aside-progress-meta"><span>${doneTasks} 已完成</span><span>${Math.max(totalTasks - doneTasks, 0)} 待推进</span></div>
+    </section>
+  ` : `
+    <section class="aside-section aside-project"><div class="aside-section-head"><span>当前项目</span></div><h2>加载中</h2><p>正在读取交付项目。</p></section>
+  `;
+
+  shellRight.innerHTML = `
+    <section class="aside-section">
+      <div class="aside-section-head"><span>交付状态</span><small>实时</small></div>
+      <div class="aside-status-list">
+        <div><span><i class="aside-status-dot"></i>API 服务</span><strong>正常</strong></div>
+        <div><span>待跟进问题</span><strong>${openCases}</strong></div>
+        <div><span>检查记录</span><strong>${checkCount}</strong></div>
+        <div><span>验收待办</span><strong>${pendingHandover}</strong></div>
+      </div>
+    </section>
+    <section class="aside-section">
+      <div class="aside-section-head"><span>快捷入口</span></div>
+      <div class="aside-links">
+        <button data-nav="preflight">${icon('preflight')}<span>环境预检</span></button>
+        <button data-nav="database">${icon('database')}<span>数据库交付</span></button>
+        <button data-nav="cases">${icon('cases')}<span>技术支持</span></button>
+        <button data-nav="knowledge">${icon('knowledge')}<span>知识库</span></button>
+      </div>
+    </section>
+    <section class="aside-section aside-focus">
+      <div class="aside-section-head"><span>当前焦点</span></div>
+      <strong>${h(nextTask?.title || '按阶段推进交付')}</strong>
+      <p>${h(nextTask?.description || '打开实施项目，查看下一项任务和交付证据。')}</p>
+      <button class="text-button" data-nav="projects">查看任务 ${icon('arrow')}</button>
+    </section>
+  `;
+}
+
+function initHeroTypewriter() {
+  if (!heroTypewriter) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    heroTypewriter.textContent = HERO_PHRASES[0];
+    return;
+  }
+
+  let phraseIndex = 0;
+  let characterIndex = 0;
+  let deleting = false;
+
+  const step = () => {
+    const phrase = HERO_PHRASES[phraseIndex];
+    if (!deleting) {
+      characterIndex += 1;
+      heroTypewriter.textContent = phrase.slice(0, characterIndex);
+      if (characterIndex === phrase.length) {
+        deleting = true;
+        window.setTimeout(step, 1800);
+        return;
+      }
+      window.setTimeout(step, 72);
+      return;
+    }
+
+    characterIndex -= 1;
+    heroTypewriter.textContent = phrase.slice(0, characterIndex);
+    if (characterIndex === 0) {
+      deleting = false;
+      phraseIndex = (phraseIndex + 1) % HERO_PHRASES.length;
+      window.setTimeout(step, 420);
+      return;
+    }
+    window.setTimeout(step, 28);
+  };
+
+  window.setTimeout(step, 500);
 }
 
 async function checkHealth() {

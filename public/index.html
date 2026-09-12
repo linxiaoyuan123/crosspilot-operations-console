@@ -62,16 +62,39 @@
         </div>
       </header>
 
-      <main class="workspace">
-        <header class="topbar">
-          <div class="topbar-title">
-            <span class="eyebrow" id="page-eyebrow">现场交付</span>
-            <h1 id="page-title">今日工作台</h1>
+      <div class="workspace">
+        <section class="hero-banner" aria-label="DeployMate 实施交付工作台">
+          <div class="hero-shade" aria-hidden="true"></div>
+          <div class="hero-copy">
+            <span class="hero-kicker">DeployMate · implementation delivery</span>
+            <h1>实施交付，从预检到验收</h1>
+            <p class="hero-subtitle"><span id="hero-typewriter"></span><span class="typing-caret" aria-hidden="true"></span></p>
           </div>
-        </header>
+          <div class="hero-waves" aria-hidden="true">
+            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+              <path class="wave-back" d="M0 58C180 104 360 10 540 52C720 95 900 16 1080 48C1260 80 1350 58 1440 38V120H0Z" />
+              <path class="wave-front" d="M0 78C210 112 390 36 600 66C810 96 990 40 1200 62C1300 72 1380 58 1440 48V120H0Z" />
+            </svg>
+          </div>
+        </section>
 
-        <main class="content" id="app" aria-live="polite"></main>
-      </main>
+        <div class="page-frame">
+          <aside class="shell-aside shell-aside-left" id="shell-left" aria-label="项目基础信息"></aside>
+
+          <div class="page-main">
+            <header class="topbar">
+              <div class="topbar-title">
+                <span class="eyebrow" id="page-eyebrow">现场交付</span>
+                <h1 id="page-title">今日工作台</h1>
+              </div>
+            </header>
+
+            <main class="content" id="app" aria-live="polite"></main>
+          </div>
+
+          <aside class="shell-aside shell-aside-right" id="shell-right" aria-label="交付状态与快捷入口"></aside>
+        </div>
+      </div>
     </div>
 
     <div id="modal-root"></div>
