@@ -8,9 +8,22 @@
     <link rel="icon" href="/pig.png" type="image/png">
     <link rel="apple-touch-icon" href="/pig.png">
     <title>CrossPilot · 跨境电商运营决策中台</title>
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem('crosspilot-color-mode') || 'dark';
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const resolved = stored === 'system' ? (systemDark ? 'dark' : 'light') : stored === 'light' ? 'light' : 'dark';
+          document.documentElement.dataset.themeMode = stored;
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.classList.toggle('dark', resolved === 'dark');
+        } catch {}
+      })();
+    </script>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/final-shell.css">
     <link rel="stylesheet" href="/crosspilot.css">
+    <link rel="stylesheet" href="/enhancements.css">
   </head>
   <body>
     <div id="sakura-layer" aria-hidden="true"></div>
@@ -58,6 +71,105 @@
         </nav>
 
         <div class="app-header-actions">
+          <div class="cp-utility-cluster" aria-label="全局工具">
+            <div class="cp-global-search">
+              <span data-icon="search" aria-hidden="true"></span>
+              <input id="cp-global-search-input" type="search" autocomplete="off" placeholder="搜索模块或 SKU" aria-label="全局搜索" aria-controls="cp-search-panel" aria-expanded="false">
+              <button class="cp-search-clear" id="cp-global-search-clear" type="button" aria-label="清空搜索" hidden><span data-icon="x"></span></button>
+              <span class="cp-search-shortcut" aria-hidden="true">Ctrl K</span>
+              <div class="cp-float-panel cp-search-panel" id="cp-search-panel" role="listbox" aria-label="搜索结果" hidden></div>
+            </div>
+
+            <div class="cp-popover">
+              <button class="cp-tool-button" id="cp-music-toggle" type="button" aria-label="打开音乐播放器" aria-controls="cp-music-panel" aria-expanded="false" title="音乐播放器">
+                <span data-icon="music" aria-hidden="true"></span>
+                <span class="cp-equalizer" aria-hidden="true"><i></i><i></i><i></i></span>
+              </button>
+              <section class="cp-float-panel cp-music-panel" id="cp-music-panel" aria-label="音乐播放器" hidden>
+                <div class="cp-music-summary">
+                  <span class="cp-music-cover"><img src="/assets/media/firefly-cover.webp" alt="唱片封面"></span>
+                  <span><small>正在播放</small><strong id="cp-music-title">使一颗心免于哀伤</strong><em id="cp-music-artist">知更鸟 / HOYO-MiX / Chevy</em></span>
+                </div>
+                <div class="cp-music-progress">
+                  <input id="cp-music-progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="播放进度">
+                  <span><time id="cp-music-current">0:00</time><time id="cp-music-duration">0:00</time></span>
+                </div>
+                <div class="cp-music-controls">
+                  <button type="button" id="cp-music-replay" aria-label="回到开头" title="回到开头"><span data-icon="replay" aria-hidden="true"></span></button>
+                  <button type="button" id="cp-music-play" aria-label="播放或暂停" title="播放或暂停"><span data-icon="play" aria-hidden="true"></span><span hidden data-cp-music-pause-icon data-icon="pause" aria-hidden="true"></span></button>
+                  <div class="cp-music-volume">
+                    <span data-icon="volume" aria-hidden="true"></span>
+                    <input id="cp-music-volume" type="range" min="0" max="1" value="0.7" step="0.05" aria-label="音量">
+                  </div>
+                </div>
+                <audio id="cp-audio" preload="metadata" loop><source src="/assets/media/firefly-sample.mp3" type="audio/mpeg"></audio>
+              </section>
+            </div>
+
+            <button class="cp-tool-button" id="cp-video-toggle" type="button" aria-label="播放主页背景视频" aria-pressed="false" title="播放主页背景视频">
+              <span data-icon="play" class="cp-icon-play" aria-hidden="true"></span>
+              <span data-icon="pause" class="cp-icon-pause" aria-hidden="true" hidden></span>
+            </button>
+
+            <div class="cp-popover">
+              <button class="cp-tool-button" id="cp-theme-toggle" type="button" aria-label="打开主题定制" aria-controls="cp-theme-panel" aria-expanded="false" title="主题定制">
+                <span data-icon="palette" aria-hidden="true"></span>
+              </button>
+              <section class="cp-float-panel cp-theme-panel" id="cp-theme-panel" aria-label="主题定制" hidden>
+                <div class="cp-theme-tabs" role="tablist" aria-label="主题设置分类">
+                  <button type="button" role="tab" aria-selected="true" data-cp-theme-tab="appearance"><span data-icon="palette"></span><span>外观</span></button>
+                  <button type="button" role="tab" aria-selected="false" data-cp-theme-tab="wallpaper"><span data-icon="wallpaper"></span><span>壁纸</span></button>
+                  <button type="button" role="tab" aria-selected="false" data-cp-theme-tab="effects"><span data-icon="sparkles"></span><span>特效</span></button>
+                </div>
+
+                <div class="cp-theme-tab-panel" data-cp-theme-panel="appearance">
+                  <div class="cp-setting-heading"><strong>主题色相</strong><button type="button" id="cp-hue-reset" aria-label="恢复默认主题色"><span data-icon="replay"></span></button><output id="cp-hue-value">191</output></div>
+                  <div class="cp-hue-track"><input id="cp-hue-slider" type="range" min="0" max="360" value="191" step="1" aria-label="主题色相"></div>
+                  <div class="cp-setting-heading"><strong>内容布局</strong></div>
+                  <div class="cp-segment" role="group" aria-label="内容布局">
+                    <button type="button" data-cp-density="comfortable" aria-pressed="true"><span data-icon="rows"></span>舒展开阔</button>
+                    <button type="button" data-cp-density="compact" aria-pressed="false"><span data-icon="grid"></span>紧凑高效</button>
+                  </div>
+                  <div class="cp-setting-heading"><strong>卡片样式</strong></div>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="cardBorder" aria-pressed="false"><span data-icon="card"></span><span>卡片边框与阴影</span><i></i></button>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="followTheme" aria-pressed="true"><span data-icon="palette"></span><span>卡片跟随主题色</span><i></i></button>
+                </div>
+
+                <div class="cp-theme-tab-panel" data-cp-theme-panel="wallpaper" hidden>
+                  <div class="cp-setting-heading"><strong>壁纸模式</strong></div>
+                  <div class="cp-choice-grid" role="group" aria-label="壁纸模式">
+                    <button type="button" data-cp-wallpaper="immersive" aria-pressed="true"><span data-icon="wallpaper"></span>沉浸全屏</button>
+                    <button type="button" data-cp-wallpaper="compact" aria-pressed="false"><span data-icon="rows"></span>紧凑横幅</button>
+                    <button type="button" data-cp-wallpaper="solid" aria-pressed="false"><span data-icon="square"></span>纯色背景</button>
+                  </div>
+                  <div class="cp-setting-heading"><strong>壁纸设置</strong></div>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="bannerTitle" aria-pressed="true"><span data-icon="type"></span><span>首页壁纸标题</span><i></i></button>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="carousel" aria-pressed="true"><span data-icon="images"></span><span>壁纸轮播</span><i></i></button>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="waves" aria-pressed="true"><span data-icon="waves"></span><span>水波纹动画</span><i></i></button>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="gradient" aria-pressed="true"><span data-icon="gradient"></span><span>渐变过渡</span><i></i></button>
+                </div>
+
+                <div class="cp-theme-tab-panel" data-cp-theme-panel="effects" hidden>
+                  <div class="cp-setting-heading"><strong>特效设置</strong></div>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="sakura" aria-pressed="true"><span data-icon="flower"></span><span>樱花特效</span><i></i></button>
+                  <button class="cp-setting-toggle" type="button" data-cp-setting="typewriter" aria-pressed="true"><span data-icon="type"></span><span>首页打字机</span><i></i></button>
+                </div>
+              </section>
+            </div>
+
+            <div class="cp-popover cp-color-mode">
+              <button class="cp-tool-button" id="cp-color-mode-toggle" type="button" aria-label="切换日夜主题" aria-controls="cp-color-mode-panel" aria-expanded="false" title="日夜主题">
+                <span data-icon="moon" class="cp-mode-dark" aria-hidden="true"></span>
+                <span data-icon="sun" class="cp-mode-light" aria-hidden="true" hidden></span>
+              </button>
+              <div class="cp-float-panel cp-color-mode-panel" id="cp-color-mode-panel" role="menu" aria-label="日夜主题" hidden>
+                <button type="button" role="menuitemradio" data-cp-color-mode="light" aria-checked="false"><span data-icon="sun"></span>亮色</button>
+                <button type="button" role="menuitemradio" data-cp-color-mode="dark" aria-checked="true"><span data-icon="moon"></span>暗色</button>
+                <button type="button" role="menuitemradio" data-cp-color-mode="system" aria-checked="false"><span data-icon="monitor"></span>跟随系统</button>
+              </div>
+            </div>
+          </div>
+
           <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
           <label class="project-switcher" for="global-store">
             <span>当前店铺</span>
@@ -78,6 +190,9 @@
             <div class="hero-slide hero-slide-1"></div>
             <div class="hero-slide hero-slide-2"></div>
             <div class="hero-slide hero-slide-3"></div>
+          </div>
+          <div class="cp-hero-video-layer" id="cp-hero-video-layer" aria-hidden="true">
+            <video id="cp-hero-video" playsinline loop preload="none" poster="/assets/hero-firefly.avif" data-src="https://bed.twoleaf.cn/file/1785658612716_firefly.mp4"></video>
           </div>
           <div class="hero-shade" aria-hidden="true"></div>
           <div class="hero-copy">
@@ -122,5 +237,6 @@
     <div id="modal-root"></div>
     <div class="toast-stack" id="toast-root" aria-live="polite"></div>
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/enhancements.js"></script>
   </body>
 </html>

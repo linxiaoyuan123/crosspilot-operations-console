@@ -243,4 +243,18 @@ test('static shell is branded as CrossPilot and preserves the visual baseline', 
   assert.match(html, /page-frame/);
   assert.match(html, /sakura-layer/);
   assert.match(html, /hero-waves/);
+  assert.match(html, /cp-global-search-input/);
+  assert.match(html, /cp-music-panel/);
+  assert.match(html, /cp-hero-video/);
+  assert.match(html, /cp-theme-panel/);
+  assert.match(html, /data-cp-color-mode="light"/);
+
+  const enhancementCss = await request('/enhancements.css');
+  assert.match(enhancementCss.body, /html\[data-theme="light"\] \.cp-global-search/);
+  assert.match(enhancementCss.body, /\.cp-hero-video-layer/);
+
+  const enhancementScript = await request('/enhancements.js');
+  assert.match(enhancementScript.body, /initSearch/);
+  assert.match(enhancementScript.body, /initMusicPlayer/);
+  assert.match(enhancementScript.body, /initThemeCustomizer/);
 });

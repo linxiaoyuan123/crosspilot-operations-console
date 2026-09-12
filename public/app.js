@@ -2,6 +2,26 @@ const ICON_PATHS = {
   overview: '<path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-4H4v4Zm10-11h6V4h-6v5Z"/>',
   tools: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
+  music: '<path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/>',
+  play: '<path d="m8 5 11 7-11 7V5Z"/>',
+  pause: '<path d="M9 5v14M15 5v14"/>',
+  replay: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  volume: '<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8 8 0 0 1 0 12"/>',
+  palette: '<path d="M12 3a9 9 0 0 0 0 18h1.5a2.5 2.5 0 0 0 0-5H12a2 2 0 0 1 0-4h2a7 7 0 0 0 0-9h-2Z"/><circle cx="7.5" cy="10.5" r=".8"/><circle cx="10" cy="6.8" r=".8"/><circle cx="14.5" cy="6.8" r=".8"/><circle cx="17" cy="10" r=".8"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20.3 15.2A8.5 8.5 0 0 1 8.8 3.7a9 9 0 1 0 11.5 11.5Z"/>',
+  monitor: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  wallpaper: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 5-5 3 3 2-2 4 4"/>',
+  sparkles: '<path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14ZM19 13l.8 2.2L22 16l-2.2.8L19 19l-.8-2.2L16 16l2.2-.8L19 13Z"/>',
+  rows: '<rect x="4" y="5" width="16" height="4" rx="1"/><rect x="4" y="15" width="16" height="4" rx="1"/>',
+  grid: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
+  square: '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  type: '<path d="M4 6h16M9 6v13M15 6v13M7 19h4M13 19h4"/>',
+  images: '<rect x="3" y="5" width="13" height="11" rx="2"/><path d="M8 20h11a2 2 0 0 0 2-2V9"/><path d="m5 13 3-3 2 2 3-4 3 5"/>',
+  waves: '<path d="M3 8c3 0 3 3 6 3s3-3 6-3 3 3 6 3M3 15c3 0 3 3 6 3s3-3 6-3 3 3 6 3"/>',
+  gradient: '<path d="M4 4h16v16H4z"/><path d="m4 16 16-12M4 20 20 8"/>',
+  flower: '<circle cx="12" cy="12" r="2.2"/><path d="M12 3c2.6 0 4 2.2 2.8 4.4M21 12c0 2.6-2.2 4-4.4 2.8M12 21c-2.6 0-4-2.2-2.8-4.4M3 12c0-2.6 2.2-4 4.4-2.8M7.8 4.7c1.7-1.8 4.1-1.4 4.8.9M19.3 7.8c1.8 1.7 1.4 4.1-.9 4.8M16.2 19.3c-1.7 1.8-4.1 1.4-4.8-.9M4.7 16.2c-1.8-1.7-1.4-4.1.9-4.8"/>',
   imports: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
   listings: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h3"/><path d="m15 16 2 2 3-4"/>',
   ads: '<path d="m3 11 18-5v12L3 13v-2Z"/><path d="M7 13v5a2 2 0 0 0 4 0v-4"/>',
@@ -134,6 +154,10 @@ function init() {
   initNavTools();
   document.querySelectorAll('[data-nav]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.nav)));
   document.querySelector('#refresh-button').addEventListener('click', () => loadCurrentView(true));
+  window.addEventListener('crosspilot:navigate', (event) => {
+    const view = event.detail?.view;
+    if (VIEW_META[view]) navigate(view);
+  });
   storeSelect.addEventListener('change', async () => {
     state.storeId = Number(storeSelect.value) || null;
     state.selectedProductId = null;
