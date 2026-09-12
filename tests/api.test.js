@@ -4,8 +4,8 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
+import ExcelJS from 'exceljs';
 import { createApp } from '../src/app.js';
-import { DANGEROUS_CONFIRMATION } from '../src/database.js';
 
 let server;
 let db;
@@ -13,8 +13,8 @@ let baseUrl;
 let tempDirectory;
 
 before(async () => {
-  tempDirectory = join(tmpdir(), `deploymate-${randomUUID()}`);
-  const app = createApp({ dbPath: join(tempDirectory, 'test.db') });
+  tempDirectory = join(tmpdir(), `crosspilot-${randomUUID()}`);
+  const app = createApp({ dbPath: join(tempDirectory, 'crosspilot-test.db') });
   server = app.server;
   db = app.db;
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -31,288 +31,211 @@ after(async () => {
 async function request(path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
-    headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers
+    headers: options.body && !(options.body instanceof FormData)
+      ? { 'Content-Type': 'application/json', ...options.headers }
+      : options.headers
   });
   const contentType = response.headers.get('content-type') || '';
-  const body = contentType.includes('application/json')
-    ? await response.json()
-    : await response.text();
-  return { response, body };
+  if (contentType.includes('json')) return { response, body: await response.json() };
+  if (contentType.includes('spreadsheet')) return { response, buffer: Buffer.from(await response.arrayBuffer()) };
+  return { response, body: await response.text() };
 }
 
-async function jsonRequest(path, method, body) {
+async function jsonRequest(path, method, body = {}) {
   return request(path, { method, body: JSON.stringify(body) });
 }
 
-test('health endpoint identifies DeployMate 2.0', async () => {
-  const { response, body } = await request('/api/health');
-  assert.equal(response.status, 200);
-  assert.equal(body.status, 'ok');
-  assert.equal(body.service, 'deploymate');
-  assert.equal(body.version, '2.0.0');
+function csvBase64(rows) {
+  const lines = rows.map((row) => row.map(csvCell).join(','));
+  return Buffer.from(`\uFEFF${lines.join('\r\n')}`, 'utf8').toString('base64');
+}
+
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+test('health and stores expose the CrossPilot Amazon-first model', async () => {
+  const health = await request('/api/health');
+  assert.equal(health.response.status, 200);
+  assert.equal(health.body.service, 'crosspilot');
+  assert.equal(health.body.version, '3.0.0');
+
+  const stores = await request('/api/stores');
+  assert.equal(stores.response.status, 200);
+  assert.equal(stores.body.items.length, 3);
+  assert.equal(stores.body.items[0].code, 'EU-HOME-01');
+  assert.equal(stores.body.items[0].platform, 'Amazon');
+  assert.equal(stores.body.items[0].data_mode, 'simulated');
+  assert.deepEqual(stores.body.items.map((store) => store.platform), ['Amazon', 'TikTok Shop', 'Shopee']);
 });
 
-test('workbench returns an implementation project with staged tasks', async () => {
-  const projects = await request('/api/projects');
-  assert.equal(projects.response.status, 200);
-  assert.equal(projects.body.items.length, 1);
-  assert.equal(projects.body.items[0].code, 'DM-2601');
-  assert.equal(projects.body.items[0].total_tasks, 8);
-
-  const { response, body } = await request(`/api/workbench?projectId=${projects.body.items[0].id}`);
-  assert.equal(response.status, 200);
-  assert.equal(body.project.project_name, '华南零售 ERP 门店上线');
-  assert.equal(body.nextTasks.length, 5);
-  assert.ok(body.recentChecks.length >= 2);
-  assert.ok(body.openCases.length >= 2);
+test('seed products, profit calculations and listing scores are internally consistent', async () => {
+  const response = await request('/api/products?storeId=1');
+  assert.equal(response.response.status, 200);
+  assert.equal(response.body.items.length, 8);
+  const product = response.body.items.find((item) => item.sku === 'AH-BAM-002');
+  assert.ok(product);
+  assert.equal(product.net_sales_30d, 11735.48);
+  assert.equal(product.net_profit_30d, 3571.56);
+  assert.equal(product.acos_percent, 22.38);
+  assert.equal(product.tacos_percent, 12.48);
+  assert.equal(product.roas, 4.47);
+  assert.ok(product.listing_score >= 80 && product.listing_score <= 100);
+  assert.ok(product.suggested_price > product.break_even_price);
 });
 
-test('project tasks can be updated and persist', async () => {
-  const projects = await request('/api/projects');
-  const projectId = projects.body.items[0].id;
-  const taskList = await request(`/api/projects/${projectId}/tasks`);
-  const task = taskList.body.items.find((item) => item.status !== 'done');
+test('overview links KPIs to anomalies and the unified action queue', async () => {
+  const overview = await request('/api/overview?storeId=1');
+  assert.equal(overview.response.status, 200);
+  assert.equal(overview.body.store.code, 'EU-HOME-01');
+  assert.equal(overview.body.kpis.inventoryRiskCount, 3);
+  assert.ok(overview.body.kpis.openActions > 5);
+  assert.ok(overview.body.trend.length >= 14);
+  assert.ok(overview.body.actionsPreview.every((item) => !['done', 'closed'].includes(item.status)));
+  assert.equal(overview.body.dataMode, 'simulated');
+});
 
-  const updated = await jsonRequest(`/api/tasks/${task.id}`, 'PATCH', {
+test('ad and inventory rules produce explainable recommendations', async () => {
+  const ads = await request('/api/ads?storeId=1');
+  assert.equal(ads.response.status, 200);
+  assert.equal(ads.body.items.find((item) => item.search_term === 'under bed storage').recommendation, 'negative_exact');
+  assert.equal(ads.body.items.find((item) => item.search_term === 'laundry hamper large').recommendation, 'reduce');
+  assert.equal(ads.body.items.find((item) => item.search_term === 'bamboo drawer organizer').recommendation, 'scale');
+
+  const inventory = await request('/api/inventory?storeId=1');
+  assert.equal(inventory.response.status, 200);
+  assert.equal(inventory.body.items.find((item) => item.sku === 'AH-VAC-001').risk, 'stockout');
+  assert.equal(inventory.body.items.find((item) => item.sku === 'AH-SHOE-003').risk, 'overstock');
+  assert.ok(inventory.body.items.find((item) => item.sku === 'AH-VAC-001').reorder_units > 0);
+});
+
+test('after-sales and account health thresholds are exposed with SLA state', async () => {
+  const response = await request('/api/after-sales?storeId=1');
+  assert.equal(response.response.status, 200);
+  assert.ok(response.body.items.length >= 7);
+  assert.ok(response.body.items.some((item) => item.sla === 'overdue'));
+  assert.equal(response.body.store.health_status, 'warning');
+  assert.ok(response.body.store.health_metrics.some((item) => item.key === 'late' && item.status === 'warning'));
+});
+
+test('action lifecycle writes timeline events and report evidence', async () => {
+  const created = await jsonRequest('/api/actions', 'POST', {
+    storeId: 1,
+    category: '广告',
+    title: '测试动作：暂停无转化搜索词',
+    description: '测试证据回写',
+    priority: 'high',
+    recommendation: 'manual_test',
+    dueDate: '2026-09-30'
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.body.status, 'open');
+  assert.equal(created.body.events.length, 1);
+
+  const updated = await jsonRequest(`/api/actions/${created.body.id}`, 'PATCH', {
     status: 'done',
-    evidence: '自动化测试完成'
+    owner: '测试运营',
+    result: '已暂停并观察 7 天',
+    evidence: '广告后台截图 AD-001'
   });
   assert.equal(updated.response.status, 200);
   assert.equal(updated.body.status, 'done');
-  assert.equal(updated.body.evidence, '自动化测试完成');
+  assert.equal(updated.body.owner, '测试运营');
+  assert.match(updated.body.evidence, /AD-001/);
+  assert.ok(updated.body.events.some((item) => item.title === '完成动作'));
 
-  const persisted = await request(`/api/projects/${projectId}`);
-  const persistedTask = persisted.body.tasks.find((item) => item.id === task.id);
-  assert.equal(persistedTask.status, 'done');
+  const refreshed = await jsonRequest('/api/actions/refresh', 'POST', { storeId: 1 });
+  assert.equal(refreshed.response.status, 200);
+  assert.ok(refreshed.body.items.some((item) => item.recommendation === 'negative_exact'));
 });
 
-test('system and network checks are executed and archived', async () => {
-  const projectId = 1;
-  const system = await jsonRequest('/api/checks/system', 'POST', {
-    projectId,
-    memoryMaxPercent: 100,
-    diskMinFreeGb: 1,
-    cpuMaxLoadPerCore: 999
+test('CSV import preview maps multilingual headers and skips PII', async () => {
+  const csv = csvBase64([
+    ['SKU', '商品标题', '售价', '采购成本', '销量', '销售额', '广告费', '广告销售', '退货数量', '评分', '评论数', '买家姓名', '邮箱'],
+    ['AH-TEST-009', 'Test Storage Organizer', '19.99', '5.20', '120', '2398.80', '180.20', '980.00', '6', '4.51', '88', 'Alice Buyer', 'alice@example.com'],
+    ['AH-TEST-010', '', '29.99', '8.00', '80', '2399.20', '100.00', '700.00', '2', '4.30', '26', 'Bob Buyer', 'bob@example.com']
+  ]);
+  const preview = await jsonRequest('/api/imports/preview', 'POST', {
+    storeId: 1,
+    filename: 'amazon-products.csv',
+    reportType: 'auto',
+    contentBase64: csv
   });
-  assert.equal(system.response.status, 201);
-  assert.equal(system.body.check_type, 'system');
-  assert.ok(system.body.results.length >= 5);
+  assert.equal(preview.response.status, 201);
+  assert.equal(preview.body.report_type, 'products');
+  assert.equal(preview.body.valid_rows, 1);
+  assert.equal(preview.body.error_rows, 1);
+  assert.ok(preview.body.pii_columns.includes('买家姓名'));
+  assert.ok(preview.body.pii_columns.includes('邮箱'));
+  assert.equal(preview.body.rows[0].raw['买家姓名'], undefined);
+  assert.equal(JSON.stringify(preview.body).includes('alice@example.com'), false);
+  assert.equal(preview.body.mapping['商品标题'], 'title');
 
-  const port = Number(new URL(baseUrl).port);
-  const network = await jsonRequest('/api/checks/network', 'POST', {
-    projectId,
-    type: 'app',
-    port
-  });
-  assert.equal(network.response.status, 201);
-  assert.equal(network.body.status, 'healthy');
+  const committed = await request(`/api/imports/${preview.body.id}/commit`, { method: 'POST', body: JSON.stringify({}) });
+  assert.equal(committed.response.status, 200);
+  assert.equal(committed.body.status, 'committed');
 
-  const history = await request(`/api/checks/history?projectId=${projectId}&limit=20`);
-  assert.equal(history.response.status, 200);
-  assert.ok(history.body.items.some((item) => item.check_type === 'system'));
-  assert.ok(history.body.items.some((item) => item.check_type === 'network'));
+  const products = await request('/api/products?storeId=1');
+  const imported = products.body.items.find((item) => item.sku === 'AH-TEST-009');
+  assert.ok(imported);
+  assert.equal(imported.units_30d, 120);
+  assert.equal(imported.rating, 4.51);
 });
 
-test('network checks reject unsafe target input', async () => {
-  const { response, body } = await jsonRequest('/api/checks/network', 'POST', {
-    projectId: 1,
-    type: 'dns',
-    target: '--bad-target'
+test('XLSX import preview accepts Excel workbooks', async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Search Terms');
+  sheet.addRow(['SKU', '广告活动', '搜索词', '点击量', '花费', '广告销售', '广告订单']);
+  sheet.addRow(['AH-VAC-001', 'SP - Test', 'vacuum storage test', 19, 55.5, 0, 0]);
+  const contentBase64 = Buffer.from(await workbook.xlsx.writeBuffer()).toString('base64');
+  const preview = await jsonRequest('/api/imports/preview', 'POST', {
+    storeId: 1,
+    filename: 'search-terms.xlsx',
+    reportType: 'auto',
+    contentBase64
   });
-  assert.equal(response.status, 400);
-  assert.match(body.error, /目标格式/);
+  assert.equal(preview.response.status, 201);
+  assert.equal(preview.body.report_type, 'ads');
+  assert.equal(preview.body.valid_rows, 1);
+  assert.equal(preview.body.preview[0].values.search_term, 'vacuum storage test');
 });
 
-test('SQLite connection, schema, read-only query and CSV export work', async () => {
-  const profiles = await request('/api/db/profiles?projectId=1');
-  assert.equal(profiles.response.status, 200);
-  const profile = profiles.body.items.find((item) => item.kind === 'sqlite');
-  assert.ok(profile);
-
-  const connection = await jsonRequest('/api/db/test', 'POST', { profileId: profile.id });
-  assert.equal(connection.response.status, 200);
-  assert.equal(connection.body.ok, true);
-  assert.ok(connection.body.tableCount >= 4);
-
-  const schema = await jsonRequest('/api/db/schema', 'POST', { profileId: profile.id });
-  assert.equal(schema.response.status, 200);
-  assert.ok(schema.body.items.some((table) => table.name === 'stores'));
-
-  const query = await jsonRequest('/api/db/query', 'POST', {
-    profileId: profile.id,
-    sqlText: 'SELECT store_code, store_name FROM stores ORDER BY store_code LIMIT 3'
-  });
-  assert.equal(query.response.status, 200);
-  assert.equal(query.body.mode, 'read');
-  assert.equal(query.body.rows.length, 3);
-
-  const exported = await request('/api/db/export', {
-    method: 'POST',
-    body: JSON.stringify({ profileId: profile.id, table: 'stores', limit: 5 })
-  });
-  assert.equal(exported.response.status, 200);
-  assert.match(exported.body, /store_code/);
-  assert.match(exported.body, /天河旗舰店/);
-});
-
-test('SQL safety blocks writes in read-only mode and requires confirmation for DDL', async () => {
-  const profiles = await request('/api/db/profiles?projectId=1');
-  const profile = profiles.body.items.find((item) => item.kind === 'sqlite');
-
-  const readOnlyWrite = await jsonRequest('/api/db/query', 'POST', {
-    profileId: profile.id,
-    sqlText: "DELETE FROM sync_log WHERE status = 'warning'"
-  });
-  assert.equal(readOnlyWrite.response.status, 400);
-  assert.match(readOnlyWrite.body.error, /只读模式/);
-
-  const dangerousWithoutConfirmation = await jsonRequest('/api/db/query', 'POST', {
-    profileId: profile.id,
-    sqlText: 'CREATE TABLE audit_probe (id INTEGER PRIMARY KEY)',
-    allowWrite: true
-  });
-  assert.equal(dangerousWithoutConfirmation.response.status, 400);
-  assert.match(dangerousWithoutConfirmation.body.error, new RegExp(DANGEROUS_CONFIRMATION));
-
-  const dangerousWithConfirmation = await jsonRequest('/api/db/query', 'POST', {
-    profileId: profile.id,
-    sqlText: 'CREATE TABLE audit_probe (id INTEGER PRIMARY KEY)',
-    allowWrite: true,
-    confirmPhrase: DANGEROUS_CONFIRMATION
-  });
-  assert.equal(dangerousWithConfirmation.response.status, 200);
-  assert.equal(dangerousWithConfirmation.body.mode, 'dangerous');
-});
-
-test('backup and restore plans are generated without persisting secrets', async () => {
-  const profiles = await request('/api/db/profiles?projectId=1');
-  const profile = profiles.body.items.find((item) => item.kind === 'sqlite');
-
-  const backup = await jsonRequest('/api/db/backup-plan', 'POST', {
-    projectId: 1,
-    profileId: profile.id,
-    password: 'must-not-be-returned',
-    operation: 'backup',
-    artifactPath: 'backups/demo-erp-backup.db'
-  });
-  assert.equal(backup.response.status, 201);
-  assert.equal(backup.body.check_type, 'backup');
-  assert.equal(backup.body.status, 'warning');
-  assert.equal(backup.body.plan.operation, 'backup');
-  assert.match(backup.body.plan.command, /sqlite3/);
-  assert.match(backup.body.plan.command, /\.backup/);
-  assert.doesNotMatch(JSON.stringify(backup.body), /must-not-be-returned/);
-
-  const restore = await jsonRequest('/api/db/backup-plan', 'POST', {
-    projectId: 1,
-    profileId: profile.id,
-    operation: 'restore',
-    artifactPath: 'backups/demo-erp-backup.db'
-  });
-  assert.equal(restore.response.status, 201);
-  assert.equal(restore.body.plan.operation, 'restore');
-  assert.match(restore.body.plan.command, /\.restore/);
-  assert.ok(restore.body.plan.safetyNotes.some((note) => /覆盖/.test(note)));
-
-  const missingPath = await jsonRequest('/api/db/backup-plan', 'POST', {
-    profileId: profile.id,
-    operation: 'backup',
-    artifactPath: ''
-  });
-  assert.equal(missingPath.response.status, 400);
-});
-
-test('data validation executes a saved template', async () => {
-  const validations = await request('/api/db/validations?projectId=1');
-  assert.equal(validations.response.status, 200);
-  const validation = validations.body.items.find((item) => item.name === '门店区域编码完整性');
-
-  const result = await jsonRequest('/api/db/validate', 'POST', { validationId: validation.id });
-  assert.equal(result.response.status, 200);
-  assert.equal(result.body.status, 'failed');
-  assert.equal(String(result.body.actualValue), '2');
-});
-
-test('support case lifecycle, timeline and knowledge conversion work', async () => {
-  const created = await jsonRequest('/api/cases', 'POST', {
-    projectId: 1,
-    title: '测试客户无法登录门店后台',
-    customer: '测试客户',
-    symptom: '用户输入正确账号后提示授权失败。',
-    impact: '门店管理员无法查看日报。',
-    priority: 'high',
-    status: 'open',
-    category: '账号角色',
-    assignee: '测试工程师',
-    rootCause: '账号未绑定门店组织。',
-    resolution: '补充组织关系后重新登录成功。',
-    nextAction: '观察一个运行日。'
-  });
-  assert.equal(created.response.status, 201);
-  assert.equal(created.body.events.length, 1);
-
-  const event = await jsonRequest(`/api/cases/${created.body.id}/events`, 'POST', {
-    eventType: 'diagnostic',
-    title: '检查账号组织关系',
-    detail: '确认账号存在但未绑定门店。'
-  });
-  assert.equal(event.response.status, 201);
-
-  const resolved = await jsonRequest(`/api/cases/${created.body.id}`, 'PATCH', {
-    status: 'resolved'
-  });
-  assert.equal(resolved.response.status, 200);
-  assert.equal(resolved.body.status, 'resolved');
-  assert.ok(resolved.body.resolved_at);
-  assert.ok(resolved.body.events.some((item) => item.title === '问题解决'));
-
-  const knowledge = await jsonRequest(`/api/cases/${created.body.id}/knowledge`, 'POST', {});
-  assert.equal(knowledge.response.status, 201);
-  assert.equal(knowledge.body.title, '测试客户无法登录门店后台');
-  assert.match(knowledge.body.solution, /账号未绑定门店组织/);
-});
-
-test('handover checklist items can be created and completed', async () => {
-  const created = await jsonRequest('/api/handover/1', 'POST', {
-    category: 'document',
-    title: '确认测试交付文档',
-    status: 'pending',
-    owner: '测试工程师',
-    dueDate: '2026-09-30',
-    evidence: '测试文档草稿'
-  });
-  assert.equal(created.response.status, 201);
-
-  const completed = await jsonRequest(`/api/handover/1/${created.body.id}`, 'PATCH', {
-    status: 'done',
-    evidence: '客户已确认'
-  });
-  assert.equal(completed.response.status, 200);
-  assert.equal(completed.body.status, 'done');
-  assert.equal(completed.body.evidence, '客户已确认');
-});
-
-test('reports support HTML, Markdown, CSV and omit sensitive fields', async () => {
-  const html = await request('/api/reports/project/1?format=html');
+test('operations reports export HTML, Markdown, CSV and a five-sheet XLSX', async () => {
+  const html = await request('/api/reports/operations/1?format=html');
   assert.equal(html.response.status, 200);
-  assert.match(html.body, /华南零售 ERP 门店上线实施交付报告/);
-  assert.doesNotMatch(html.body, /password|secret|token/i);
+  assert.match(html.body, /AuroraHome Europe/);
+  assert.match(html.body, /净利润/);
+  assert.doesNotMatch(html.body, /password|secret|api.?key/i);
 
-  const markdown = await request('/api/reports/handover/1?format=md');
+  const markdown = await request('/api/reports/operations/1?format=md');
   assert.equal(markdown.response.status, 200);
-  assert.match(markdown.body, /培训验收报告/);
+  assert.match(markdown.body, /广告搜索词/);
+  assert.match(markdown.body, /库存与履约/);
 
-  const csv = await request('/api/reports/check/1?format=csv');
+  const csv = await request('/api/reports/operations/1?format=csv');
   assert.equal(csv.response.status, 200);
-  assert.match(csv.body, /检查类型/);
+  assert.match(csv.body, /Summary/);
+  assert.match(csv.body, /AH-BAM-002/);
+
+  const xlsx = await request('/api/reports/operations/1?format=xlsx');
+  assert.equal(xlsx.response.status, 200);
+  const reportBook = new ExcelJS.Workbook();
+  await reportBook.xlsx.load(xlsx.buffer);
+  assert.deepEqual(reportBook.worksheets.map((sheet) => sheet.name), ['Summary', 'SKU', 'Ads', 'Inventory', 'After-sales']);
 });
 
-test('static application shell is branded as DeployMate', async () => {
+test('static shell is branded as CrossPilot and preserves the visual baseline', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
   assert.equal(response.status, 200);
-  assert.match(html, /DeployMate 实施交付工作台/);
-  assert.match(html, /今日工作台/);
+  assert.match(html, /CrossPilot · 跨境电商运营决策中台/);
+  assert.match(html, /跨境运营，从数据到动作/);
+  assert.match(html, /运营总览/);
+  assert.match(html, /Listing与商品/);
   assert.match(html, /\/pig\.png/);
-  assert.doesNotMatch(html, /SupportOps Console/);
+  const shellCss = await request('/final-shell.css');
+  assert.match(shellCss.body, /hero-firefly\.avif/);
+  assert.match(html, /sakura-layer/);
+  assert.match(html, /hero-waves/);
+  assert.doesNotMatch(html, /supportops-console/i);
 });

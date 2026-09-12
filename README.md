@@ -1,103 +1,149 @@
-# DeployMate 实施交付工作台
+# CrossPilot · 跨境电商运营决策中台
 
-面向软件实施工程师、技术支持工程师和交付工程师的本地工作台。它围绕一次真实的客户项目交付展开，把现场预检、部署核验、数据检查、问题处理、培训验收和知识沉淀放进同一条工作流。
+面向跨境电商运营岗位的本地决策与执行工具。它把多平台报表导入、利润核算、Listing 优化、广告诊断、库存补货、售后处理和周期复盘串成一条可追踪的运营闭环。
 
-![DeployMate 今日工作台](./docs/screenshots/deploymate-workbench.png)
+> 仓库内置脱敏样例数据，可复现完整运营流程；项目不包含真实平台账号凭证。
 
-## 产品定位
+![CrossPilot 运营总览](./docs/screenshots/crosspilot-1920-top.png)
 
-DeployMate 不是项目经理使用的全局进度看板，而是实施工程师在现场直接使用的交付工具。默认演示项目为“华南零售 ERP 门店上线”，覆盖从需求确认到上线复盘的 8 个标准阶段。
+## 项目定位
 
-核心目标：
+CrossPilot 不是单纯的数据看板，而是围绕运营人员每天实际要回答的问题设计：
 
-- 用阶段任务和证据记录推进项目，而不是只维护一个百分比。
-- 用真实系统、网络和数据库检查生成可留档的现场结论。
-- 用问题时间线记录现象、诊断、原因、方案和后续跟进。
-- 用培训验收清单、签字记录和交付报告完成项目收口。
-- 把已解决的问题转成可复用知识，减少重复排障时间。
+`报表怎么接 → 问题在哪里 → 单品是否赚钱 → 下一步做什么 → 谁在跟进 → 做完怎么复盘`
 
-## 核心能力
+默认案例是 Amazon 欧洲站家居收纳旗舰店，主币种为 EUR。数据结构同时兼容 TikTok Shop、Shopee 和 Walmart 的常见字段，其中演示库内置 Amazon、TikTok Shop 和 Shopee 三个模拟店铺。
 
-### 今日工作台
+岗位能力覆盖：
 
-只展示当前项目需要关注的内容：下一步任务、阻塞项、最近检查结果、待跟进问题和常用工具。不会出现公司级统计、团队平均完成率或领导视角风险汇总。
+- 跨境电商报表清洗、字段映射和 Excel 数据处理
+- Listing、广告、库存、订单、退货与账号健康指标分析
+- 利润、ACOS、TACOS、ROAS、转化率和库存周转计算
+- 可解释规则引擎、问题闭环、执行证据和跨周期复盘
+- HTML、Markdown、CSV 和 XLSX 运营报告输出
 
-### 实施项目
+## 运营闭环
 
-内置标准实施阶段：
+### 1. 运营总览
 
-`需求确认 → 环境预检 → 安装部署 → 数据核验 → 联调测试 → 用户培训 → 项目验收 → 上线复盘`
+集中展示净销售额、净利润率、广告占比、库存风险、退货率、评分健康、待执行动作和 SKU 异常榜。关键指标可以继续下钻到 Listing、广告、库存和售后模块。
 
-每个任务可以维护负责人、计划日期、状态和证据说明，适合在客户现场逐步推进并留下执行记录。
+### 2. 数据导入
 
-### 环境预检
+支持拖拽上传 CSV 和 XLSX，单文件上限 10 MB、20,000 行。系统可以自动识别四类报表：
 
-后端真实检查 Windows/Linux 主机状态，并支持 DNS、TCP、HTTP、Ping、服务端口和应用健康检查。检查结果区分通过、警告和失败，可填写期望值、实际值、结论和整改证据。
+- 商品表现
+- 广告搜索词
+- 库存快照
+- 退货与评论
 
-### 数据库交付
+导入流程包含中英文字段自动映射、必填字段校验、重复行与错误行预览、PII 字段跳过和确认入库。买家姓名、邮箱、电话、地址等敏感字段只用于识别，不写入预览数据、数据库或报告。
 
-统一支持 SQLite、MySQL 和 SQL Server：
+### 3. Listing 与商品
 
-- 连接测试、版本信息和数据对象读取
-- 数据库、表和视图结构浏览
-- 只读 SQL 查询与查询结果预览
-- 交付前数据校验模板和结果留档
-- 备份与恢复命令生成，只生成人工核对的方案，不自动执行高风险恢复
-- 当前表或查询结果导出 CSV
-- MySQL Docker 演示环境，用于验证非 SQLite 连接流程
+对每个 SKU 生成标题、五点描述、图片、属性、关键词覆盖和合规性六维评分，并输出上新资料包、产品文案骨架、图片需求清单及利润定价信息。
 
-SQL 默认只读。需要写操作时必须显式开启；DDL、DROP、TRUNCATE 等高风险语句必须输入确认短语 `CONFIRM DANGEROUS SQL`。
+默认评分权重：
 
-### 技术支持
+| 维度 | 权重 |
+| --- | ---: |
+| 标题 | 20% |
+| 五点描述 | 20% |
+| 图片 | 20% |
+| 属性 | 15% |
+| 关键词覆盖 | 15% |
+| 合规性 | 10% |
 
-以问题单为中心，记录客户现象、影响范围、优先级、诊断证据、处理过程、根因、解决方案和后续跟进。每个问题都有独立时间线，已解决的问题可以一键沉淀为知识库文章。
+### 4. 广告与流量
 
-### 培训验收
+按广告活动和搜索词查看点击、曝光、花费、广告销售、订单、ACOS、ROAS、CVR 和 CPC。规则引擎会给出加词、否词、降价、暂停或放量建议。
 
-覆盖账号与角色检查、培训签到、功能确认、验收项、签字记录和遗留问题，并生成可打印的培训验收报告。
+默认规则：
 
-### 报告与知识库
+- 15 次点击且无订单：精确否词候选。
+- 花费达到阈值且 ACOS 高于目标 1.5 倍：降价或暂停候选。
+- 有订单且 ACOS 达到目标：增加预算候选。
 
-交付报告支持 HTML、Markdown 和 CSV。HTML 可直接在浏览器中打印或另存为 PDF。导出前会清理密码、令牌、连接密钥等敏感字段。知识库支持按标题、分类、现象和解决方案搜索。
+### 5. 利润与定价
+
+利润口径固定为：
+
+```text
+净利润 = 不含税净销售 - 采购成本 - 平台佣金 - FBA/履约费 - 退款损失 - 广告费
+```
+
+系统同时计算单品利润、利润率、广告依赖度、盈亏平衡价和建议售价，支持采购落地成本、平台费率、履约费、退款损失及目标利润率的统一测算。
+
+### 6. 库存与履约
+
+从 FBA 可售、在途、预留、残次品、日均销量和采购交期计算可售天数、安全库存与建议补货量。默认规则：
+
+- 覆盖天数低于“采购交期 + 14 天安全期”：缺货风险。
+- 覆盖天数高于 90 天：滞销风险。
+
+```text
+可售天数 = 可售库存 / 近 30 天日均销量
+```
+
+### 7. 售后与账号
+
+集中处理差评、退货原因、买家消息、索赔、订单缺陷、迟发和取消率，按截止时间标记超时与今日到期事项，并对以下阈值生成预警：
+
+| 指标 | 默认预警线 |
+| --- | ---: |
+| 店铺评分 | 低于 4.0 |
+| 订单缺陷率 | 高于 1.0% |
+| 迟发率 | 高于 4.0% |
+| 取消率 | 高于 2.5% |
+
+### 8. 运营复盘与动作中心
+
+系统将异常转换为带负责人、优先级、截止时间、证据和执行结果的运营动作。日报、周报和月报可汇总关键指标、异常、动作结果和未关闭事项，并导出：
+
+- HTML：适合浏览器查看或打印。
+- Markdown：适合知识库和项目文档。
+- CSV：适合继续加工。
+- XLSX：包含 `Summary`、`SKU`、`Ads`、`Inventory`、`After-sales` 五个工作表。
+
+## 核心计算口径
+
+| 指标 | 公式 |
+| --- | --- |
+| 净利润 | 不含税净销售 - 采购成本 - 平台佣金 - FBA/履约费 - 退款损失 - 广告费 |
+| 净利率 | 净利润 / 不含税净销售 |
+| ACOS | 广告花费 / 广告销售 |
+| TACOS | 广告花费 / 总销售 |
+| ROAS | 广告销售 / 广告花费 |
+| 转化率 | 订单量 / 会话量 |
+| 退货率 | 退货数量 / 销量 |
+| 可售天数 | 可售库存 / 近 30 天日均销量 |
+
+所有建议均来自可解释指标与固定规则，不使用生成式 AI 生成经营结论。
 
 ## 界面预览
 
-| 实施项目 | 环境预检 |
+| 运营总览 | 数据导入 |
 | --- | --- |
-| ![实施项目](./docs/screenshots/deploymate-project.png) | ![环境预检](./docs/screenshots/deploymate-preflight.png) |
+| ![运营总览](./docs/screenshots/crosspilot-1920-content.png) | ![数据导入](./docs/screenshots/crosspilot-imports-body-1440.png) |
 
-| 数据库交付 | 技术支持 |
+| Listing 与商品 | 广告与流量 |
 | --- | --- |
-| ![数据库交付](./docs/screenshots/deploymate-database.png) | ![技术支持](./docs/screenshots/deploymate-case.png) |
+| ![Listing 与商品](./docs/screenshots/crosspilot-listings-body-1440.png) | ![广告与流量](./docs/screenshots/crosspilot-ads-body-1440.png) |
 
-| 培训验收 | 知识库 |
+| 库存与履约 | 售后与账号 |
 | --- | --- |
-| ![培训验收](./docs/screenshots/deploymate-handover.png) | ![知识库](./docs/screenshots/deploymate-knowledge.png) |
-
-移动端布局仅保留核心任务与表单操作：
-
-| 今日工作台 | 数据库交付 |
-| --- | --- |
-| ![移动端今日工作台](./docs/screenshots/deploymate-mobile-workbench.png) | ![移动端数据库交付](./docs/screenshots/deploymate-mobile-database.png) |
+| ![库存与履约](./docs/screenshots/crosspilot-inventory-body-1440.png) | ![售后与账号](./docs/screenshots/crosspilot-aftersales-body-1440.png) |
 
 ## 快速启动
 
 环境要求：Node.js 22.5 或更高版本。
 
 ```bash
-git clone https://github.com/linxiaoyuan123/supportops-console.git
-cd supportops-console
 npm install
 npm run dev
 ```
 
-浏览器打开：
-
-```text
-http://127.0.0.1:3100
-```
-
-首次启动会自动创建 `data/deploymate.db`、应用表结构和演示数据。默认 SQLite 演示库 `data/demo-erp.db` 也用于“数据库交付”页面。
+浏览器打开 `http://127.0.0.1:3100`。首次启动会自动创建 `data/crosspilot.db` 和模拟演示数据。
 
 生产模式：
 
@@ -105,78 +151,45 @@ http://127.0.0.1:3100
 npm start
 ```
 
-## Docker 部署
-
-启动应用：
+## Docker
 
 ```bash
 docker compose up --build
 ```
 
-访问 `http://127.0.0.1:3100`。应用数据保存在 Docker Volume `deploymate-data`。
+应用数据保存在 Docker Volume `crosspilot-data`，数据库路径为 `/app/data/crosspilot.db`。
 
-启动可选的 MySQL 8.4 演示库：
-
-```bash
-docker compose --profile mysql up -d mysql
-```
-
-在“数据库交付”中填写：
-
-| 字段 | 值 |
-| --- | --- |
-| 类型 | MySQL |
-| 地址 | `127.0.0.1` |
-| 端口 | `3307` |
-| 数据库 | `deploymate_demo` |
-| 用户名 | `deploymate` |
-| 密码 | `deploymate` |
-
-MySQL 容器首次创建时会自动执行 [`docker/mysql/init/01-demo.sql`](./docker/mysql/init/01-demo.sql)，建立门店、订单、库存和同步日志演示表。
-
-## 常用 API
+## 主要 API
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | `GET` | `/api/health` | 服务健康状态 |
-| `GET` | `/api/workbench` | 当前项目工作台 |
-| `GET/POST` | `/api/projects` | 查询或创建实施项目 |
-| `GET/PATCH` | `/api/projects/:id` | 项目详情与更新 |
-| `GET/POST` | `/api/projects/:id/tasks` | 阶段任务 |
-| `PATCH` | `/api/tasks/:id` | 更新任务状态和证据 |
-| `GET/POST` | `/api/checks/system` | 系统环境预检 |
-| `POST` | `/api/checks/network` | 网络与端口检查 |
-| `POST` | `/api/checks/database` | 数据库连接检查并留档 |
-| `GET/POST` | `/api/db/profiles` | 数据库连接配置 |
-| `POST` | `/api/db/test` | 连接测试 |
-| `POST` | `/api/db/schema` | 读取数据库结构 |
-| `POST` | `/api/db/query` | 只读 SQL 或受控写操作 |
-| `GET/POST` | `/api/db/validations` | 数据校验模板 |
-| `POST` | `/api/db/validate` | 执行数据校验 |
-| `POST` | `/api/db/backup-plan` | 生成备份或恢复命令并留档 |
-| `POST` | `/api/db/export` | 导出 CSV |
-| `GET/POST` | `/api/cases` | 问题单 |
-| `GET/PATCH` | `/api/cases/:id` | 问题详情与更新 |
-| `GET/POST` | `/api/cases/:id/events` | 问题处理时间线 |
-| `POST` | `/api/cases/:id/knowledge` | 问题转知识库 |
-| `GET/POST` | `/api/handover/:projectId` | 培训验收清单 |
-| `PATCH` | `/api/handover/:projectId/:itemId` | 更新验收事项 |
-| `GET` | `/api/reports/:type/:id?format=html\|md\|csv` | 生成交付报告 |
-| `GET/POST` | `/api/knowledge` | 知识库查询与新增 |
+| `GET` | `/api/stores` | 店铺、平台和账号健康状态 |
+| `GET` | `/api/overview?storeId=1` | 运营总览和异常榜 |
+| `GET` | `/api/products?storeId=1` | SKU、利润和 Listing 评分 |
+| `GET` | `/api/products/:id/listing-package` | 上新资料包 |
+| `GET` | `/api/ads?storeId=1` | 广告搜索词和规则建议 |
+| `GET` | `/api/inventory?storeId=1` | 库存风险、可售天数和补货量 |
+| `GET` | `/api/after-sales?storeId=1` | 售后、SLA 和账号健康 |
+| `GET/POST` | `/api/actions` | 查询或创建运营动作 |
+| `PATCH` | `/api/actions/:id` | 执行、延期、关闭并回写证据 |
+| `POST` | `/api/actions/refresh` | 根据最新规则重新生成动作 |
+| `POST` | `/api/imports/preview` | 解析 CSV/XLSX 并返回映射预览 |
+| `PATCH` | `/api/imports/:id/mapping` | 调整字段映射并重新校验 |
+| `POST` | `/api/imports/:id/commit` | 确认入库 |
+| `GET` | `/api/reports/operations/:storeId?format=html\|md\|csv\|xlsx` | 生成运营复盘报告 |
+| `GET/POST` | `/api/knowledge` | 查询或新增运营知识 |
 
 ## 数据与安全
 
-核心数据表：
+- SQLite 使用 WAL、外键和 5 秒忙等待，适合本地单用户演示。
+- 单次导入最多 10 MB、20,000 行。
+- 敏感字段按字段名识别并在入库前移除。
+- 报告下载使用 `Content-Disposition: attachment` 和 `Cache-Control: no-store`。
+- 服务设置 CSP、`X-Content-Type-Options`、`Referrer-Policy` 和 `X-Frame-Options`。
+- 项目没有登录、云同步和官方平台 API 直连，真实使用前需要补充权限、审计和密钥管理。
 
-- `projects`、`project_tasks`
-- `check_runs`、`check_results`
-- `database_profiles`、`data_validations`
-- `support_cases`、`case_events`
-- `handover_items`
-- `knowledge_articles`、`knowledge_links`
-- `activities`、`diagnostics`
-
-数据库密码只在当前请求或环境变量中使用，不写入 SQLite、不进入日志、不包含在报告和 CSV 导出中。单条 SQL 只允许一条语句，默认最多返回 200 行。
+核心数据对象包括店铺、SKU/Listing、每日指标、广告搜索词、库存快照、退货评论、售后问题、导入批次、运营动作、动作时间线、周期报告和知识文章。
 
 ## 测试与工程化
 
@@ -185,49 +198,41 @@ npm run check
 npm test
 ```
 
-测试使用 Node.js 内置测试运行器，覆盖：
+自动化测试覆盖利润与广告指标、Listing 评分、广告和库存规则、账号健康、CSV/XLSX 导入、PII 排除、动作闭环、HTML/Markdown/CSV/XLSX 报告及五工作表结构。
 
-- 项目任务持久化
-- 系统与网络检查
-- SQLite 连接、结构、查询和 CSV 导出
-- SQL 只读保护与危险语句确认
-- 数据校验
-- 问题单生命周期、时间线和知识库转换
-- 培训验收
-- HTML、Markdown、CSV 报告及敏感信息清理
-
-GitHub Actions 会执行语法检查、自动化测试和 Docker 镜像构建。可选安装 Playwright 后，可继续使用本机 Chrome 做桌面端和移动端界面回归。
+界面已使用 Playwright 在 1920、1440、980 和 390 像素视口完成回归，覆盖固定导航、Hero 轮播、樱花、波浪、打字机、响应式布局和页面横向溢出检查。
 
 ## 项目结构
 
 ```text
 .
-├── .github/workflows/ci.yml
-├── docker/mysql/init/
 ├── docs/
 │   ├── architecture.md
 │   ├── usage-guide.md
 │   └── screenshots/
 ├── public/
 │   ├── app.js
+│   ├── crosspilot.css
+│   ├── final-shell.css
 │   ├── index.html
 │   └── styles.css
 ├── src/
 │   ├── app.js
-│   ├── database.js
-│   ├── diagnostics.js
+│   ├── imports.js
+│   ├── metrics.js
 │   ├── reports.js
 │   ├── server.js
 │   └── store.js
 ├── tests/api.test.js
 ├── Dockerfile
 ├── docker-compose.yml
+├── render.yaml
 └── package.json
 ```
 
-## 简历表述
+## 工程亮点
 
-> 独立开发实施交付工作台，覆盖环境预检、MySQL/SQL Server 数据核验、问题闭环、培训验收和交付报告生成。
+CrossPilot 将指标口径、规则引擎、动作追踪和报告输出放在同一条数据链路中。每条运营建议都能追溯到原始指标和固定规则，执行结果也会回写到复盘报告，形成可验证的运营闭环。
 
 ## License
 

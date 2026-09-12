@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: deploymate
+    name: crosspilot
     runtime: docker
     plan: free
     autoDeploy: true
@@ -9,4 +9,4 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: DB_PATH
-        value: /app/data/deploymate.db
+        value: /app/data/crosspilot.db

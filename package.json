@@ -1,8 +1,8 @@
 {
-  "name": "deploymate-workbench",
-  "version": "2.0.0",
+  "name": "crosspilot-operations-console",
+  "version": "3.0.0",
   "private": true,
-  "description": "DeployMate implementation delivery workbench for implementation and technical support engineers.",
+  "description": "CrossPilot cross-border marketplace operations decision console.",
   "type": "module",
   "engines": {
     "node": ">=22.5.0"
@@ -11,23 +11,21 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
-    "check": "node --check src/app.js && node --check src/store.js && node --check src/database.js && node --check src/diagnostics.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js"
+    "check": "node --check src/app.js && node --check src/store.js && node --check src/metrics.js && node --check src/imports.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js"
   },
   "keywords": [
-    "it-support",
-    "implementation-engineer",
-    "technical-support",
-    "sqlite",
-    "mysql",
-    "sql-server",
-    "implementation-delivery",
+    "cross-border-ecommerce",
+    "amazon-operations",
+    "marketplace-analytics",
+    "listing-optimization",
+    "advertising",
+    "inventory",
     "operations"
   ],
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^12.11.1",
-    "mssql": "^12.7.2",
-    "mysql2": "^3.24.4"
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

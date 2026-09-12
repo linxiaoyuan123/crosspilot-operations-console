@@ -1,111 +1,119 @@
 const ICON_PATHS = {
-  workbench: '<rect width="7" height="7" x="3" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="3" rx="1.5"/><rect width="7" height="7" x="3" y="14" rx="1.5"/><rect width="7" height="7" x="14" y="14" rx="1.5"/>',
-  projects: '<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 9h18"/>',
-  preflight: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h3"/><path d="m15 16 2 2 3-4"/>',
-  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
-  cases: '<path d="M5 4h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 4V2h8v2M8 10h8M8 14h5"/>',
-  handover: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-5"/>',
-  knowledge: '<path d="M2 4h6a4 4 0 0 1 4 4v12a4 4 0 0 0-4-4H2Z"/><path d="M22 4h-6a4 4 0 0 0-4 4v12a4 4 0 0 1 4-4h6Z"/>',
-  menu: '<path d="M4 12h16M4 6h16M4 18h16"/>',
+  overview: '<path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-4H4v4Zm10-11h6V4h-6v5Z"/>',
+  imports: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  listings: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h3"/><path d="m15 16 2 2 3-4"/>',
+  ads: '<path d="m3 11 18-5v12L3 13v-2Z"/><path d="M7 13v5a2 2 0 0 0 4 0v-4"/>',
+  inventory: '<path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7v10l8 4 8-4V7M12 11v10"/>',
+  aftersales: '<path d="M5 4h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 9h8M8 13h5"/>',
+  reviews: '<path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   refresh: '<path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/>',
-  plus: '<path d="M5 12h14M12 5v14"/>',
-  check: '<path d="M20 6 9 17l-5-5"/>',
-  arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
-  play: '<path d="m7 4 13 8-13 8Z"/>',
-  server: '<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01M6 18h.01"/>',
-  network: '<rect width="6" height="6" x="9" y="2" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="16" y="16" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
-  search: '<circle cx="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  x: '<path d="M18 6 6 18M6 6l12 12"/>',
-  download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/>',
-  clipboard: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 11h8M8 15h6"/>',
   alert: '<path d="M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
   clock: '<circle cx="12" r="9"/><path d="M12 7v5l3 2"/>',
+  arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
+  plus: '<path d="M5 12h14M12 5v14"/>',
+  search: '<circle cx="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/>',
+  upload: '<path d="M12 15V3m0 0 4 4m-4-4L8 7"/><path d="M4 15v4h16v-4"/>',
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-  settings: '<circle cx="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>',
   book: '<path d="M4 4h6a3 3 0 0 1 3 3v13a3 3 0 0 0-3-3H4Z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a3 3 0 0 1 3-3h6Z"/>',
-  db: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M21 12h-3"/>',
+  box: '<path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7v10l8 4 8-4V7M12 11v10"/>',
+  truck: '<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  chart: '<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-7"/>',
+  message: '<path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 12h5"/>',
+  file: '<path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/>',
+  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'
 };
 
 const VIEW_META = {
-  workbench: { title: '今日工作台', eyebrow: '现场实施' },
-  projects: { title: '实施项目', eyebrow: '项目执行' },
-  preflight: { title: '环境预检', eyebrow: '部署前检查' },
-  database: { title: '数据库交付', eyebrow: '数据核验' },
-  cases: { title: '技术支持', eyebrow: '问题闭环' },
-  handover: { title: '培训验收', eyebrow: '交付确认' },
-  knowledge: { title: '知识库', eyebrow: '经验沉淀' }
-};
-
-const PHASES = [
-  ['requirement', '需求确认'],
-  ['preflight', '环境预检'],
-  ['deployment', '安装部署'],
-  ['data', '数据核验'],
-  ['integration', '联调测试'],
-  ['training', '用户培训'],
-  ['acceptance', '项目验收'],
-  ['review', '上线复盘']
-];
-
-const STATUS_LABELS = {
-  pending: '待处理',
-  in_progress: '处理中',
-  blocked: '已阻塞',
-  done: '已完成',
-  open: '待处理',
-  waiting: '待客户',
-  resolved: '已解决',
-  closed: '已关闭',
-  healthy: '通过',
-  warning: '警告',
-  failed: '失败',
-  active: '进行中',
-  completed: '已完成',
-  archived: '已归档'
+  overview: { title: '运营总览', eyebrow: '经营驾驶舱' },
+  imports: { title: '数据导入', eyebrow: '报表清洗与字段映射' },
+  listings: { title: 'Listing与商品', eyebrow: '商品与内容优化' },
+  ads: { title: '广告与流量', eyebrow: '搜索词与投放决策' },
+  inventory: { title: '库存与履约', eyebrow: '补货与风险控制' },
+  aftersales: { title: '售后与账号', eyebrow: '问题闭环与健康预警' },
+  reviews: { title: '运营复盘', eyebrow: '周期总结与报告导出' }
 };
 
 const HERO_PHRASES = [
-  '检查每台服务器，让上线风险提前暴露。',
-  '核验每一张数据表，让交付结果可追踪。',
-  '跟完每一个问题，让客户支持形成闭环。',
-  '整理每一次验收，让项目经验真正沉淀。'
+  '识别利润、广告与库存问题，不让异常停留在表格里。',
+  '把报表映射成统一字段，把指标变成可执行动作。',
+  '从 Listing 优化到补货决策，每一步都有证据可回写。',
+  '用日报、周报和月报，让跨境运营形成真正的闭环。'
 ];
 
+const STATUS_LABELS = {
+  open: '待处理',
+  in_progress: '处理中',
+  deferred: '已延期',
+  done: '已完成',
+  closed: '已关闭',
+  ignored: '已忽略',
+  resolved: '已解决',
+  waiting: '待外部反馈',
+  healthy: '健康',
+  warning: '预警',
+  stockout: '缺货风险',
+  overstock: '滞销风险',
+  cancelled: '已取消',
+  preview: '待确认',
+  committed: '已入库'
+};
+
 const PRIORITY_LABELS = { critical: 'P0 紧急', high: 'P1 高', medium: 'P2 中', low: 'P3 低' };
-const CATEGORY_LABELS = { account: '账号角色', training: '用户培训', acceptance: '项目验收', document: '交付文档' };
+const IMPORT_TARGET_FIELDS = {
+  products: [
+    ['sku', 'SKU'], ['title', '商品标题'], ['price', '售价'], ['unit_cost', '采购成本'],
+    ['units_30d', '销量'], ['sales_30d', '销售额'], ['ad_spend_30d', '广告费'],
+    ['ad_sales_30d', '广告销售'], ['returns_30d', '退货数量'], ['rating', '评分'], ['review_count', '评论数']
+  ],
+  ads: [
+    ['sku', 'SKU'], ['campaign', '广告活动'], ['ad_group', '广告组'], ['search_term', '搜索词'],
+    ['match_type', '匹配类型'], ['clicks', '点击量'], ['impressions', '曝光量'], ['spend', '花费'],
+    ['ad_sales', '广告销售'], ['ad_orders', '广告订单']
+  ],
+  inventory: [
+    ['sku', 'SKU'], ['snapshot_date', '快照日期'], ['available', '可售库存'], ['inbound', '在途库存'],
+    ['reserved', '预留库存'], ['defective', '残次品'], ['avg_daily_sales', '日均销量'],
+    ['last_restock_date', '最近补货日期'], ['note', '备注']
+  ],
+  after_sales: [
+    ['sku', 'SKU'], ['case_no', '售后编号'], ['type', '问题类型'], ['subject', '主题'],
+    ['reason', '原因'], ['detail', '详情'], ['status', '状态'], ['priority', '优先级'],
+    ['owner', '负责人'], ['due_date', '截止日期'], ['evidence', '处理证据']
+  ]
+};
 
 const state = {
-  view: 'workbench',
-  projectId: null,
-  projects: [],
-  project: null,
-  workbench: null,
-  checks: [],
-  system: null,
-  profiles: [],
-  validations: [],
-  schema: [],
-  selectedTable: '',
-  backupPlan: null,
-  queryResult: null,
-  cases: [],
-  selectedCase: null,
-  handover: [],
+  view: 'overview',
+  storeId: null,
+  stores: [],
+  overview: null,
+  actions: [],
+  imports: [],
+  pendingImport: null,
+  products: [],
+  selectedProductId: null,
+  ads: null,
+  inventory: null,
+  afterSales: null,
   knowledge: [],
-  knowledgeQuery: ''
+  knowledgeQuery: '',
+  productQuery: '',
+  reviewTab: 'reports'
 };
 
 const app = document.querySelector('#app');
 const pageTitle = document.querySelector('#page-title');
 const pageEyebrow = document.querySelector('#page-eyebrow');
-const projectSelect = document.querySelector('#global-project');
+const storeSelect = document.querySelector('#global-store');
 const modalRoot = document.querySelector('#modal-root');
 const toastRoot = document.querySelector('#toast-root');
 const fontToggle = document.querySelector('#font-toggle');
-const scrollCompanion = document.querySelector('#scroll-companion');
-const companionProgress = document.querySelector('#companion-progress');
-const companionDot = document.querySelector('#companion-dot');
-const companionNode = document.querySelector('#companion-node');
+const appHeader = document.querySelector('.app-header');
+const navProgress = document.querySelector('#nav-progress');
 const heroTypewriter = document.querySelector('#hero-typewriter');
 const shellLeft = document.querySelector('#shell-left');
 const shellRight = document.querySelector('#shell-right');
@@ -120,22 +128,23 @@ function init() {
   initFontToggle();
   initSakura();
   initHeroTypewriter();
-  document.querySelectorAll('[data-nav]').forEach((button) => {
-    button.addEventListener('click', () => navigate(button.dataset.nav));
-  });
-  projectSelect.addEventListener('change', async () => {
-    state.projectId = Number(projectSelect.value) || null;
-    state.project = null;
-    await loadCurrentView();
-  });
+  initAppHeader();
+  document.querySelectorAll('[data-nav]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.nav)));
   document.querySelector('#refresh-button').addEventListener('click', () => loadCurrentView(true));
-  initScrollCompanion();
+  storeSelect.addEventListener('change', async () => {
+    state.storeId = Number(storeSelect.value) || null;
+    state.selectedProductId = null;
+    state.pendingImport = null;
+    await loadCurrentView(true);
+  });
   document.addEventListener('click', handleClick);
   document.addEventListener('submit', handleSubmit);
+  document.addEventListener('change', handleChange);
+  document.addEventListener('dragover', handleDragOver);
+  document.addEventListener('drop', handleDrop);
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeModal();
   });
-
   const hashView = window.location.hash.replace('#', '');
   if (VIEW_META[hashView]) state.view = hashView;
   updateViewChrome();
@@ -144,731 +153,614 @@ function init() {
 }
 
 async function bootstrap() {
-  app.innerHTML = loadingTemplate('正在加载交付工作台');
+  app.innerHTML = loadingTemplate('正在加载 CrossPilot 运营数据');
   try {
-    const { items } = await api('/api/projects');
-    state.projects = items;
-    if (!state.projects.some((project) => project.id === state.projectId)) {
-      state.projectId = state.projects[0]?.id || null;
-    }
-    renderProjectSwitcher();
+    const { items } = await api('/api/stores');
+    state.stores = items;
+    state.storeId = state.stores[0]?.id || null;
+    renderStoreSwitcher();
     await loadCurrentView();
   } catch (error) {
-    showError(error);
+    app.innerHTML = errorTemplate(error.message);
   }
 }
 
 async function loadCurrentView(force = false) {
-  if (!state.projects.length || force) {
-    const { items } = await api('/api/projects');
-    state.projects = items;
-    if (!state.projects.some((project) => project.id === state.projectId)) {
-      state.projectId = state.projects[0]?.id || null;
-    }
-    renderProjectSwitcher();
+  if (!state.stores.length || force) {
+    const { items } = await api('/api/stores');
+    state.stores = items;
+    if (!state.stores.some((store) => store.id === state.storeId)) state.storeId = state.stores[0]?.id || null;
+    renderStoreSwitcher();
   }
-  app.innerHTML = loadingTemplate('正在加载页面数据');
+  if (!state.storeId) return renderEmptyPage('还没有店铺数据', '请先准备 CrossPilot 演示数据库。');
+  app.innerHTML = loadingTemplate('正在整理运营数据');
   try {
-    if (state.view === 'workbench') await loadWorkbench();
-    if (state.view === 'projects') await loadProjects();
-    if (state.view === 'preflight') await loadPreflight();
-    if (state.view === 'database') await loadDatabase();
-    if (state.view === 'cases') await loadCases();
-    if (state.view === 'handover') await loadHandover();
-    if (state.view === 'knowledge') await loadKnowledge();
+    if (state.view === 'overview') await loadOverview();
+    if (state.view === 'imports') await loadImports();
+    if (state.view === 'listings') await loadListings();
+    if (state.view === 'ads') await loadAds();
+    if (state.view === 'inventory') await loadInventory();
+    if (state.view === 'aftersales') await loadAfterSales();
+    if (state.view === 'reviews') await loadReviews();
   } catch (error) {
     app.innerHTML = errorTemplate(error.message);
   }
   renderShellSidebars();
 }
 
-async function loadWorkbench() {
-  state.workbench = await api(`/api/workbench${state.projectId ? `?projectId=${state.projectId}` : ''}`);
-  if (state.workbench.project) state.projectId = state.workbench.project.id;
-  renderProjectSwitcher();
-  renderWorkbench();
-}
-
-async function loadProjects() {
-  await ensureProject();
-  if (!state.project) return renderEmptyPage('还没有实施项目', '创建第一个项目后即可开始完整交付流程。', 'new-project', '创建实施项目');
-  renderProjects();
-}
-
-async function loadPreflight() {
-  await ensureProject();
-  const [system, history] = await Promise.all([
-    api('/api/checks/system'),
-    api(`/api/checks/history?projectId=${state.projectId}&limit=20`)
+async function loadOverview() {
+  const [overview, actions] = await Promise.all([
+    api(`/api/overview?storeId=${state.storeId}`),
+    api(`/api/actions?storeId=${state.storeId}&status=all`)
   ]);
-  state.system = system;
-  state.checks = history.items;
-  renderPreflight();
+  state.overview = overview;
+  state.actions = actions.items;
+  renderOverview();
 }
 
-async function loadDatabase() {
-  await ensureProject();
-  const [profiles, validations] = await Promise.all([
-    api(`/api/db/profiles?projectId=${state.projectId}`),
-    api(`/api/db/validations?projectId=${state.projectId}`)
+async function loadImports() {
+  const { items } = await api(`/api/imports?storeId=${state.storeId}`);
+  state.imports = items;
+  if (state.pendingImport && !items.some((item) => item.id === state.pendingImport.id && item.status === 'preview')) state.pendingImport = null;
+  renderImports();
+}
+
+async function loadListings() {
+  const { items } = await api(`/api/products?storeId=${state.storeId}`);
+  state.products = items;
+  if (!state.selectedProductId || !items.some((item) => item.id === state.selectedProductId)) state.selectedProductId = items[0]?.id || null;
+  renderListings();
+}
+
+async function loadAds() {
+  state.ads = await api(`/api/ads?storeId=${state.storeId}`);
+  renderAds();
+}
+
+async function loadInventory() {
+  state.inventory = await api(`/api/inventory?storeId=${state.storeId}`);
+  renderInventory();
+}
+
+async function loadAfterSales() {
+  state.afterSales = await api(`/api/after-sales?storeId=${state.storeId}`);
+  renderAfterSales();
+}
+
+async function loadReviews() {
+  const [knowledge, overview] = await Promise.all([
+    api(`/api/knowledge${state.knowledgeQuery ? `?q=${encodeURIComponent(state.knowledgeQuery)}` : ''}`),
+    api(`/api/overview?storeId=${state.storeId}`)
   ]);
-  state.profiles = profiles.items;
-  state.validations = validations.items;
-  if (!state.profiles.some((profile) => profile.id === state.profileId)) {
-    state.profileId = state.profiles[0]?.id || null;
-  }
-  state.schema = [];
-  state.selectedTable = '';
-  renderDatabase();
+  state.knowledge = knowledge.items;
+  state.overview = overview;
+  renderReviews();
 }
 
-async function loadCases() {
-  await ensureProject();
-  const { items } = await api(`/api/cases?projectId=${state.projectId}`);
-  state.cases = items;
-  if (!state.selectedCase || !state.cases.some((item) => item.id === state.selectedCase.id)) {
-    state.selectedCase = state.cases[0] ? await api(`/api/cases/${state.cases[0].id}`) : null;
-  } else {
-    state.selectedCase = await api(`/api/cases/${state.selectedCase.id}`);
-  }
-  renderCases();
-}
-
-async function loadHandover() {
-  await ensureProject();
-  const { items } = await api(`/api/handover/${state.projectId}`);
-  state.handover = items;
-  renderHandover();
-}
-
-async function loadKnowledge() {
-  const query = state.knowledgeQuery ? `?q=${encodeURIComponent(state.knowledgeQuery)}` : '';
-  const { items } = await api(`/api/knowledge${query}`);
-  state.knowledge = items;
-  renderKnowledge();
-}
-
-async function ensureProject() {
-  if (!state.projectId) return;
-  if (!state.project || state.project.id !== state.projectId) {
-    state.project = await api(`/api/projects/${state.projectId}`);
-  }
-}
-
-function renderWorkbench() {
-  const data = state.workbench;
-  if (!data?.project) {
-    return renderEmptyPage('还没有实施项目', '先建立一个客户实施项目，再开始环境预检、数据核验和验收。', 'new-project', '创建实施项目');
-  }
-  const project = data.project;
-  const taskTotal = state.projects.find((item) => item.id === project.id)?.total_tasks || 0;
-  const taskDone = state.projects.find((item) => item.id === project.id)?.completed_tasks || 0;
-  const progress = taskTotal ? Math.round((taskDone / taskTotal) * 100) : 0;
+function renderOverview() {
+  const data = state.overview;
+  const k = data.kpis;
+  const openActions = state.actions.filter((item) => !isClosedAction(item.status));
+  const critical = openActions.filter((item) => item.priority === 'critical').length;
+  const high = openActions.filter((item) => item.priority === 'high').length;
   app.innerHTML = `
-    <section class="view-head">
-      <div>
-        <div class="project-kicker">${h(project.code)} · ${h(project.environment)}</div>
-        <h2>${h(project.project_name)}</h2>
-        <p>${h(project.customer)} · ${h(project.product_name || '待补充产品')} · 计划上线 ${h(project.go_live_date || '未设置')}</p>
-      </div>
-      <div class="head-actions">
-        <button class="button secondary" data-action="edit-project">${icon('edit')}编辑项目</button>
-        <a class="button secondary" href="/api/reports/project/${project.id}?format=html" target="_blank">${icon('download')}实施报告</a>
-        <button class="button primary" data-action="new-task">${icon('plus')}新增任务</button>
-      </div>
-    </section>
-
-    <section class="focus-strip">
+    ${viewHead('运营总览', `${data.store.name} 近 30 天经营结果。先看利润和风险，再进入对应模块处理。`, `
+      <button class="button secondary" data-action="refresh-actions">${icon('refresh')}重新计算动作</button>
+      <button class="button primary" data-action="new-action">${icon('plus')}新增运营动作</button>`)}
+    <div class="metric-grid cp-metric-grid">
+      ${metricCard('chart', '净销售额', money(k.netSales, data.store.currency), `总销售 ${money(k.sales, data.store.currency)}`, 'listings', 'accent')}
+      ${metricCard('target', '净利润率', `${k.margin}%`, `净利润 ${money(k.profit, data.store.currency)}`, 'listings', k.margin < 10 ? 'red' : 'green')}
+      ${metricCard('ads', 'ACOS / TACOS', `${k.acos}% / ${k.tacos}%`, `ROAS ${k.roas}x`, 'ads', k.acos > Number(data.store.target_acos) ? 'amber' : 'green')}
+      ${metricCard('inventory', '库存风险', `${k.inventoryRiskCount} 个 SKU`, `缺货与滞销合计`, 'inventory', k.inventoryRiskCount ? 'amber' : 'green')}
+      ${metricCard('aftersales', '退货率', `${k.returnRate}%`, `${k.units} 件销量`, 'aftersales', k.returnRate > 8 ? 'red' : 'green')}
+      ${metricCard('target', '评分健康', `${k.rating} / 5`, `${number(k.reviewCount)} 条评论`, 'aftersales', data.store.health_status === 'warning' ? 'amber' : 'green')}
+      ${metricCard('check', '待执行动作', `${openActions.length} 项`, `P0 ${critical} · P1 ${high}`, null, openActions.length ? 'amber' : 'green')}
+      ${metricCard('message', '待处理售后', `${k.pendingAfterSales} 项`, `低毛利 SKU ${k.lowMarginProducts} 个`, 'aftersales', k.pendingAfterSales ? 'amber' : 'green')}
+    </div>
+    <div class="focus-strip cp-focus-strip">
       <div class="focus-copy">
-        <span class="focus-label">当前阶段</span>
-        <strong>${h(phaseLabel(project.phase))}</strong>
-        <small>${h(project.notes || '暂无项目备注')}</small>
+        <span class="focus-label">今日运营焦点</span>
+        <strong>${h(openActions[0]?.title || '当前没有需要立即处理的异常')}</strong>
+        <small>${h(openActions[0]?.description || '规则引擎会持续复核利润、广告、库存、Listing 与售后数据。')}</small>
       </div>
       <div class="focus-progress">
-        <div class="progress-label"><span>项目任务完成度</span><strong>${taskDone} / ${taskTotal}</strong></div>
-        <div class="progress-track"><span style="width:${progress}%"></span></div>
+        <div class="progress-label"><span>动作关闭率</span><strong>${actionCloseRate(state.actions)}%</strong></div>
+        <div class="progress-track large"><span style="width:${actionCloseRate(state.actions)}%"></span></div>
       </div>
-    </section>
-
-    <section class="metric-grid">
-      ${metricCard('next', '待推进任务', data.nextTasks.length, '按阻塞与阶段排序', 'workbench')}
-      ${metricCard('blocked', '阻塞事项', data.blockers.length, data.blockers.length ? '需要优先处理' : '当前无阻塞', 'projects')}
-      ${metricCard('cases', '待跟进问题', data.openCases.length, '客户问题闭环', 'cases')}
-      ${metricCard('handover', '验收待办', data.pendingHandover.length, '培训与签字确认', 'handover')}
-    </section>
-
-    <section class="dashboard-grid">
-      <article class="panel span-2">
-        <header class="panel-head">
-          <div><span class="panel-kicker">下一步</span><h3>今天要推进的任务</h3></div>
-          <button class="text-button" data-nav="projects">全部任务 ${icon('arrow')}</button>
-        </header>
-        <div class="task-stack">
-          ${data.nextTasks.length ? data.nextTasks.map(taskRow).join('') : emptyBlock('当前阶段任务已清空', '可以进入培训验收或整理上线复盘。')}
-        </div>
-      </article>
-
-      <article class="panel">
-        <header class="panel-head">
-          <div><span class="panel-kicker">检查记录</span><h3>最近现场检查</h3></div>
-          <button class="icon-button small" data-nav="preflight" title="打开环境预检">${icon('preflight')}</button>
-        </header>
-        <div class="timeline">
-          ${data.recentChecks.length ? data.recentChecks.map(checkTimelineRow).join('') : emptyBlock('暂无检查记录', '运行环境或网络检查后会出现在这里。')}
-        </div>
-      </article>
-
-      <article class="panel">
-        <header class="panel-head">
-          <div><span class="panel-kicker">客户支持</span><h3>待跟进问题</h3></div>
-          <button class="text-button" data-nav="cases">问题中心 ${icon('arrow')}</button>
-        </header>
-        <div class="compact-list">
-          ${data.openCases.length ? data.openCases.map((item) => `
-            <button class="compact-row" data-action="open-case" data-id="${item.id}">
-              <span>${statusBadge(item.priority, 'priority')}</span>
-              <strong>${h(item.title)}</strong>
-              <small>${h(item.next_action || item.symptom)}</small>
-            </button>
-          `).join('') : emptyBlock('没有待跟进问题', '客户问题处理完成后会沉淀到知识库。')}
-        </div>
-      </article>
-
-      <article class="panel">
-        <header class="panel-head">
-          <div><span class="panel-kicker">交付工具</span><h3>工程师常用入口</h3></div>
-        </header>
-        <div class="quick-grid">
-          <button data-nav="preflight">${icon('server')}<span>环境预检</span><small>系统、网络、端口</small></button>
-          <button data-nav="database">${icon('database')}<span>数据核验</span><small>SQL、校验、导出</small></button>
-          <button data-nav="handover">${icon('handover')}<span>培训验收</span><small>清单、签字、报告</small></button>
-          <button data-nav="knowledge">${icon('knowledge')}<span>知识沉淀</span><small>问题转解决方案</small></button>
-        </div>
-      </article>
-
-      <article class="panel workbench-activity">
-        <header class="panel-head">
-          <div><span class="panel-kicker">处理轨迹</span><h3>最近项目动态</h3></div>
-        </header>
-        <div class="activity-line">
-        ${data.recentEvents.length ? data.recentEvents.map((event) => `
-          <div class="activity-row">
-            <span class="activity-dot"></span>
-            <div><strong>${h(event.case_no)} · ${h(event.title)}</strong><p>${h(event.detail)}</p></div>
-            <time>${relativeTime(event.created_at)}</time>
-          </div>
-        `).join('') : emptyBlock('暂无处理动态', '问题受理、诊断和解决记录会显示在这里。')}
-        </div>
-      </article>
-    </section>
-  `;
-}
-
-function renderProjects() {
-  const project = state.project;
-  const grouped = PHASES.map(([key, label]) => ({
-    key,
-    label,
-    tasks: project.tasks.filter((task) => task.stage === key)
-  }));
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">项目执行</div><h2>标准实施阶段与现场任务</h2><p>按阶段推进需求、部署、数据、培训和验收，所有证据保留在项目内。</p></div>
-      <div class="head-actions">
-        <button class="button secondary" data-action="edit-project">${icon('edit')}项目资料</button>
-        <button class="button primary" data-action="new-task">${icon('plus')}新增任务</button>
-      </div>
-    </section>
-    <section class="project-workspace">
-      <aside class="project-list panel">
-        <header class="panel-head"><div><span class="panel-kicker">项目列表</span><h3>${state.projects.length} 个实施项目</h3></div><button class="icon-button small" data-action="new-project" title="创建项目">${icon('plus')}</button></header>
-        <div class="project-list-items">
-          ${state.projects.map((item) => `
-            <button class="project-list-item ${item.id === project.id ? 'is-active' : ''}" data-action="select-project" data-id="${item.id}">
-              <span class="project-code">${h(item.code)}</span>
-              <strong>${h(item.project_name)}</strong>
-              <small>${h(item.customer)} · ${h(item.environment)}</small>
-              <span class="mini-progress"><i style="width:${item.total_tasks ? Math.round((item.completed_tasks / item.total_tasks) * 100) : 0}%"></i></span>
-            </button>
-          `).join('')}
-        </div>
-      </aside>
-      <div class="project-detail">
-        <section class="project-summary panel">
-          <div>
-            <span class="project-kicker">${h(project.code)}</span>
-            <h2>${h(project.project_name)}</h2>
-            <p>${h(project.customer)} · ${h(project.product_name || '待补充产品')}</p>
-          </div>
-          <dl class="summary-facts">
-            <div><dt>环境</dt><dd>${h(project.environment)}</dd></div>
-            <div><dt>负责人</dt><dd>${h(project.owner || '未设置')}</dd></div>
-            <div><dt>客户联系人</dt><dd>${h(project.customer_contact || '未设置')}</dd></div>
-            <div><dt>计划上线</dt><dd>${h(project.go_live_date || '未设置')}</dd></div>
-          </dl>
-        </section>
-        <section class="phase-board panel">
-          <header class="panel-head"><div><span class="panel-kicker">实施阶段</span><h3>交付路线</h3></div><span class="muted">点击任务可补充负责人、日期和证据</span></header>
-          <div class="phase-steps">
-            ${grouped.map((group, index) => `<div class="phase-step ${group.tasks.every((task) => task.status === 'done') && group.tasks.length ? 'is-done' : ''}"><span>${index + 1}</span><strong>${h(group.label)}</strong></div>`).join('')}
-          </div>
-          <div class="phase-groups">
-            ${grouped.map((group) => `
-              <section class="phase-group">
-                <header><div><span>${h(group.label)}</span><small>${group.tasks.filter((task) => task.status === 'done').length}/${group.tasks.length} 已完成</small></div><button class="text-button" data-action="new-task" data-stage="${group.key}">${icon('plus')}添加</button></header>
-                <div class="task-stack">
-                  ${group.tasks.length ? group.tasks.map(taskRow).join('') : `<div class="empty-inline">本阶段暂无任务</div>`}
-                </div>
-              </section>
-            `).join('')}
-          </div>
-        </section>
-      </div>
-    </section>
-  `;
-}
-
-function renderPreflight() {
-  const info = state.system;
-  const latestNetworkCheck = state.checks.find((item) => item.check_type === 'network');
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">${h(state.project.code)} · 环境预检</div><h2>部署前环境与网络检查</h2><p>检查系统资源、端口、DNS、HTTP、系统服务和数据库连接，结果自动留档。</p></div>
-      <div class="head-actions">
-        <a class="button secondary" href="/api/reports/project/${state.projectId}?format=html" target="_blank">${icon('download')}实施报告</a>
-      </div>
-    </section>
-
-    <section class="metric-grid">
-      ${metricCard('server', '主机', info.hostname, `${info.platform} ${info.release}`, 'preflight')}
-      ${metricCard('cpu', 'CPU', `${info.cpuCount} 核`, info.cpuModel || 'CPU 信息', 'preflight')}
-      ${metricCard('memory', '内存使用', `${info.memory.usedPercent}%`, `${formatBytes(info.memory.used)} / ${formatBytes(info.memory.total)}`, 'preflight')}
-      ${metricCard('disk', '磁盘可用', info.disk ? formatBytes(info.disk.free) : '-', info.disk ? `${info.disk.path} · 已用 ${info.disk.usedPercent}%` : '当前平台不可读取', 'preflight')}
-    </section>
-
-    <section class="two-column">
-      <article class="panel">
-        <header class="panel-head"><div><span class="panel-kicker">系统预检</span><h3>资源与运行环境</h3></div>${statusBadge(info ? memoryStatus(info.memory.usedPercent) : 'healthy')}</header>
-        <form id="system-check-form" class="form-grid compact">
-          <input type="hidden" name="projectId" value="${state.projectId}">
-          ${field('内存告警阈值（%）', '<input type="number" name="memoryMaxPercent" value="85" min="1" max="100">')}
-          ${field('磁盘最小可用（GB）', '<input type="number" name="diskMinFreeGb" value="10" min="1" step="0.5">')}
-          ${field('单核负载上限', '<input type="number" name="cpuMaxLoadPerCore" value="2.5" min="0.1" step="0.1">')}
-          <div class="form-actions span-2"><button class="button primary" type="submit">${icon('play')}执行系统预检并留档</button></div>
-        </form>
-        <div class="system-facts">
-          ${fact('主机名', info.hostname)}${fact('操作系统', `${info.platform} ${info.release}`)}${fact('CPU', `${info.cpuCount} 核`)}
-          ${fact('Node.js', info.nodeVersion)}${fact('系统运行', humanDuration(info.uptimeSeconds))}${fact('时区', info.timezone || '未知')}
-        </div>
-      </article>
-
-      <article class="panel">
-        <header class="panel-head"><div><span class="panel-kicker">网络诊断</span><h3>从当前工程师电脑发起检查</h3></div>${icon('network')}</header>
-        <form id="network-check-form" class="form-grid compact">
-          <input type="hidden" name="projectId" value="${state.projectId}">
-          ${field('检查类型', `<select name="type" id="network-type">${options({ dns: 'DNS 解析', port: 'TCP 端口', http: 'HTTP 响应', ping: 'Ping 连通性', service: '系统服务', app: '本应用健康' }, 'port')}</select>`)}
-          ${field('目标地址 / 主机名', '<input name="target" id="network-target" value="127.0.0.1" placeholder="例如 10.0.0.15 或 api.example.com">')}
-          ${field('TCP 端口', '<input type="number" name="port" id="network-port" value="3306" min="1" max="65535">')}
-          <div class="form-actions span-2"><button class="button primary" type="submit">${icon('play')}执行网络检查</button></div>
-        </form>
-        <p class="form-note">检查会从运行 DeployMate 的机器发起，适合验证安装电脑到客户服务器、数据库和业务服务之间的连通性。</p>
-        ${latestNetworkCheck ? `
-          <div class="latest-network">
-            <div class="latest-network-copy">
-              <span class="panel-kicker">最近网络记录</span>
-              <strong>${h(latestNetworkCheck.target)}</strong>
-              <p>${h(latestNetworkCheck.summary)}</p>
-            </div>
-            <div class="latest-network-side">
-              ${statusBadge(latestNetworkCheck.status)}
-              <time>${relativeTime(latestNetworkCheck.created_at)}</time>
-              <a class="text-button" href="/api/reports/check/${latestNetworkCheck.id}?format=html" target="_blank">查看报告</a>
-            </div>
-          </div>
-        ` : `
-          <div class="latest-network is-empty">
-            <div class="latest-network-copy">
-              <span class="panel-kicker">最近网络记录</span>
-              <strong>尚未执行网络检查</strong>
-              <p>选择检查类型并执行后，摘要会显示在这里。</p>
-            </div>
-          </div>
-        `}
-      </article>
-    </section>
-
-    <section class="panel">
-      <header class="panel-head"><div><span class="panel-kicker">检查历史</span><h3>环境与网络留档</h3></div><span class="muted">最近 ${state.checks.length} 条</span></header>
-      ${checksTable(state.checks)}
-    </section>
-  `;
-}
-
-function renderDatabase() {
-  const profile = state.profiles.find((item) => item.id === state.profileId);
-  const selectedTable = state.schema.find((table) => table.name === state.selectedTable);
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">${h(state.project.code)} · 数据库交付</div><h2>客户数据核验与导出</h2><p>统一连接 SQLite、MySQL 和 SQL Server，支持结构浏览、只读 SQL、校验模板和 CSV 导出。</p></div>
-      <div class="head-actions"><button class="button secondary" data-action="backup-plan" ${profile ? '' : 'disabled'}>${icon('download')}备份恢复方案</button><button class="button primary" data-action="new-profile">${icon('plus')}新增数据库连接</button></div>
-    </section>
-
-    <section class="db-toolbar panel">
-      <div class="db-profile-select">
-        <span>当前连接</span>
-        <select id="profile-select">
-          <option value="">请选择数据库连接</option>
-          ${state.profiles.map((item) => `<option value="${item.id}" ${item.id === state.profileId ? 'selected' : ''}>${h(item.name)} · ${h(databaseKindLabel(item.kind))}</option>`).join('')}
-        </select>
-      </div>
-      <div class="db-password"><span>临时密码</span><input id="db-password" type="password" placeholder="仅本次请求使用，不写入数据库"></div>
-      <button class="button secondary" data-action="test-profile" ${profile ? '' : 'disabled'}>${icon('play')}测试连接</button>
-      <button class="button secondary" data-action="load-schema" ${profile ? '' : 'disabled'}>${icon('database')}读取结构</button>
-      <button class="button secondary" data-action="new-validation" ${profile ? '' : 'disabled'}>${icon('plus')}新增校验</button>
-    </section>
-
-    ${profile ? profileStrip(profile) : emptyBlock('尚未配置数据库连接', '可以添加内置 SQLite 演示库，或连接客户环境中的 MySQL / SQL Server。')}
-
-    <section class="database-grid">
-      <article class="panel schema-panel">
-        <header class="panel-head"><div><span class="panel-kicker">数据结构</span><h3>${state.schema.length ? `${state.schema.length} 个表或视图` : '等待读取结构'}</h3></div>${state.selectedTable ? `<button class="text-button" data-action="export-table">${icon('download')}导出当前表</button>` : ''}</header>
-        ${state.schema.length ? `
-          <div class="schema-layout">
-            <div class="schema-tables">
-              ${state.schema.map((table) => `
-                <button class="${table.name === state.selectedTable ? 'is-active' : ''}" data-action="select-table" data-table="${escapeAttr(table.name)}">
-                  <span>${icon(table.type === 'view' ? 'search' : 'db')}</span><strong>${h(table.name)}</strong><small>${table.rowCount === null ? '--' : number(table.rowCount)} 行</small>
-                </button>
-              `).join('')}
-            </div>
-            <div class="schema-columns">
-              ${selectedTable ? `<h4>${h(selectedTable.name)}</h4><p>${selectedTable.columns.length} 个字段 · ${selectedTable.rowCount === null ? '行数不可用' : `${number(selectedTable.rowCount)} 行`}</p>
-                <div class="column-list">${selectedTable.columns.map((column) => `<div><strong>${h(column.name)}</strong><span>${h(column.type || '未声明')}</span><small>${column.primaryKey ? '主键' : column.nullable ? '可空' : '非空'}</small></div>`).join('')}</div>` : emptyBlock('选择数据表', '读取结构后选择表或视图查看字段。')}
-            </div>
-          </div>
-        ` : emptyBlock('还没有读取数据库结构', '先选择数据库连接，再点击“读取结构”。')}
-      </article>
-
-      <article class="panel query-panel">
-        <header class="panel-head"><div><span class="panel-kicker">只读优先</span><h3>SQL 查询台</h3></div><span class="safe-chip">默认只读</span></header>
-        <form id="sql-form">
-          <input type="hidden" name="profileId" value="${profile?.id || ''}">
-          <textarea name="sqlText" class="code-editor" spellcheck="false" placeholder="SELECT * FROM stores LIMIT 50;">${h(defaultSql(profile))}</textarea>
-          <label class="check-line"><input type="checkbox" name="allowWrite"> 允许写操作</label>
-          <div class="write-confirm"><span>高风险 DDL / DROP / TRUNCATE 需要确认：</span><code>CONFIRM DANGEROUS SQL</code><input name="confirmPhrase" placeholder="输入确认短语"></div>
-          <div class="form-actions"><button class="button primary" type="submit">${icon('play')}执行 SQL</button></div>
-        </form>
-        ${renderQueryResult()}
-      </article>
-    </section>
-
-    <section class="panel">
-      <header class="panel-head"><div><span class="panel-kicker">数据校验</span><h3>交付前数据质量检查</h3></div><button class="text-button" data-action="new-validation" ${profile ? '' : 'disabled'}>${icon('plus')}添加校验</button></header>
-      ${validationsTable(state.validations)}
-    </section>
-  `;
-}
-
-function renderCases() {
-  const selected = state.selectedCase;
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">${h(state.project.code)} · 客户支持</div><h2>问题单与处理时间线</h2><p>记录现象、影响、诊断证据、根因和解决方案，处理完成后可直接沉淀知识库。</p></div>
-      <div class="head-actions"><button class="button primary" data-action="new-case">${icon('plus')}新建问题单</button></div>
-    </section>
-    <section class="case-layout">
-      <aside class="panel case-list-panel">
-        <header class="panel-head"><div><span class="panel-kicker">问题列表</span><h3>${state.cases.length} 条记录</h3></div></header>
-        <div class="case-list">
-          ${state.cases.length ? state.cases.map((item) => `
-            <button class="case-list-item ${selected?.id === item.id ? 'is-active' : ''}" data-action="select-case" data-id="${item.id}">
-              <div><span>${h(item.case_no)}</span>${statusBadge(item.priority, 'priority')}</div>
-              <strong>${h(item.title)}</strong>
-              <small>${h(item.category)} · ${relativeTime(item.updated_at)}更新</small>
-              ${statusBadge(item.status)}
-            </button>
-          `).join('') : emptyBlock('暂无问题单', '创建问题单后开始记录处理过程。')}
-        </div>
-      </aside>
-      <div class="case-detail">
-        ${selected ? renderCaseDetail(selected) : emptyBlock('选择问题单', '左侧选择一条问题单查看处理时间线。')}
-      </div>
-    </section>
-  `;
-}
-
-function renderCaseDetail(item) {
-  return `
-    <section class="panel case-summary">
-      <header class="case-head">
-        <div><span class="project-kicker">${h(item.case_no)}</span><h2>${h(item.title)}</h2><p>${h(item.customer || state.project.customer)} · 负责人 ${h(item.assignee || '未分配')}</p></div>
-        <div class="head-actions">
-          <a class="button secondary" href="/api/reports/case/${item.id}?format=html" target="_blank">${icon('download')}处理报告</a>
-          <button class="button secondary" data-action="edit-case" data-id="${item.id}">${icon('edit')}更新问题</button>
-          <button class="button primary" data-action="convert-case" data-id="${item.id}">${icon('book')}转知识库</button>
-        </div>
-      </header>
-      <div class="case-facts">
-        ${fact('优先级', PRIORITY_LABELS[item.priority] || item.priority)}${fact('状态', STATUS_LABELS[item.status] || item.status)}${fact('分类', item.category)}${fact('更新时间', formatDateTime(item.updated_at))}
-      </div>
-      <div class="case-sections">
-        <section><h4>问题现象</h4><p>${h(item.symptom || '-')}</p></section>
-        <section><h4>影响范围</h4><p>${h(item.impact || '-')}</p></section>
-        <section><h4>根本原因</h4><p>${h(item.root_cause || '尚未填写')}</p></section>
-        <section><h4>解决方案</h4><p>${h(item.resolution || '尚未填写')}</p></section>
-        <section><h4>后续跟进</h4><p>${h(item.next_action || '-')}</p></section>
-      </div>
-    </section>
-    <section class="panel">
-      <header class="panel-head"><div><span class="panel-kicker">处理时间线</span><h3>诊断、沟通与解决记录</h3></div><span class="muted">${item.events.length} 条记录</span></header>
-      <div class="case-timeline">
-        ${item.events.length ? item.events.map((event) => `
-          <div class="case-event">
-            <span class="event-marker">${eventIcon(event.event_type)}</span>
-            <div><strong>${h(event.title)}</strong><p>${h(event.detail || '-')}</p></div>
-            <time>${formatDateTime(event.created_at)}</time>
-          </div>
-        `).join('') : emptyBlock('暂无处理记录', '添加诊断、客户沟通或解决步骤。')}
-      </div>
-      <form id="case-event-form" class="form-grid event-form">
-        <input type="hidden" name="caseId" value="${item.id}">
-        ${field('记录类型', `<select name="eventType">${options({ note: '处理记录', diagnostic: '诊断结果', validation: '数据校验', contact: '客户沟通', resolution: '解决方案' }, 'note')}</select>`)}
-        ${field('记录标题', '<input name="title" placeholder="例如：检查数据库等待事件" required maxlength="120">')}
-        ${field('详细说明', '<textarea name="detail" rows="3" placeholder="记录命令、结果、证据和下一步"></textarea>', true)}
-        <div class="form-actions span-2"><button class="button primary" type="submit">${icon('plus')}添加处理记录</button></div>
-      </form>
-    </section>
-  `;
-}
-
-function renderHandover() {
-  const done = state.handover.filter((item) => item.status === 'done').length;
-  const progress = state.handover.length ? Math.round((done / state.handover.length) * 100) : 0;
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">${h(state.project.code)} · 培训验收</div><h2>账号、培训、验收与交付文档</h2><p>用清单确认项目具备交付条件，保留执行证据并生成可打印验收报告。</p></div>
-      <div class="head-actions">
-        <a class="button secondary" href="/api/reports/handover/${state.projectId}?format=html" target="_blank">${icon('download')}验收报告</a>
-        <a class="button secondary" href="/api/reports/handover/${state.projectId}?format=md">${icon('download')}Markdown</a>
-        <button class="button primary" data-action="new-handover">${icon('plus')}新增交付事项</button>
-      </div>
-    </section>
-    <section class="handover-summary panel">
-      <div><span class="project-kicker">交付完成度</span><strong>${progress}%</strong><p>${done} / ${state.handover.length} 项已确认</p></div>
-      <div class="progress-track large"><span style="width:${progress}%"></span></div>
-      <div class="handover-stats">
-        ${['account', 'training', 'acceptance', 'document'].map((category) => {
-          const items = state.handover.filter((item) => item.category === category);
-          return `<span><strong>${items.filter((item) => item.status === 'done').length}/${items.length}</strong><small>${CATEGORY_LABELS[category]}</small></span>`;
-        }).join('')}
-      </div>
-    </section>
-    <section class="handover-grid">
-      ${['account', 'training', 'acceptance', 'document'].map((category) => `
-        <article class="panel handover-group">
-          <header class="panel-head"><div><span class="panel-kicker">${CATEGORY_LABELS[category]}</span><h3>${handoverGroupTitle(category)}</h3></div><button class="icon-button small" data-action="new-handover" data-category="${category}" title="添加事项">${icon('plus')}</button></header>
-          <div class="check-list">
-            ${state.handover.filter((item) => item.category === category).map(handoverRow).join('') || `<div class="empty-inline">暂无事项</div>`}
-          </div>
-        </article>
-      `).join('')}
-    </section>
-  `;
-}
-
-function renderKnowledge() {
-  app.innerHTML = `
-    <section class="view-head">
-      <div><div class="project-kicker">团队经验库</div><h2>把现场问题变成可复用方案</h2><p>搜索故障现象和解决步骤，保留分类、标签和引用次数。</p></div>
-      <div class="head-actions"><button class="button primary" data-action="new-knowledge">${icon('plus')}新增知识文章</button></div>
-    </section>
-    <section class="knowledge-toolbar panel">
-      <form id="knowledge-search-form" class="search-form">
-        <span>${icon('search')}</span><input name="q" value="${escapeAttr(state.knowledgeQuery)}" placeholder="搜索门店网络、SQL、服务部署或 Windows 权限问题">
-        <button class="button secondary" type="submit">搜索</button>
-      </form>
-      <span class="muted">${state.knowledge.length} 篇可复用方案</span>
-    </section>
-    <section class="knowledge-grid">
-      ${state.knowledge.length ? state.knowledge.map((article) => `
-        <article class="knowledge-card panel">
-          <div class="knowledge-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看</small></div>
-          <h3>${h(article.title)}</h3>
-          <p>${h(article.symptom)}</p>
-          <div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).slice(0, 4).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div>
-          <button class="text-button" data-action="view-knowledge" data-id="${article.id}">查看解决方案 ${icon('arrow')}</button>
-        </article>
-      `).join('') : emptyBlock('没有匹配的知识文章', '调整关键词，或把已解决的问题沉淀进来。')}
-    </section>
-  `;
-}
-
-function taskRow(task) {
-  const overdue = task.due_date && task.due_date < today() && task.status !== 'done';
-  return `
-    <div class="task-row">
-      <button class="task-check ${task.status === 'done' ? 'is-done' : ''}" data-action="mark-task-done" data-id="${task.id}" title="标记完成">${icon('check')}</button>
-      <div class="task-main">
-        <strong>${h(task.title)}</strong>
-        <p>${h(task.description || '暂无任务说明')}</p>
-        <div class="task-meta"><span>${h(phaseLabel(task.stage))}</span><span>${h(task.owner || '未分配')}</span><span class="${overdue ? 'is-overdue' : ''}">${h(task.due_date || '未设置日期')}</span>${task.evidence ? `<span>证据：${h(task.evidence)}</span>` : ''}</div>
-      </div>
-      ${statusBadge(task.status)}
-      <button class="icon-button small" data-action="edit-task" data-id="${task.id}" title="编辑任务">${icon('edit')}</button>
     </div>
-  `;
+    <div class="cp-dashboard-grid">
+      <section class="panel cp-chart-panel">
+        <div class="panel-head"><div><span class="panel-kicker">30-day trend</span><h3>销售与利润走势</h3></div><span class="muted">${h(data.store.currency)} · 模拟数据</span></div>
+        ${renderTrendChart(data.trend, data.store.currency)}
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">priority queue</span><h3>动作中心</h3></div><button class="text-button" data-action="refresh-actions">刷新 ${icon('arrow')}</button></div>
+        <div class="cp-action-list">${openActions.slice(0, 6).map(actionCompact).join('') || emptyBlock('没有待执行动作', '规则引擎当前未发现新异常。')}</div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">account health</span><h3>账号健康阈值</h3></div><span class="badge status-${h(data.store.health_status)}">${h(STATUS_LABELS[data.store.health_status] || data.store.health_status)}</span></div>
+        <div class="cp-health-list">${data.health.map((item) => healthRow(item)).join('')}</div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">sku watchlist</span><h3>SKU 异常榜</h3></div><button class="text-button" data-nav="listings">全部商品 ${icon('arrow')}</button></div>
+        ${renderRiskProducts(data.riskProducts, data.store.currency)}
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">activity</span><h3>最近动态</h3></div><span class="muted">实时回写</span></div>
+        <div class="cp-activity-list">${data.activities.slice(0, 6).map((item) => `<div class="cp-activity-row"><span class="activity-dot"></span><div><strong>${h(activityTitle(item.action))}</strong><p>${h(item.detail)}</p></div><time>${h(relativeTime(item.created_at))}</time></div>`).join('')}</div>
+      </section>
+    </div>`;
 }
 
-function checkTimelineRow(check) {
-  return `
-    <div class="timeline-row">
-      <span class="timeline-icon">${icon(check.check_type === 'network' ? 'network' : check.check_type === 'database' ? 'database' : 'server')}</span>
-      <div><strong>${h(check.target || checkLabel(check.check_type))}</strong><p>${h(check.summary)}</p></div>
-      <div class="timeline-side">${statusBadge(check.status)}<time>${relativeTime(check.created_at)}</time></div>
+function renderImports() {
+  const batch = state.pendingImport;
+  app.innerHTML = `
+    ${viewHead('数据导入', '拖入 Amazon、TikTok Shop、Shopee 或 Walmart 报表，自动识别字段并跳过买家隐私信息。', `
+      <a class="button secondary" href="/api/knowledge/field-map" target="_blank">${icon('database')}字段映射说明</a>`)}
+    <div class="cp-import-grid">
+      <section class="panel cp-import-upload">
+        <div class="panel-head"><div><span class="panel-kicker">step 1 · upload</span><h3>上传报表</h3></div><span class="safe-chip">上限 10 MB / 20,000 行</span></div>
+        <div class="cp-drop-zone" data-drop-zone>
+          ${icon('upload', 34)}
+          <strong>拖拽 CSV 或 XLSX 到这里</strong>
+          <p>支持商品表现、搜索词、库存、退货与评论四类报表</p>
+          <label class="button primary">${icon('plus')}选择文件<input id="import-file" type="file" accept=".csv,.xlsx,.xls" hidden></label>
+        </div>
+        <div class="cp-import-note">${icon('check')}字段自动映射 · ${icon('check')}错误行预览 · ${icon('check')}PII 不入库</div>
+      </section>
+      <section class="panel cp-import-preview">
+        <div class="panel-head"><div><span class="panel-kicker">step 2 · mapping</span><h3>字段映射与预览</h3></div>${batch ? `<span class="badge status-${h(batch.status)}">${h(STATUS_LABELS[batch.status] || batch.status)}</span>` : ''}</div>
+        ${batch ? renderImportPreview(batch) : emptyBlock('等待上传报表', '上传后在这里检查字段映射、错误行、PII 跳过项和可入库行数。')}
+      </section>
     </div>
-  `;
+    <section class="panel cp-import-history">
+      <div class="panel-head"><div><span class="panel-kicker">import history</span><h3>最近导入</h3></div><span class="muted">仅保存脱敏后的字段</span></div>
+      ${renderImportHistory(state.imports)}
+    </section>`;
 }
 
-function checksTable(items) {
-  if (!items.length) return emptyBlock('暂无检查记录', '执行环境预检或网络诊断后会自动留档。');
-  return `<div class="data-table-wrap"><table class="data-table">
-    <thead><tr><th>检查时间</th><th>类型</th><th>目标</th><th>结论</th><th>摘要</th><th>操作</th></tr></thead>
-    <tbody>${items.map((item) => `<tr>
-      <td>${formatDateTime(item.created_at)}</td>
-      <td>${h(checkLabel(item.check_type))}</td>
-      <td class="mono">${h(item.target)}</td>
-      <td>${statusBadge(item.status)}</td>
-      <td>${h(item.summary)}</td>
-      <td><a class="text-button" href="/api/reports/check/${item.id}?format=html" target="_blank">查看报告</a></td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+function renderImportPreview(batch) {
+  const fields = IMPORT_TARGET_FIELDS[batch.report_type] || [];
+  const sourceKeys = [...new Set([
+    ...batch.rows.flatMap((row) => Object.keys(row.raw || {})),
+    ...(batch.pii_columns || [])
+  ])];
+  const mappingRows = sourceKeys.map((source) => {
+    const pii = batch.pii_columns.includes(source);
+    const selected = batch.mapping[source] || '';
+    return `<tr class="${pii ? 'cp-pii-row' : ''}">
+      <td><strong>${h(source)}</strong>${pii ? '<span class="badge status-warning">PII 跳过</span>' : ''}</td>
+      <td><select data-mapping-source="${escapeAttr(source)}" ${pii ? 'disabled' : ''}><option value="">不导入</option>${fields.map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${h(label)}</option>`).join('')}</select></td>
+    </tr>`;
+  }).join('');
+  const previewRows = batch.rows.slice(0, 8);
+  return `
+    <div class="cp-import-summary">
+      ${miniStat('识别类型', batch.report_type === 'products' ? '商品表现' : batch.report_type === 'ads' ? '搜索词' : batch.report_type === 'inventory' ? '库存' : '退货/评论')}
+      ${miniStat('总行数', number(batch.total_rows))}
+      ${miniStat('可入库', number(batch.valid_rows), 'green')}
+      ${miniStat('错误行', number(batch.error_rows), batch.error_rows ? 'red' : 'green')}
+      ${miniStat('PII 跳过', number(batch.pii_columns.length), 'amber')}
+    </div>
+    ${batch.invalidRequired?.length ? `<div class="cp-inline-alert">${icon('alert')}缺少必填字段，请调整映射后再提交。</div>` : ''}
+    <div class="cp-mapping-table"><table class="data-table"><thead><tr><th>源字段</th><th>映射为</th></tr></thead><tbody>${mappingRows}</tbody></table></div>
+    <div class="cp-preview-head"><strong>数据预览</strong><span>显示前 ${previewRows.length} 行</span></div>
+    <div class="data-table-wrap cp-preview-table"><table class="data-table"><thead><tr><th>行</th>${fields.slice(0, 6).map(([, label]) => `<th>${h(label)}</th>`).join('')}<th>校验</th></tr></thead><tbody>
+      ${previewRows.map((row) => `<tr><td>${row.row_index}</td>${fields.slice(0, 6).map(([key]) => `<td>${h(row.normalized[key] ?? '-')}</td>`).join('')}<td>${row.errors.length ? `<span class="badge status-failed">${row.errors.length} 个错误</span>` : '<span class="badge status-healthy">可入库</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="cp-wizard-actions">
+      <button class="button secondary" data-action="reset-import">重新选择</button>
+      <button class="button secondary" data-action="cancel-import" data-id="${batch.id}">取消批次</button>
+      <button class="button secondary" data-action="apply-mapping" data-id="${batch.id}">${icon('refresh')}应用映射</button>
+      <button class="button primary" data-action="commit-import" data-id="${batch.id}" ${batch.valid_rows ? '' : 'disabled'}>${icon('check')}确认入库 ${batch.valid_rows} 行</button>
+    </div>`;
 }
 
-function validationsTable(items) {
-  if (!items.length) return emptyBlock('暂无数据校验模板', '添加“空值、重复值、关联缺失”等可重复执行的校验。');
-  return `<div class="data-table-wrap"><table class="data-table">
-    <thead><tr><th>校验名称</th><th>期望值</th><th>实际值</th><th>状态</th><th>最后执行</th><th>操作</th></tr></thead>
-    <tbody>${items.map((item) => `<tr>
-      <td><strong>${h(item.name)}</strong><small class="cell-note">${h(item.description || item.sql_text)}</small></td>
-      <td class="mono">${h(item.expected_value)}</td>
-      <td class="mono">${h(item.actual_value || '-')}</td>
-      <td>${statusBadge(item.status)}</td>
-      <td>${item.last_run_at ? formatDateTime(item.last_run_at) : '未执行'}</td>
-      <td><button class="text-button" data-action="run-validation" data-id="${item.id}">${icon('play')}执行</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+function renderImportHistory(items) {
+  if (!items.length) return emptyBlock('还没有导入记录', '演示数据库内置的数据不会出现在这里。');
+  return `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>文件</th><th>类型</th><th>状态</th><th>可入库</th><th>错误</th><th>PII</th><th>时间</th><th></th></tr></thead><tbody>
+    ${items.map((item) => `<tr><td><strong>${h(item.filename)}</strong></td><td>${h(reportTypeLabel(item.report_type))}</td><td>${statusBadge(item.status)}</td><td>${number(item.valid_rows)}</td><td>${number(item.error_rows)}</td><td>${number(item.pii_columns.length)}</td><td>${h(shortDateTime(item.created_at))}</td><td>${item.status === 'preview' ? `<button class="text-button" data-action="open-import" data-id="${item.id}">继续处理</button>` : ''}</td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 
-function handoverRow(item) {
-  return `<div class="check-row">
-    <button class="task-check ${item.status === 'done' ? 'is-done' : ''}" data-action="toggle-handover" data-id="${item.id}" title="切换完成状态">${icon('check')}</button>
-    <div><strong>${h(item.title)}</strong><p>${h(item.evidence || '尚未填写证据')}</p><small>${h(item.owner || '未分配')} · ${h(item.due_date || '未设置日期')}</small></div>
-    ${statusBadge(item.status)}
-    <button class="icon-button small" data-action="edit-handover" data-id="${item.id}" title="编辑事项">${icon('edit')}</button>
-  </div>`;
+function renderListings() {
+  const selected = state.products.find((item) => item.id === state.selectedProductId) || state.products[0] || null;
+  const filtered = state.products.filter((item) => !state.productQuery || `${item.sku} ${item.title}`.toLowerCase().includes(state.productQuery.toLowerCase()));
+  app.innerHTML = `
+    ${viewHead('Listing与商品', '用标题、五点、图片、属性、关键词覆盖和合规性六维评分，定位内容短板并生成上新资料包。', `
+      <button class="button primary" data-action="listing-package" ${selected ? `data-id="${selected.id}"` : 'disabled'}>${icon('file')}生成资料包</button>`)}
+    <div class="cp-split-layout">
+      <section class="panel cp-product-sidebar">
+        <div class="panel-head"><div><span class="panel-kicker">catalogue</span><h3>商品列表</h3></div><span class="muted">${state.products.length} 个 SKU</span></div>
+        <form id="product-search-form" class="cp-search-form"><input name="q" value="${escapeAttr(state.productQuery)}" placeholder="搜索 SKU 或标题"><button class="icon-button" type="submit">${icon('search')}</button></form>
+        <div class="cp-product-list">
+          ${filtered.map((item) => `<button type="button" class="${item.id === selected?.id ? 'is-active' : ''}" data-action="select-product" data-id="${item.id}"><span>${h(item.sku)}</span><strong>${h(item.title)}</strong><small>Listing ${item.listing_score}/100 · 净利率 ${item.margin_percent}%</small></button>`).join('') || emptyBlock('没有匹配商品', '调整关键词后再试。')}
+        </div>
+      </section>
+      <section class="panel cp-product-detail">
+        ${selected ? renderListingDetail(selected) : emptyBlock('暂无商品', '导入商品表现报表后即可评分。')}
+      </section>
+    </div>
+    <section class="panel cp-profit-panel">
+      <div class="panel-head"><div><span class="panel-kicker">profit & pricing</span><h3>利润与定价</h3></div><span class="muted">净利润 = 净销售 − 采购 − 佣金 − 履约 − 退款损失 − 广告费</span></div>
+      ${renderProfitTable(state.products)}
+    </section>`;
 }
 
-function metricCard(iconName, label, value, note, nav) {
-  return `<article class="metric-card" ${nav ? `data-nav="${nav}" role="button" tabindex="0"` : ''}>
-    <span class="metric-icon">${icon(iconName)}</span>
-    <div><span>${h(label)}</span><strong>${h(value)}</strong><small>${h(note)}</small></div>
-  </article>`;
+function renderListingDetail(product) {
+  const scores = [
+    ['标题', product.titleScore], ['五点描述', product.bulletScore], ['图片', product.imageScore],
+    ['属性', product.attributeScore], ['关键词覆盖', product.keywordScore], ['合规性', product.complianceScore]
+  ];
+  return `
+    <header class="cp-detail-head">
+      <div><span class="project-kicker">${h(product.sku)} · ${h(product.asin || '待补充 ASIN')}</span><h2>${h(product.title)}</h2><p>${h(product.issue_summary || '当前 Listing 结构完整，继续保持。')}</p></div>
+      <div class="cp-score-ring" style="--score:${product.listing_score}"><strong>${product.listing_score}</strong><span>Listing</span></div>
+    </header>
+    <div class="cp-score-grid">${scores.map(([label, score]) => `<div class="cp-score-item"><div><span>${h(label)}</span><strong>${score}</strong></div><div class="progress-track"><span style="width:${Math.max(0, Math.min(100, Number(score)))}%"></span></div></div>`).join('')}</div>
+    <div class="cp-detail-grid">
+      <div><span>售价</span><strong>${money(product.price)}</strong></div>
+      <div><span>建议售价</span><strong>${money(product.suggested_price)}</strong></div>
+      <div><span>盈亏平衡价</span><strong>${money(product.break_even_price)}</strong></div>
+      <div><span>转化率</span><strong>${product.cvr_percent}%</strong></div>
+      <div><span>退货率</span><strong>${product.return_rate_percent}%</strong></div>
+      <div><span>评分</span><strong>${product.rating} / 5</strong></div>
+    </div>
+    <div class="cp-detail-actions">
+      <button class="button primary" data-action="listing-package" data-id="${product.id}">${icon('file')}生成上新资料包</button>
+      <button class="button secondary" data-action="create-listing-action" data-id="${product.id}">${icon('plus')}创建优化动作</button>
+    </div>`;
 }
 
-function profileStrip(profile) {
-  return `<section class="profile-strip panel">
-    <span class="metric-icon">${icon(profile.kind === 'sqlite' ? 'db' : 'database')}</span>
-    <div><strong>${h(profile.name)}</strong><p>${h(databaseKindLabel(profile.kind))} · ${h(profile.kind === 'sqlite' ? profile.file_path : `${profile.host || '-'}:${profile.port || databaseDefaultPort(profile.kind)}/${profile.database_name || '-'}`)}</p></div>
-    <span class="password-note">密码仅随当前请求传入，不保存、不写日志、不进入报告</span>
-  </section>`;
+function renderProfitTable(products) {
+  return `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>SKU / 商品</th><th>售价</th><th>单位成本</th><th>净销售</th><th>净利润</th><th>净利率</th><th>ACOS</th><th>建议售价</th><th>诊断</th></tr></thead><tbody>
+    ${products.map((item) => `<tr><td><strong>${h(item.sku)}</strong><small class="cell-note">${h(item.title)}</small></td><td>${money(item.price)}</td><td>${money(item.unit_cost)}</td><td>${money(item.net_sales_30d)}</td><td class="${item.net_profit_30d < 0 ? 'cp-danger-text' : 'cp-green-text'}">${money(item.net_profit_30d)}</td><td>${item.margin_percent}%</td><td>${item.acos_percent}%</td><td>${money(item.suggested_price)}</td><td>${item.margin_percent < 10 ? '<span class="badge status-warning">低毛利</span>' : '<span class="badge status-healthy">健康</span>'}</td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 
-function renderQueryResult() {
-  if (!state.queryResult) return `<div class="query-empty">${icon('database')}<strong>查询结果将显示在这里</strong><span>默认最多返回 200 行。</span></div>`;
-  if (!state.queryResult.rows?.length) {
-    return `<div class="query-summary"><strong>执行完成</strong><span>${h(state.queryResult.mode === 'read' ? '没有返回数据行' : '写操作已完成')}</span></div>`;
+function renderAds() {
+  const data = state.ads;
+  const s = data.summary;
+  app.innerHTML = `
+    ${viewHead('广告与流量', '按搜索词计算 ACOS、CVR、CPC 和 ROAS，规则直接给出加词、否词、降价、暂停或放量建议。', `
+      <button class="button secondary" data-action="refresh-actions">${icon('refresh')}同步动作</button>`)}
+    <div class="metric-grid cp-metric-grid">
+      ${metricCard('ads', '广告花费', money(s.totalSpend, data.store.currency), '近 30 天', null, 'accent')}
+      ${metricCard('chart', '广告销售', money(s.totalSales, data.store.currency), `整体 ACOS ${s.acos}%`, null, s.acos > data.store.target_acos ? 'amber' : 'green')}
+      ${metricCard('x', '否词候选', `${s.negativeCandidates} 个`, '15+ 点击且 0 订单', null, 'red')}
+      ${metricCard('target', '降价 / 暂停', `${s.reductionCandidates} 个`, `目标 ACOS ${data.store.target_acos}%`, null, 'amber')}
+      ${metricCard('plus', '放量候选', `${s.scaleCandidates} 个`, '有订单且 ACOS 达标', null, 'green')}
+    </div>
+    <section class="panel">
+      <div class="panel-head"><div><span class="panel-kicker">search term actions</span><h3>搜索词决策表</h3></div><span class="muted">规则可解释，不使用生成式猜测</span></div>
+      ${renderAdsTable(data.items)}
+    </section>
+    <div class="cp-recommendation-grid">
+      ${data.items.filter((item) => item.recommendation !== 'keep').slice(0, 6).map((item) => recommendationCard(item)).join('')}
+    </div>`;
+}
+
+function renderAdsTable(items) {
+  return `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>搜索词 / 活动</th><th>SKU</th><th>点击</th><th>花费</th><th>广告销售</th><th>订单</th><th>ACOS</th><th>CVR</th><th>建议</th><th></th></tr></thead><tbody>
+    ${items.map((item) => `<tr><td><strong>${h(item.search_term)}</strong><small class="cell-note">${h(item.campaign)} · ${h(item.match_type)}</small></td><td>${h(item.sku)}</td><td>${number(item.clicks)}</td><td>${money(item.spend)}</td><td>${money(item.ad_sales)}</td><td>${number(item.ad_orders)}</td><td>${item.acos_percent}%</td><td>${item.cvr_percent}%</td><td>${recommendationBadge(item)}</td><td><button class="icon-button small" data-action="create-ad-action" data-id="${item.id}" title="创建动作">${icon('plus', 15)}</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function renderInventory() {
+  const data = state.inventory;
+  const s = data.summary;
+  app.innerHTML = `
+    ${viewHead('库存与履约', '以可售天数、采购交期和安全库存计算补货量，同时识别 FBA 在途、订单、退货和异常履约。', `
+      <button class="button secondary" data-action="refresh-actions">${icon('refresh')}刷新库存动作</button>`)}
+    <div class="metric-grid cp-metric-grid">
+      ${metricCard('alert', '缺货风险', `${s.stockout} 个 SKU`, '低于采购交期 + 14 天', null, 'red')}
+      ${metricCard('inventory', '滞销风险', `${s.overstock} 个 SKU`, '可售天数高于 90 天', null, 'amber')}
+      ${metricCard('check', '库存健康', `${s.healthy} 个 SKU`, '覆盖率处于安全区间', null, 'green')}
+      ${metricCard('truck', '建议补货', `${number(s.reorderUnits)} 件`, '按当前日均销量测算', null, 'accent')}
+    </div>
+    <div class="cp-risk-summary">
+      ${data.items.filter((item) => item.risk !== 'healthy').map((item) => `<article class="cp-risk-card ${item.risk}"><span>${h(item.risk_label)}</span><strong>${h(item.sku)}</strong><p>覆盖 ${item.coverage_days} 天 · 可售 ${number(item.available)} 件 · 在途 ${number(item.inbound)} 件</p><small>${h(item.note || item.recommended_order_date)}</small></article>`).join('')}
+    </div>
+    <section class="panel">
+      <div class="panel-head"><div><span class="panel-kicker">inventory coverage</span><h3>补货与库存覆盖</h3></div><span class="muted">可售天数 = (可售 + 在途) ÷ 日均销量</span></div>
+      ${renderInventoryTable(data.items)}
+    </section>`;
+}
+
+function renderInventoryTable(items) {
+  return `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>SKU / 商品</th><th>可售</th><th>在途</th><th>预留</th><th>日均销量</th><th>可售天数</th><th>覆盖天数</th><th>建议补货</th><th>风险</th><th>动作</th></tr></thead><tbody>
+    ${items.map((item) => `<tr><td><strong>${h(item.sku)}</strong><small class="cell-note">${h(item.product_title)}</small></td><td>${number(item.available)}</td><td>${number(item.inbound)}</td><td>${number(item.reserved)}</td><td>${item.avg_daily_sales}</td><td>${item.available_days} 天</td><td>${item.coverage_days} 天</td><td>${number(item.reorder_units)} 件</td><td><span class="badge status-${item.risk === 'healthy' ? 'healthy' : item.risk === 'stockout' ? 'failed' : 'warning'}">${h(item.risk_label)}</span></td><td><button class="button secondary cp-table-button" data-action="create-inventory-action" data-id="${item.id}">${icon('plus', 14)}建动作</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function renderAfterSales() {
+  const data = state.afterSales;
+  const store = data.store;
+  const s = data.summary;
+  app.innerHTML = `
+    ${viewHead('售后与账号', '把差评、退货、买家消息、索赔、订单缺陷、迟发和取消率放在同一条时间线上，并跟踪账号健康阈值。', `
+      <button class="button secondary" data-action="refresh-actions">${icon('refresh')}刷新预警动作</button>`)}
+    <div class="metric-grid cp-metric-grid">
+      ${metricCard('message', '待处理售后', `${s.open} 项`, '含消息、退货和索赔', null, s.open ? 'amber' : 'green')}
+      ${metricCard('clock', '超时事项', `${s.overdue} 项`, '超过处理 SLA', null, s.overdue ? 'red' : 'green')}
+      ${metricCard('alert', '紧急事项', `${s.critical} 项`, 'P0 需要当天处理', null, s.critical ? 'red' : 'green')}
+      ${metricCard('reviews', '退货类问题', `${s.returns} 项`, '关联 SKU 与原因', null, 'accent')}
+    </div>
+    <section class="panel cp-health-panel">
+      <div class="panel-head"><div><span class="panel-kicker">account health</span><h3>店铺健康阈值</h3></div><span class="badge status-${h(store.health_status)}">${h(STATUS_LABELS[store.health_status] || store.health_status)}</span></div>
+      <div class="cp-health-grid">${store.health_metrics.map((item) => `<div class="cp-health-card ${item.status}"><div class="cp-health-icon">${icon(item.status === 'healthy' ? 'check' : 'alert')}</div><span>${h(item.label)}</span><strong>${item.key === 'rating' ? item.value : `${item.value}%`}</strong><small>阈值：${item.key === 'rating' ? `≥ ${item.threshold}` : `≤ ${item.threshold}%`}</small></div>`).join('')}</div>
+    </section>
+    <div class="cp-aftersales-layout">
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">case timeline</span><h3>售后问题时间线</h3></div><span class="muted">${data.items.length} 个事项</span></div>
+        <div class="cp-case-timeline">${data.items.map(afterSaleRow).join('')}</div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="panel-kicker">return reasons</span><h3>退货与差评原因</h3></div><span class="muted">按问题类型聚合</span></div>
+        ${renderReturnReasons(data.items)}
+      </section>
+    </div>`;
+}
+
+function renderReturnReasons(items) {
+  const grouped = new Map();
+  for (const item of items) {
+    const key = item.reason || item.type;
+    grouped.set(key, (grouped.get(key) || 0) + 1);
   }
-  const columns = [...new Set(state.queryResult.rows.flatMap((row) => Object.keys(row)))];
-  return `<div class="query-summary"><strong>返回 ${state.queryResult.rows.length} 行</strong><span>${state.queryResult.limited ? '结果已截断' : '查询完成'}</span></div>
-    <div class="data-table-wrap query-result"><table class="data-table"><thead><tr>${columns.map((column) => `<th>${h(column)}</th>`).join('')}</tr></thead><tbody>${state.queryResult.rows.map((row) => `<tr>${columns.map((column) => `<td class="mono">${h(formatCell(row[column]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const max = Math.max(1, ...grouped.values());
+  return `<div class="cp-reason-list">${[...grouped.entries()].sort((a, b) => b[1] - a[1]).map(([reason, count]) => `<div><div><strong>${h(reason)}</strong><span>${count} 项</span></div><div class="progress-track"><span style="width:${(count / max) * 100}%"></span></div></div>`).join('')}</div>`;
 }
 
-function renderProjectSwitcher() {
-  projectSelect.innerHTML = state.projects.length
-    ? state.projects.map((project) => `<option value="${project.id}" ${project.id === state.projectId ? 'selected' : ''}>${h(project.code)} · ${h(project.project_name)}</option>`).join('')
-    : '<option value="">暂无项目</option>';
+function renderReviews() {
+  const data = state.overview;
+  const k = data.kpis;
+  app.innerHTML = `
+    ${viewHead('运营复盘', '按周期汇总指标、异常、动作结果和未关闭事项，并导出 HTML、Markdown、CSV 或 XLSX 复盘报告。', `
+      <button class="button secondary" data-action="new-knowledge">${icon('plus')}沉淀复盘文章</button>`)}
+    <div class="cp-tabs">
+      <button class="${state.reviewTab === 'reports' ? 'is-active' : ''}" data-action="set-review-tab" data-tab="reports">${icon('file')}周期报告</button>
+      <button class="${state.reviewTab === 'knowledge' ? 'is-active' : ''}" data-action="set-review-tab" data-tab="knowledge">${icon('book')}运营知识库</button>
+    </div>
+    ${state.reviewTab === 'reports' ? renderReportsTab(data, k) : renderKnowledgeTab()}`;
 }
 
-function renderEmptyPage(title, message, action, actionLabel) {
-  app.innerHTML = `<section class="empty-page panel"><span>${icon('projects')}</span><h2>${h(title)}</h2><p>${h(message)}</p><button class="button primary" data-action="${action}">${icon('plus')}${h(actionLabel)}</button></section>`;
+function renderReportsTab(data, k) {
+  return `
+    <section class="panel cp-report-hero">
+      <div>
+        <span class="panel-kicker">period review</span>
+        <h2>${h(data.store.name)} · 近 30 天运营复盘</h2>
+        <p>报告包含 Summary、SKU、Ads、Inventory、After-sales 五个工作表，敏感字段在导出前统一脱敏。</p>
+      </div>
+      <div class="cp-report-actions">
+        <a class="button primary" href="/api/reports/operations/${state.storeId}?format=xlsx">${icon('download')}导出 XLSX</a>
+        <a class="button secondary" href="/api/reports/operations/${state.storeId}?format=html">${icon('file')}HTML</a>
+        <a class="button secondary" href="/api/reports/operations/${state.storeId}?format=md">${icon('file')}Markdown</a>
+        <a class="button secondary" href="/api/reports/operations/${state.storeId}?format=csv">${icon('file')}CSV</a>
+      </div>
+    </section>
+    <div class="metric-grid cp-metric-grid">
+      ${metricCard('chart', '净销售额', money(k.netSales, data.store.currency), '近 30 天', null, 'accent')}
+      ${metricCard('target', '净利润', money(k.profit, data.store.currency), `净利率 ${k.margin}%`, null, k.margin < 10 ? 'amber' : 'green')}
+      ${metricCard('ads', 'ACOS / TACOS', `${k.acos}% / ${k.tacos}%`, `ROAS ${k.roas}x`, null, 'accent')}
+      ${metricCard('check', '动作完成', `${data.actionBreakdown.done} 项`, `${data.actionBreakdown.critical + data.actionBreakdown.high} 项高优先级未关闭`, null, data.actionBreakdown.critical ? 'amber' : 'green')}
+    </div>
+    <div class="cp-review-grid">
+      <section class="panel"><div class="panel-head"><div><span class="panel-kicker">what happened</span><h3>本周期摘要</h3></div></div><div class="cp-review-copy"><p><strong>经营表现：</strong>净销售 ${money(k.netSales, data.store.currency)}，净利率 ${k.margin}%，平均评分 ${k.rating}。</p><p><strong>主要风险：</strong>${k.inventoryRiskCount} 个 SKU 存在库存风险，${k.lowMarginProducts} 个 SKU 净利率低于 10%，${k.pendingAfterSales} 个售后事项待处理。</p><p><strong>执行情况：</strong>${data.actionBreakdown.done} 项动作已完成，${data.actionBreakdown.critical} 项 P0 与 ${data.actionBreakdown.high} 项 P1 动作仍需跟进。</p></div></section>
+      <section class="panel"><div class="panel-head"><div><span class="panel-kicker">next actions</span><h3>未关闭事项</h3></div></div><div class="cp-action-list">${state.actions.filter((item) => !isClosedAction(item.status)).slice(0, 5).map(actionCompact).join('') || emptyBlock('没有未关闭动作', '本周期执行闭环已完成。')}</div></section>
+    </div>`;
+}
+
+function renderKnowledgeTab() {
+  return `
+    <section class="panel cp-knowledge-panel">
+      <div class="panel-head"><div><span class="panel-kicker">operations playbook</span><h3>运营知识库</h3></div><form id="knowledge-search-form" class="cp-search-form compact"><input name="q" value="${escapeAttr(state.knowledgeQuery)}" placeholder="搜索 ACOS、库存、Listing"><button class="icon-button" type="submit">${icon('search')}</button></form></div>
+      <div class="knowledge-grid">${state.knowledge.map((item) => `<article class="knowledge-card"><span class="project-kicker">${h(item.category)}</span><h3>${h(item.title)}</h3><p>${h(item.symptom)}</p><div class="cp-knowledge-meta"><span>${h(item.tags)}</span><small>${number(item.views)} 次查看</small></div><button class="text-button" data-action="open-knowledge" data-id="${item.id}">查看方法 ${icon('arrow')}</button></article>`).join('')}</div>
+    </section>`;
+}
+
+function viewHead(title, description, actions = '') {
+  return `<div class="view-head"><div><span class="project-kicker">CrossPilot operations</span><h2>${h(title)}</h2><p>${h(description)}</p></div><div class="head-actions">${actions}</div></div>`;
+}
+
+function metricCard(iconName, label, value, note, nav, color = 'accent') {
+  const palette = {
+    accent: ['#72ddf7', 'rgba(114,221,247,.12)'],
+    green: ['#78e6c4', 'rgba(120,230,196,.12)'],
+    amber: ['#f5c66d', 'rgba(245,198,109,.12)'],
+    red: ['#ff9d8d', 'rgba(255,157,141,.12)']
+  }[color] || ['#72ddf7', 'rgba(114,221,247,.12)'];
+  return `<article class="metric-card" ${nav ? `data-nav="${nav}" role="button" tabindex="0"` : ''} style="--metric-color:${palette[0]};--metric-soft:${palette[1]}"><span class="metric-icon">${icon(iconName)}</span><div><span>${h(label)}</span><strong>${h(value)}</strong><small>${h(note)}</small></div></article>`;
+}
+
+function renderTrendChart(trend, currency) {
+  if (!trend.length) return emptyBlock('暂无趋势数据', '导入每日指标后显示趋势。');
+  const width = 720;
+  const height = 220;
+  const padding = 28;
+  const sales = trend.map((item) => Number(item.sales || 0));
+  const profit = trend.map((item) => Number(item.profit || 0));
+  const max = Math.max(...sales, ...profit, 1);
+  const min = Math.min(0, ...profit);
+  const range = max - min || 1;
+  const x = (index) => padding + index * ((width - padding * 2) / Math.max(1, trend.length - 1));
+  const y = (value) => height - padding - ((value - min) / range) * (height - padding * 2);
+  const salesPoints = trend.map((item, index) => `${x(index)},${y(item.sales)}`).join(' ');
+  const profitPoints = trend.map((item, index) => `${x(index)},${y(item.profit)}`).join(' ');
+  const area = `${padding},${height - padding} ${salesPoints} ${x(trend.length - 1)},${height - padding}`;
+  return `<div class="cp-chart-wrap"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="销售与利润趋势"><defs><linearGradient id="sales-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#72ddf7" stop-opacity=".28"/><stop offset="1" stop-color="#72ddf7" stop-opacity="0"/></linearGradient></defs>${[0, 1, 2, 3].map((index) => `<line x1="${padding}" y1="${padding + index * ((height - padding * 2) / 3)}" x2="${width - padding}" y2="${padding + index * ((height - padding * 2) / 3)}" class="cp-grid-line"/>`).join('')}<polygon points="${area}" fill="url(#sales-fill)"/><polyline points="${salesPoints}" class="cp-line sales"/><polyline points="${profitPoints}" class="cp-line profit"/>${trend.map((item, index) => index % 3 === 0 ? `<text x="${x(index)}" y="${height - 7}" class="cp-axis-label">${h(item.metric_date.slice(5))}</text>` : '').join('')}</svg><div class="cp-chart-legend"><span><i class="sales"></i>销售</span><span><i class="profit"></i>估算利润</span><strong>单位：${h(currency)}</strong></div></div>`;
+}
+
+function renderRiskProducts(products, currency) {
+  return `<div class="cp-risk-list">${products.map((item) => `<button type="button" data-action="open-product" data-id="${item.id}"><span class="badge ${item.net_profit_30d < 0 ? 'status-failed' : item.margin_percent < 10 ? 'status-warning' : 'status-healthy'}">${item.net_profit_30d < 0 ? '亏损' : `${item.margin_percent}%`}</span><div><strong>${h(item.sku)}</strong><p>${h(item.title)}</p></div><small>${money(item.net_profit_30d, currency)}</small></button>`).join('')}</div>`;
+}
+
+function actionCompact(item) {
+  return `<article class="cp-action-item"><span class="cp-priority priority-${h(item.priority)}">${h(PRIORITY_LABELS[item.priority] || item.priority)}</span><div><strong>${h(item.title)}</strong><p>${h(item.category)} · ${h(item.owner || '待分配')} · ${h(item.due_date || '未设截止')}</p></div><div class="cp-action-buttons"><button class="icon-button small" data-action="manage-action" data-id="${item.id}" title="查看或更新动作">${icon('edit', 14)}</button><button class="icon-button small" data-action="complete-action" data-id="${item.id}" title="快速完成">${icon('check', 14)}</button></div></article>`;
+}
+
+function healthRow(item) {
+  return `<div class="cp-health-row"><span class="cp-health-dot ${h(item.status)}"></span><div><strong>${h(item.label)}</strong><small>阈值 ${item.comparator === 'below' ? '≥' : '≤'} ${item.threshold}${item.key === 'rating' ? '' : '%'}</small></div><strong>${item.key === 'rating' ? item.value : `${item.value}%`}</strong><span class="badge status-${h(item.status)}">${item.status === 'healthy' ? '正常' : '预警'}</span></div>`;
+}
+
+function recommendationBadge(item) {
+  const classes = { negative_exact: 'failed', pause: 'failed', reduce: 'warning', scale: 'healthy', keep: 'healthy' };
+  return `<span class="badge status-${classes[item.recommendation] || 'healthy'}">${h(item.action_label)}</span>`;
+}
+
+function recommendationCard(item) {
+  return `<article class="cp-recommendation-card"><span class="badge status-${item.recommendation === 'scale' ? 'healthy' : item.recommendation === 'negative_exact' || item.recommendation === 'pause' ? 'failed' : 'warning'}">${h(item.action_label)}</span><h3>${h(item.search_term)}</h3><p>${h(item.campaign)} · ${number(item.clicks)} 次点击 · ${money(item.spend)} 花费 · ACOS ${item.acos_percent}%</p><button class="button secondary" data-action="create-ad-action" data-id="${item.id}">${icon('plus')}创建动作</button></article>`;
+}
+
+function afterSaleRow(item) {
+  const priorityClass = item.priority === 'critical' ? 'failed' : item.priority === 'high' ? 'warning' : 'healthy';
+  return `<article class="cp-case-row"><div class="cp-case-marker ${h(item.sla)}">${icon(item.sla === 'overdue' ? 'alert' : 'message', 16)}</div><div><div class="cp-case-head"><span>${h(item.case_no)} · ${h(item.type)}</span><span class="badge status-${priorityClass}">${h(PRIORITY_LABELS[item.priority] || item.priority)}</span></div><strong>${h(item.subject)}</strong><p>${h(item.detail)}</p><small>${h(item.sku || '无 SKU')} · ${h(item.reason || '待补充原因')} · ${h(item.owner || '待分配')}</small></div><div class="cp-case-side"><span class="badge status-${h(item.status)}">${h(STATUS_LABELS[item.status] || item.status)}</span><small class="${item.sla === 'overdue' ? 'cp-danger-text' : ''}">${h(item.sla_label)} · ${h(item.due_date || '无截止')}</small></div></article>`;
+}
+
+function miniStat(label, value, color = '') {
+  return `<div class="${color ? `is-${color}` : ''}"><span>${h(label)}</span><strong>${h(value)}</strong></div>`;
+}
+
+function statusBadge(status) {
+  const color = status === 'committed' ? 'healthy' : status === 'cancelled' ? 'archived' : status === 'preview' ? 'warning' : 'pending';
+  return `<span class="badge status-${color}">${h(STATUS_LABELS[status] || status)}</span>`;
+}
+
+function renderStoreSwitcher() {
+  storeSelect.innerHTML = state.stores.map((store) => `<option value="${store.id}" ${store.id === state.storeId ? 'selected' : ''}>${h(store.platform)} · ${h(store.name)}</option>`).join('') || '<option value="">暂无店铺</option>';
+}
+
+function renderShellSidebars() {
+  const store = state.stores.find((item) => item.id === state.storeId);
+  if (!store) return;
+  const overview = state.overview;
+  const openActions = state.actions.filter((item) => !isClosedAction(item.status));
+  const health = store.health_metrics || [];
+  const healthWarnings = health.filter((item) => item.status === 'warning').length;
+  shellLeft.innerHTML = `
+    <section class="aside-section aside-project">
+      <div class="aside-section-head"><span>当前店铺</span><small>${h(store.code)}</small></div>
+      <h2>${h(store.name)}</h2>
+      <p>${h(store.platform)} · ${h(store.market)} · ${h(store.currency)}</p>
+      <dl class="aside-facts">
+        <div><dt>目标 ACOS</dt><dd>${store.target_acos}%</dd></div>
+        <div><dt>目标净利率</dt><dd>${store.target_margin}%</dd></div>
+        <div><dt>采购交期</dt><dd>${store.lead_time_days} 天</dd></div>
+      </dl>
+    </section>
+    <section class="aside-section">
+      <div class="aside-section-head"><span>账号健康</span><strong>${healthWarnings ? `${healthWarnings} 项预警` : '正常'}</strong></div>
+      <div class="aside-progress"><i style="width:${healthWarnings ? 42 : 100}%"></i></div>
+      <div class="aside-progress-meta"><span>评分 ${store.health_rating}</span><span>ODR ${store.order_defect_rate}%</span></div>
+    </section>`;
+  shellRight.innerHTML = `
+    <section class="aside-section">
+      <div class="aside-section-head"><span>运营状态</span><small>实时</small></div>
+      <div class="aside-status-list">
+        <div><span><i class="aside-status-dot"></i>规则引擎</span><strong>正常</strong></div>
+        <div><span>待执行动作</span><strong>${openActions.length}</strong></div>
+        <div><span>库存风险</span><strong>${overview?.kpis?.inventoryRiskCount ?? '-'}</strong></div>
+        <div><span>待处理售后</span><strong>${overview?.kpis?.pendingAfterSales ?? '-'}</strong></div>
+      </div>
+    </section>
+    <section class="aside-section">
+      <div class="aside-section-head"><span>快捷入口</span></div>
+      <div class="aside-links">
+        <button data-nav="imports">${icon('imports')}<span>导入报表</span></button>
+        <button data-nav="ads">${icon('ads')}<span>广告决策</span></button>
+        <button data-nav="inventory">${icon('inventory')}<span>库存补货</span></button>
+        <button data-nav="reviews">${icon('reviews')}<span>运营复盘</span></button>
+      </div>
+    </section>
+    <section class="aside-section aside-focus">
+      <div class="aside-section-head"><span>下一项动作</span></div>
+      <strong>${h(openActions[0]?.title || '等待规则引擎刷新')}</strong>
+      <p>${h(openActions[0]?.description || '当前没有未关闭的运营异常。')}</p>
+      ${openActions[0] ? `<button class="text-button" data-action="manage-action" data-id="${openActions[0].id}">处理动作 ${icon('arrow')}</button>` : ''}
+    </section>`;
 }
 
 async function handleClick(event) {
   const nav = event.target.closest('[data-nav]');
   const explicitAction = event.target.closest('[data-action]');
-  const modalContent = event.target.closest('[data-modal-content]');
-  if (modalContent && (!explicitAction || !modalContent.contains(explicitAction))) return;
-  if (nav) {
-    await navigate(nav.dataset.nav);
-    return;
-  }
-  const target = explicitAction;
-  if (!target) return;
-  const { action, id } = target.dataset;
+  if (nav) return navigate(nav.dataset.nav);
+  if (!explicitAction) return;
+  const { action, id, tab } = explicitAction.dataset;
   try {
     if (action === 'close-modal') closeModal();
-    if (action === 'new-project') openProjectModal();
-    if (action === 'edit-project') openProjectModal(state.project);
-    if (action === 'new-task') openTaskModal(null, target.dataset.stage);
-    if (action === 'edit-task') openTaskModal(state.project.tasks.find((task) => task.id === Number(id)));
-    if (action === 'mark-task-done') {
-      await api(`/api/tasks/${id}`, { method: 'PATCH', body: { status: 'done' } });
-      showToast('任务已标记完成');
+    if (action === 'set-review-tab') {
+      state.reviewTab = tab;
+      renderReviews();
+    }
+    if (action === 'select-product') {
+      state.selectedProductId = Number(id);
+      renderListings();
+    }
+    if (action === 'open-product') {
+      state.selectedProductId = Number(id);
+      await navigate('listings');
+    }
+    if (action === 'listing-package') {
+      const data = await api(`/api/products/${id}/listing-package`);
+      openModal({ title: `${data.product.sku} · 上新资料包`, wide: true, content: renderListingPackage(data) });
+    }
+    if (action === 'create-listing-action') {
+      const product = state.products.find((item) => item.id === Number(id));
+      await api('/api/actions', { method: 'POST', body: { storeId: state.storeId, productId: id, category: 'Listing', title: `优化 ${product?.sku || ''} 的 Listing 内容`, description: `当前 Listing 得分 ${product?.listing_score || 0}/100，优先补齐薄弱维度。`, priority: 'medium', recommendation: 'manual_listing' } });
+      showToast('Listing 优化动作已创建');
+      await loadListings();
+    }
+    if (action === 'create-ad-action') {
+      const item = state.ads.items.find((row) => row.id === Number(id));
+      await api('/api/actions', { method: 'POST', body: { storeId: state.storeId, productId: item.product_id, category: '广告', title: `${item.action_label}：${item.search_term}`, description: `${item.campaign} · ACOS ${item.acos_percent}% · ${item.clicks} 次点击`, priority: item.recommendation === 'negative_exact' || item.recommendation === 'pause' ? 'high' : 'medium', recommendation: item.recommendation } });
+      showToast('广告动作已进入执行队列');
+      await loadAds();
+    }
+    if (action === 'create-inventory-action') {
+      const item = state.inventory.items.find((row) => row.id === Number(id));
+      await api('/api/actions', { method: 'POST', body: { storeId: state.storeId, productId: item.product_id, category: '库存', title: `${item.risk_label}：${item.sku}`, description: `覆盖 ${item.coverage_days} 天，建议补货 ${item.reorder_units} 件。`, priority: item.risk === 'stockout' ? 'high' : 'medium', recommendation: item.risk } });
+      showToast('库存动作已创建');
+      await loadInventory();
+    }
+    if (action === 'refresh-actions') await refreshActions();
+    if (action === 'new-action') openActionModal();
+    if (action === 'manage-action' || action === 'open-action') {
+      const item = await api(`/api/actions/${id}`);
+      openActionModal(item);
+    }
+    if (action === 'complete-action') {
+      await api(`/api/actions/${id}`, { method: 'PATCH', body: { status: 'done', result: '执行完成，证据待补充。', evidence: '演示页快速完成' } });
+      showToast('动作已完成并回写复盘数据');
       await loadCurrentView(true);
     }
-    if (action === 'select-project') {
-      state.projectId = Number(id);
-      state.project = null;
-      await loadCurrentView(true);
+    if (action === 'apply-mapping') await applyImportMapping(Number(id));
+    if (action === 'commit-import') {
+      await api(`/api/imports/${id}/commit`, { method: 'POST', body: {} });
+      state.pendingImport = null;
+      showToast('报表已确认入库，运营动作已重新计算');
+      await loadImports();
     }
-    if (action === 'backup-plan') openBackupPlanModal();
-    if (action === 'copy-backup-command') await copyBackupCommand();
-    if (action === 'new-profile') openProfileModal();
-    if (action === 'new-validation') openValidationModal();
-    if (action === 'test-profile') await testProfile();
-    if (action === 'load-schema') await loadSchema();
-    if (action === 'select-table') {
-      state.selectedTable = target.dataset.table;
-      renderDatabase();
+    if (action === 'cancel-import') {
+      await api(`/api/imports/${id}/cancel`, { method: 'POST', body: {} });
+      state.pendingImport = null;
+      showToast('导入批次已取消', 'warning');
+      await loadImports();
     }
-    if (action === 'export-table') await exportTable();
-    if (action === 'run-validation') await runValidation(Number(id));
-    if (action === 'new-case') openCaseModal();
-    if (action === 'select-case') {
-      state.selectedCase = await api(`/api/cases/${id}`);
-      renderCases();
+    if (action === 'reset-import') {
+      state.pendingImport = null;
+      renderImports();
     }
-    if (action === 'edit-case') openCaseModal(await api(`/api/cases/${id}`));
-    if (action === 'convert-case') {
-      const article = await api(`/api/cases/${id}/knowledge`, { method: 'POST', body: {} });
-      showToast(`已创建知识文章：${article.title}`);
-      await loadCurrentView(true);
+    if (action === 'open-import') {
+      state.pendingImport = await api(`/api/imports/${id}`);
+      renderImports();
     }
-    if (action === 'new-handover') openHandoverModal(null, target.dataset.category);
-    if (action === 'edit-handover') openHandoverModal(state.handover.find((item) => item.id === Number(id)));
-    if (action === 'toggle-handover') {
-      const item = state.handover.find((entry) => entry.id === Number(id));
-      await api(`/api/handover/${state.projectId}/${id}`, { method: 'PATCH', body: { status: item.status === 'done' ? 'pending' : 'done' } });
-      await loadCurrentView(true);
+    if (action === 'open-knowledge') {
+      const article = await api(`/api/knowledge/${id}`);
+      openModal({ title: article.title, wide: true, content: `<div class="article-detail"><div class="article-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看 · ${formatDateTime(article.created_at)}</small></div><section><h4>问题现象</h4><p>${h(article.symptom)}</p></section><section><h4>解决方案</h4><p class="pre-line">${h(article.solution)}</p></section><div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div></div>` });
     }
     if (action === 'new-knowledge') openKnowledgeModal();
-    if (action === 'view-knowledge') openKnowledgeArticle(await api(`/api/knowledge/${id}`));
-    if (action === 'open-case') {
-      state.view = 'cases';
-      state.selectedCase = await api(`/api/cases/${id}`);
-      updateViewChrome();
-      await loadCurrentView();
-    }
+    if (action === 'refresh') await loadCurrentView(true);
   } catch (error) {
     showError(error);
   }
@@ -877,435 +769,151 @@ async function handleClick(event) {
 async function handleSubmit(event) {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
-  const formId = form.getAttribute('id') || '';
   event.preventDefault();
-  const data = formData(form);
+  const data = Object.fromEntries(new FormData(form).entries());
   try {
-    if (formId === 'project-form') await submitProject(form, data);
-    if (formId === 'task-form') await submitTask(form, data);
-    if (formId === 'system-check-form') await submitSystemCheck(data);
-    if (formId === 'network-check-form') await submitNetworkCheck(data);
-    if (formId === 'profile-form') await submitProfile(data);
-    if (formId === 'sql-form') await submitSql(data);
-    if (formId === 'backup-plan-form') await submitBackupPlan(data);
-    if (formId === 'validation-form') await submitValidation(data);
-    if (formId === 'case-form') await submitCase(form, data);
-    if (formId === 'case-event-form') await submitCaseEvent(data);
-    if (formId === 'handover-form') await submitHandover(form, data);
-    if (formId === 'knowledge-form') await submitKnowledge(data);
-    if (formId === 'knowledge-search-form') {
+    if (form.id === 'action-form') {
+      await api(data.id ? `/api/actions/${data.id}` : '/api/actions', {
+        method: data.id ? 'PATCH' : 'POST',
+        body: { ...data, storeId: state.storeId, productId: data.productId || null }
+      });
+      closeModal();
+      showToast(data.id ? '动作已更新并记录时间线' : '运营动作已创建');
+      await loadCurrentView(true);
+    }
+    if (form.id === 'knowledge-form') {
+      await api('/api/knowledge', { method: 'POST', body: data });
+      closeModal();
+      showToast('复盘方法已沉淀到知识库');
+      state.reviewTab = 'knowledge';
+      await loadReviews();
+    }
+    if (form.id === 'product-search-form') {
+      state.productQuery = String(data.q || '').trim();
+      renderListings();
+    }
+    if (form.id === 'knowledge-search-form') {
       state.knowledgeQuery = String(data.q || '').trim();
-      await loadKnowledge();
+      await loadReviews();
     }
   } catch (error) {
     showError(error);
   }
 }
 
-async function submitProject(form, data) {
-  const id = data.id;
-  const payload = {
-    code: data.code,
-    projectName: data.projectName,
-    customer: data.customer,
-    productName: data.productName,
-    environment: data.environment,
-    phase: data.phase,
-    status: data.status,
-    owner: data.owner,
-    customerContact: data.customerContact,
-    goLiveDate: data.goLiveDate,
-    notes: data.notes
-  };
-  const saved = id ? await api(`/api/projects/${id}`, { method: 'PATCH', body: payload }) : await api('/api/projects', { method: 'POST', body: payload });
-  state.projectId = saved.id;
-  state.project = null;
-  closeModal();
-  showToast(id ? '项目资料已更新' : '实施项目已创建');
-  await loadCurrentView(true);
+async function handleChange(event) {
+  if (event.target.id !== 'import-file') return;
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    await previewImport(file);
+  } catch (error) {
+    showError(error);
+  } finally {
+    event.target.value = '';
+  }
 }
 
-async function submitTask(form, data) {
-  const id = data.id;
-  const projectId = Number(data.projectId);
-  const payload = {
-    stage: data.stage,
-    title: data.title,
-    description: data.description,
-    status: data.status,
-    owner: data.owner,
-    dueDate: data.dueDate,
-    evidence: data.evidence
-  };
-  if (id) await api(`/api/tasks/${id}`, { method: 'PATCH', body: payload });
-  else await api(`/api/projects/${projectId}/tasks`, { method: 'POST', body: payload });
-  closeModal();
-  showToast(id ? '任务已更新' : '任务已添加');
-  await loadCurrentView(true);
+function handleDragOver(event) {
+  if (!event.target.closest('[data-drop-zone]')) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
 }
 
-async function submitSystemCheck(data) {
-  const result = await api('/api/checks/system', { method: 'POST', body: { ...data, projectId: state.projectId } });
-  closeModal();
-  showToast(`系统预检完成：${STATUS_LABELS[result.status] || result.status}`);
-  await loadCurrentView(true);
+async function handleDrop(event) {
+  const zone = event.target.closest('[data-drop-zone]');
+  if (!zone) return;
+  event.preventDefault();
+  const file = event.dataTransfer.files?.[0];
+  if (!file) return;
+  try {
+    await previewImport(file);
+  } catch (error) {
+    showError(error);
+  }
 }
 
-async function submitNetworkCheck(data) {
-  const result = await api('/api/checks/network', {
+async function previewImport(file) {
+  if (file.size > 10 * 1024 * 1024) throw new Error('文件不能超过 10 MB');
+  app.querySelector('.cp-import-preview')?.classList.add('is-loading');
+  showToast('正在识别报表和字段映射', 'warning');
+  const contentBase64 = await fileToBase64(file);
+  state.pendingImport = await api('/api/imports/preview', {
     method: 'POST',
-    body: { ...data, projectId: state.projectId, port: data.port || undefined }
+    body: { storeId: state.storeId, filename: file.name, contentBase64, reportType: 'auto' }
   });
-  showToast(`网络检查完成：${STATUS_LABELS[result.status] || result.status}`);
-  await loadCurrentView(true);
+  showToast(`识别为${reportTypeLabel(state.pendingImport.report_type)}，已跳过 ${state.pendingImport.pii_columns.length} 个 PII 字段`);
+  renderImports();
 }
 
-async function submitProfile(data) {
-  await api('/api/db/profiles', {
-    method: 'POST',
-    body: { ...data, projectId: state.projectId, port: data.port || null }
+async function applyImportMapping(batchId) {
+  const mapping = {};
+  document.querySelectorAll('[data-mapping-source]').forEach((select) => {
+    if (select.value) mapping[select.dataset.mappingSource] = select.value;
   });
-  closeModal();
-  showToast('数据库连接已保存，密码未落库');
-  await loadCurrentView(true);
+  state.pendingImport = await api(`/api/imports/${batchId}/mapping`, { method: 'PATCH', body: { mapping } });
+  showToast('字段映射已重新校验');
+  renderImports();
 }
 
-async function submitSql(data) {
-  const result = await api('/api/db/query', {
-    method: 'POST',
-    body: {
-      profileId: data.profileId,
-      password: document.querySelector('#db-password')?.value || '',
-      sqlText: data.sqlText,
-      allowWrite: data.allowWrite === 'on',
-      confirmPhrase: data.confirmPhrase
-    }
-  });
-  state.queryResult = result;
-  showToast(`SQL 执行完成，返回 ${result.rows.length} 行`);
-  renderDatabase();
+async function refreshActions() {
+  const result = await api('/api/actions/refresh', { method: 'POST', body: { storeId: state.storeId } });
+  state.actions = result.items;
+  showToast(`规则引擎已刷新，共 ${result.items.filter((item) => !isClosedAction(item.status)).length} 项待执行`);
+  if (state.view === 'overview' || state.view === 'reviews') await loadCurrentView();
+  else renderShellSidebars();
 }
 
-async function submitValidation(data) {
-  await api('/api/db/validations', {
-    method: 'POST',
-    body: { ...data, projectId: state.projectId, profileId: state.profileId }
-  });
-  closeModal();
-  showToast('数据校验模板已创建');
-  await loadCurrentView(true);
-}
-
-async function submitBackupPlan(data) {
-  const result = await api('/api/db/backup-plan', {
-    method: 'POST',
-    body: {
-      projectId: state.projectId,
-      profileId: state.profileId,
-      password: document.querySelector('#db-password')?.value || '',
-      operation: data.operation,
-      artifactPath: data.artifactPath
-    }
-  });
-  state.backupPlan = result.plan;
+function openActionModal(item = null) {
   openModal({
-    title: result.plan.operation === 'backup' ? '数据库备份执行方案' : '数据库恢复执行方案',
+    title: item ? '处理运营动作' : '新增运营动作',
     wide: true,
-    content: renderBackupPlan(result.plan)
-  });
-}
-
-async function submitCase(form, data) {
-  const id = data.id;
-  const payload = {
-    projectId: state.projectId,
-    title: data.title,
-    customer: data.customer,
-    symptom: data.symptom,
-    impact: data.impact,
-    priority: data.priority,
-    status: data.status,
-    category: data.category,
-    assignee: data.assignee,
-    rootCause: data.rootCause,
-    resolution: data.resolution,
-    nextAction: data.nextAction
-  };
-  const saved = id ? await api(`/api/cases/${id}`, { method: 'PATCH', body: payload }) : await api('/api/cases', { method: 'POST', body: payload });
-  state.selectedCase = await api(`/api/cases/${saved.id}`);
-  closeModal();
-  showToast(id ? '问题单已更新' : '问题单已创建');
-  await loadCurrentView(true);
-}
-
-async function submitCaseEvent(data) {
-  const caseId = Number(data.caseId);
-  await api(`/api/cases/${caseId}/events`, {
-    method: 'POST',
-    body: { eventType: data.eventType, title: data.title, detail: data.detail }
-  });
-  state.selectedCase = await api(`/api/cases/${caseId}`);
-  showToast('处理记录已添加');
-  renderCases();
-}
-
-async function submitHandover(form, data) {
-  const id = data.id;
-  const payload = {
-    category: data.category,
-    title: data.title,
-    status: data.status,
-    owner: data.owner,
-    dueDate: data.dueDate,
-    evidence: data.evidence
-  };
-  if (id) await api(`/api/handover/${state.projectId}/${id}`, { method: 'PATCH', body: payload });
-  else await api(`/api/handover/${state.projectId}`, { method: 'POST', body: payload });
-  closeModal();
-  showToast(id ? '交付事项已更新' : '交付事项已添加');
-  await loadCurrentView(true);
-}
-
-async function submitKnowledge(data) {
-  await api('/api/knowledge', { method: 'POST', body: data });
-  closeModal();
-  showToast('知识文章已创建');
-  await loadCurrentView(true);
-}
-
-async function testProfile() {
-  const profileId = state.profileId;
-  if (!profileId) throw new Error('请选择数据库连接');
-  const result = await api('/api/db/test', {
-    method: 'POST',
-    body: { profileId, password: document.querySelector('#db-password')?.value || '' }
-  });
-  openModal({
-    title: '数据库连接测试通过',
-    content: `<div class="result-stack">
-      ${resultBox('healthy', result.detail, `${result.tableCount} 个表或视图`)}
-      <div class="mini-table">${result.tables.map((table) => `<div><strong>${h(table.name)}</strong><span>${h(table.type)}</span><small>${table.rowCount === null ? '--' : number(table.rowCount)} 行</small></div>`).join('')}</div>
-    </div>`
-  });
-}
-
-async function loadSchema() {
-  const result = await api('/api/db/schema', {
-    method: 'POST',
-    body: { profileId: state.profileId, password: document.querySelector('#db-password')?.value || '' }
-  });
-  state.schema = result.items;
-  state.selectedTable = state.schema[0]?.name || '';
-  showToast(`已读取 ${state.schema.length} 个表或视图`);
-  renderDatabase();
-}
-
-async function exportTable() {
-  const response = await fetch('/api/db/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      profileId: state.profileId,
-      password: document.querySelector('#db-password')?.value || '',
-      table: state.selectedTable,
-      limit: 5000
-    })
-  });
-  if (!response.ok) throw new Error((await response.json()).error || '导出失败');
-  const blob = await response.blob();
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${state.selectedTable}-${today()}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
-  showToast('CSV 已导出');
-}
-
-async function runValidation(id) {
-  const result = await api('/api/db/validate', {
-    method: 'POST',
-    body: { validationId: id, password: document.querySelector('#db-password')?.value || '' }
-  });
-  showToast(result.message);
-  await loadCurrentView(true);
-}
-
-function openProjectModal(project = null) {
-  openModal({
-    title: project ? '编辑项目资料' : '创建实施项目',
-    content: `<form id="project-form" class="form-grid">
-      <input type="hidden" name="id" value="${project?.id || ''}">
-      ${field('项目编号', `<input name="code" value="${escapeAttr(project?.code || '')}" placeholder="留空自动生成">`)}
-      ${field('项目名称 *', `<input name="projectName" required value="${escapeAttr(project?.project_name || '')}" placeholder="例如：华东零售 ERP 门店上线">`)}
-      ${field('客户名称 *', `<input name="customer" required value="${escapeAttr(project?.customer || '')}">`)}
-      ${field('产品名称', `<input name="productName" value="${escapeAttr(project?.product_name || '')}">`)}
-      ${field('环境', `<input name="environment" value="${escapeAttr(project?.environment || '生产环境')}">`)}
-      ${field('当前阶段', `<select name="phase">${options(Object.fromEntries(PHASES), project?.phase || 'requirement')}</select>`)}
-      ${field('负责人', `<input name="owner" value="${escapeAttr(project?.owner || '')}">`)}
-      ${field('客户联系人', `<input name="customerContact" value="${escapeAttr(project?.customer_contact || '')}">`)}
-      ${field('计划上线日期', `<input type="date" name="goLiveDate" value="${escapeAttr(project?.go_live_date || '')}">`)}
-      ${field('项目状态', `<select name="status">${options({ active: '进行中', blocked: '已阻塞', completed: '已完成', archived: '已归档' }, project?.status || 'active')}</select>`)}
-      ${field('项目说明', `<textarea name="notes" rows="3">${h(project?.notes || '')}</textarea>`, true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存项目</button></div>
-    </form>`
-  });
-}
-
-function openTaskModal(task = null, stage = '') {
-  if (!state.project) return;
-  openModal({
-    title: task ? '更新实施任务' : '新增实施任务',
-    content: `<form id="task-form" class="form-grid">
-      <input type="hidden" name="id" value="${task?.id || ''}">
-      <input type="hidden" name="projectId" value="${state.projectId}">
-      ${field('实施阶段', `<select name="stage">${options(Object.fromEntries(PHASES), task?.stage || stage || 'requirement')}</select>`)}
-      ${field('任务名称 *', `<input name="title" required value="${escapeAttr(task?.title || '')}" placeholder="例如：完成数据库连接测试">`)}
-      ${field('状态', `<select name="status">${options({ pending: '待处理', in_progress: '处理中', blocked: '已阻塞', done: '已完成' }, task?.status || 'pending')}</select>`)}
-      ${field('负责人', `<input name="owner" value="${escapeAttr(task?.owner || state.project.owner || '')}">`)}
-      ${field('计划日期', `<input type="date" name="dueDate" value="${escapeAttr(task?.due_date || '')}">`)}
-      ${field('执行证据', `<input name="evidence" value="${escapeAttr(task?.evidence || '')}" placeholder="例如：环境预检报告 CHECK-003">`)}
-      ${field('任务说明', `<textarea name="description" rows="3">${h(task?.description || '')}</textarea>`, true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存任务</button></div>
-    </form>`
-  });
-}
-
-function openBackupPlanModal() {
-  const profile = state.profiles.find((item) => item.id === state.profileId);
-  if (!profile) return;
-  openModal({
-    title: '生成备份 / 恢复方案',
-    content: `<form id="backup-plan-form" class="form-grid">
-      ${field('当前连接', `<input value="${escapeAttr(profile.name)} · ${escapeAttr(databaseKindLabel(profile.kind))}" disabled>`)}
-      ${field('操作类型', `<select name="operation">${options({ backup: '备份', restore: '恢复' }, 'backup')}</select>`)}
-      ${field('备份文件路径 *', '<input name="artifactPath" required placeholder="例如：D:\\backup\\customer-erp.bak">', true)}
-      <p class="form-note span-2">只生成可人工核对的命令，不会自动执行。数据库密码需要在实际执行时由操作人员交互输入。</p>
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">生成方案</button></div>
-    </form>`
-  });
-}
-
-function renderBackupPlan(plan) {
-  return `<div class="backup-plan">
-    ${resultBox('warning', `${plan.operationLabel}方案已生成`, `${plan.kind.toUpperCase()} · ${plan.label}`)}
-    <section class="command-card">
-      <header><strong>人工执行命令</strong><button class="button secondary" type="button" data-action="copy-backup-command">${icon('clipboard')}复制命令</button></header>
-      <pre>${h(plan.command)}</pre>
-    </section>
-    <section class="safety-card">
-      <strong>执行前检查</strong>
-      <ul>${plan.safetyNotes.map((note) => `<li>${h(note)}</li>`).join('')}</ul>
-    </section>
-  </div>`;
-}
-
-async function copyBackupCommand() {
-  if (!state.backupPlan?.command) return;
-  await navigator.clipboard.writeText(state.backupPlan.command);
-  showToast('命令已复制');
-}
-
-function openProfileModal() {
-  openModal({
-    title: '新增数据库连接',
-    content: `<form id="profile-form" class="form-grid">
-      ${field('连接名称 *', '<input name="name" required placeholder="例如：客户生产 MySQL">')}
-      ${field('数据库类型', `<select name="kind" id="profile-kind">${options({ sqlite: 'SQLite', mysql: 'MySQL', sqlserver: 'SQL Server' }, 'mysql')}</select>`)}
-      ${field('主机地址', '<input name="host" placeholder="例如：10.20.1.15">')}
-      ${field('端口', '<input type="number" name="port" placeholder="MySQL 3306 / SQL Server 1433">')}
-      ${field('数据库名', '<input name="databaseName" placeholder="例如：erp_prod">')}
-      ${field('用户名', '<input name="username" placeholder="数据库账号">')}
-      ${field('SQLite 文件路径', '<input name="filePath" placeholder="例如：demo-erp.db 或绝对路径">', true)}
-      <p class="form-note span-2">数据库密码不会保存到项目数据。执行测试、查询和校验时，请在页面顶部临时输入。</p>
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存连接</button></div>
-    </form>`
-  });
-}
-
-function openValidationModal() {
-  openModal({
-    title: '新增数据校验模板',
-    content: `<form id="validation-form" class="form-grid">
-      ${field('校验名称 *', '<input name="name" required placeholder="例如：门店区域编码完整性">')}
-      ${field('期望值 *', '<input name="expectedValue" required value="0" placeholder="SQL 第一列结果应等于该值">')}
-      ${field('校验 SQL *', '<textarea name="sqlText" rows="5" class="code-editor" required>SELECT COUNT(*) AS invalid_count FROM stores WHERE region_code IS NULL;</textarea>', true)}
-      ${field('说明', '<textarea name="description" rows="2" placeholder="说明校验目的和异常处理方式"></textarea>', true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存校验</button></div>
-    </form>`,
-    wide: true
-  });
-}
-
-function openCaseModal(item = null) {
-  openModal({
-    title: item ? '更新问题单' : '新建问题单',
-    wide: true,
-    content: `<form id="case-form" class="form-grid">
+    content: `<form id="action-form" class="form-grid">
       <input type="hidden" name="id" value="${item?.id || ''}">
-      ${field('问题标题 *', `<input name="title" required value="${escapeAttr(item?.title || '')}" placeholder="一句话概括客户现象">`)}
-      ${field('客户', `<input name="customer" value="${escapeAttr(item?.customer || state.project?.customer || '')}">`)}
+      ${field('动作标题 *', `<input name="title" required value="${escapeAttr(item?.title || '')}" ${item ? 'readonly' : ''} placeholder="例如：暂停无效搜索词">`)}
+      ${field('模块', `<select name="category">${options({ 广告: '广告', 库存: '库存', Listing: 'Listing', 利润: '利润', 售后: '售后', 运营: '运营' }, item?.category || '运营')}</select>`)}
       ${field('优先级', `<select name="priority">${options({ critical: 'P0 紧急', high: 'P1 高', medium: 'P2 中', low: 'P3 低' }, item?.priority || 'medium')}</select>`)}
-      ${field('状态', `<select name="status">${options({ open: '待处理', in_progress: '处理中', waiting: '待客户', resolved: '已解决', closed: '已关闭' }, item?.status || 'open')}</select>`)}
-      ${field('问题分类', `<input name="category" value="${escapeAttr(item?.category || '技术支持')}">`)}
-      ${field('负责人', `<input name="assignee" value="${escapeAttr(item?.assignee || state.project?.owner || '')}">`)}
-      ${field('问题现象 *', `<textarea name="symptom" rows="3" required>${h(item?.symptom || '')}</textarea>`, true)}
-      ${field('影响范围', `<textarea name="impact" rows="2">${h(item?.impact || '')}</textarea>`, true)}
-      ${field('根本原因', `<textarea name="rootCause" rows="2">${h(item?.root_cause || '')}</textarea>`, true)}
-      ${field('解决方案', `<textarea name="resolution" rows="3">${h(item?.resolution || '')}</textarea>`, true)}
-      ${field('后续跟进', `<textarea name="nextAction" rows="2">${h(item?.next_action || '')}</textarea>`, true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存问题单</button></div>
-    </form>`
-  });
-}
-
-function openHandoverModal(item = null, category = 'acceptance') {
-  openModal({
-    title: item ? '编辑交付事项' : '新增交付事项',
-    content: `<form id="handover-form" class="form-grid">
-      <input type="hidden" name="id" value="${item?.id || ''}">
-      ${field('类别', `<select name="category">${options(CATEGORY_LABELS, item?.category || category)}</select>`)}
-      ${field('事项名称 *', `<input name="title" required value="${escapeAttr(item?.title || '')}">`)}
-      ${field('状态', `<select name="status">${options({ pending: '待处理', in_progress: '处理中', blocked: '已阻塞', done: '已完成' }, item?.status || 'pending')}</select>`)}
-      ${field('负责人', `<input name="owner" value="${escapeAttr(item?.owner || state.project?.owner || '')}">`)}
-      ${field('计划日期', `<input type="date" name="dueDate" value="${escapeAttr(item?.due_date || '')}">`)}
-      ${field('执行证据', `<textarea name="evidence" rows="3" placeholder="记录签到、签字、截图或文档名称">${h(item?.evidence || '')}</textarea>`, true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存事项</button></div>
+      ${field('状态', `<select name="status">${options({ open: '待处理', in_progress: '处理中', deferred: '已延期', done: '已完成', closed: '已关闭', ignored: '已忽略' }, item?.status || 'open')}</select>`)}
+      ${field('负责人', `<input name="owner" value="${escapeAttr(item?.owner || '')}" placeholder="例如：运营-林">`)}
+      ${field('截止日期', `<input type="date" name="dueDate" value="${escapeAttr(item?.due_date || today())}">`)}
+      ${field('执行结果', `<textarea name="result" rows="3" placeholder="记录处理结果和指标变化">${h(item?.result || '')}</textarea>`, true)}
+      ${field('执行证据', `<textarea name="evidence" rows="3" placeholder="例如：否词截图、补货单号、Listing 修改前后截图">${h(item?.evidence || '')}</textarea>`, true)}
+      <p class="form-note span-2">保存后会自动写入动作时间线，并回写到运营复盘和报告摘要。</p>
+      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">${item ? '保存执行结果' : '创建动作'}</button></div>
     </form>`
   });
 }
 
 function openKnowledgeModal() {
   openModal({
-    title: '新增知识文章',
+    title: '沉淀运营方法',
     wide: true,
     content: `<form id="knowledge-form" class="form-grid">
-      ${field('标题 *', '<input name="title" required placeholder="例如：门店终端无法连接结算服务">')}
-      ${field('分类', '<input name="category" value="技术支持">')}
-      ${field('问题现象 *', '<textarea name="symptom" rows="3" required></textarea>', true)}
-      ${field('解决方案 *', '<textarea name="solution" rows="6" required placeholder="建议按检查顺序记录命令、判断标准和处理步骤"></textarea>', true)}
-      ${field('标签', '<input name="tags" placeholder="用逗号分隔，例如：MySQL,连接池,超时">', true)}
+      ${field('标题 *', '<input name="title" required placeholder="例如：欧洲站高退货产品的三步复盘法">')}
+      ${field('分类', `<select name="category">${options({ 运营复盘: '运营复盘', 广告: '广告', 库存: '库存', Listing: 'Listing', 售后: '售后', 数据: '数据' }, '运营复盘')}</select>`)}
+      ${field('问题现象 *', '<textarea name="symptom" rows="3" required placeholder="说明在什么情况下触发该方法"></textarea>', true)}
+      ${field('解决方案 *', '<textarea name="solution" rows="7" required placeholder="按判断标准、执行步骤、结果验证的顺序记录"></textarea>', true)}
+      ${field('标签', '<input name="tags" placeholder="用逗号分隔，例如：ACOS,否词,利润">', true)}
       <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存文章</button></div>
     </form>`
   });
 }
 
-function openKnowledgeArticle(article) {
-  openModal({
-    title: article.title,
-    wide: true,
-    content: `<div class="article-detail">
-      <div class="article-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看 · ${formatDateTime(article.created_at)}</small></div>
-      <section><h4>问题现象</h4><p>${h(article.symptom)}</p></section>
-      <section><h4>解决方案</h4><p class="pre-line">${h(article.solution)}</p></section>
-      <div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div>
-    </div>`
-  });
+function renderListingPackage(data) {
+  return `<div class="cp-package">
+    <div class="cp-package-head"><div><span>${h(data.product.sku)} · ${data.score}/100</span><h3>${h(data.product.title)}</h3></div><span class="safe-chip">模拟数据</span></div>
+    <section><h4>建议标题</h4><p class="cp-code-block">${h(data.titleSuggestion)}</p></section>
+    <section><h4>五点文案骨架</h4><ol>${data.bullets.map((item) => `<li>${h(item)}</li>`).join('')}</ol></section>
+    <section><h4>图片需求清单</h4><ul>${data.imageRequirements.map((item) => `<li>${h(item)}</li>`).join('')}</ul></section>
+    <section><h4>关键词分组</h4><div class="cp-keyword-grid">${data.keywordClusters.map((group) => `<div><strong>${h(group.cluster)}</strong><p>${group.terms.map(h).join(' · ')}</p></div>`).join('')}</div></section>
+    <section><h4>优先改进</h4><ul>${data.priorityActions.map((item) => `<li>${h(item)}</li>`).join('')}</ul></section>
+  </div>`;
 }
 
 function openModal({ title, content, wide = false }) {
   modalRoot.innerHTML = `<div class="modal-backdrop" data-action="close-modal">
     <section class="modal-card ${wide ? 'is-wide' : ''}" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}" data-modal-content>
-      <header><div><span>DeployMate</span><h2>${h(title)}</h2></div><button class="icon-button" data-action="close-modal" aria-label="关闭">${icon('x')}</button></header>
+      <header><div><span>CrossPilot</span><h2>${h(title)}</h2></div><button class="icon-button" data-action="close-modal" aria-label="关闭">${icon('x')}</button></header>
       <div class="modal-body">${content}</div>
     </section>
   </div>`;
@@ -1328,69 +936,7 @@ function updateViewChrome() {
   const meta = VIEW_META[state.view];
   pageTitle.textContent = meta.title;
   pageEyebrow.textContent = meta.eyebrow;
-  document.querySelectorAll('[data-nav]').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.nav === state.view);
-  });
-}
-
-function renderShellSidebars() {
-  if (!shellLeft || !shellRight) return;
-  const project = state.workbench?.project || state.project || state.projects.find((item) => item.id === state.projectId) || null;
-  const projectStats = state.projects.find((item) => item.id === state.projectId);
-  const totalTasks = projectStats?.total_tasks || 0;
-  const doneTasks = projectStats?.completed_tasks || 0;
-  const progress = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const nextTask = state.workbench?.nextTasks?.[0];
-  const openCases = state.workbench?.openCases?.length ?? state.cases.filter((item) => !['resolved', 'closed'].includes(item.status)).length;
-  const checkCount = state.workbench?.recentChecks?.length ?? state.checks.length;
-  const pendingHandover = state.workbench?.pendingHandover?.length ?? state.handover.filter((item) => item.status !== 'done').length;
-
-  shellLeft.innerHTML = project ? `
-    <section class="aside-section aside-project">
-      <div class="aside-section-head"><span>当前项目</span><small>${h(project.code)}</small></div>
-      <h2>${h(project.project_name)}</h2>
-      <p>${h(project.customer)} · ${h(project.environment)}</p>
-      <dl class="aside-facts">
-        <div><dt>当前阶段</dt><dd>${h(phaseLabel(project.phase))}</dd></div>
-        <div><dt>负责人</dt><dd>${h(project.owner || '待分配')}</dd></div>
-        <div><dt>计划上线</dt><dd>${h(project.go_live_date || '未设置')}</dd></div>
-      </dl>
-    </section>
-    <section class="aside-section">
-      <div class="aside-section-head"><span>实施进度</span><strong>${progress}%</strong></div>
-      <div class="aside-progress"><i style="width:${progress}%"></i></div>
-      <div class="aside-progress-meta"><span>${doneTasks} 已完成</span><span>${Math.max(totalTasks - doneTasks, 0)} 待推进</span></div>
-    </section>
-  ` : `
-    <section class="aside-section aside-project"><div class="aside-section-head"><span>当前项目</span></div><h2>加载中</h2><p>正在读取交付项目。</p></section>
-  `;
-
-  shellRight.innerHTML = `
-    <section class="aside-section">
-      <div class="aside-section-head"><span>交付状态</span><small>实时</small></div>
-      <div class="aside-status-list">
-        <div><span><i class="aside-status-dot"></i>API 服务</span><strong>正常</strong></div>
-        <div><span>待跟进问题</span><strong>${openCases}</strong></div>
-        <div><span>检查记录</span><strong>${checkCount}</strong></div>
-        <div><span>验收待办</span><strong>${pendingHandover}</strong></div>
-      </div>
-    </section>
-    <section class="aside-section">
-      <div class="aside-section-head"><span>快捷入口</span></div>
-      <div class="aside-links">
-        <button data-nav="preflight">${icon('preflight')}<span>环境预检</span></button>
-        <button data-nav="database">${icon('database')}<span>数据库交付</span></button>
-        <button data-nav="cases">${icon('cases')}<span>技术支持</span></button>
-        <button data-nav="knowledge">${icon('knowledge')}<span>知识库</span></button>
-      </div>
-    </section>
-    <section class="aside-section aside-focus">
-      <div class="aside-section-head"><span>当前焦点</span></div>
-      <strong>${h(nextTask?.title || '按阶段推进交付')}</strong>
-      <p>${h(nextTask?.description || '打开实施项目，查看下一项任务和交付证据。')}</p>
-      <button class="text-button" data-nav="projects">查看任务 ${icon('arrow')}</button>
-    </section>
-  `;
+  document.querySelectorAll('[data-nav]').forEach((button) => button.classList.toggle('is-active', button.dataset.nav === state.view));
 }
 
 function initHeroTypewriter() {
@@ -1399,11 +945,9 @@ function initHeroTypewriter() {
     heroTypewriter.textContent = HERO_PHRASES[0];
     return;
   }
-
   let phraseIndex = 0;
   let characterIndex = 0;
   let deleting = false;
-
   const step = () => {
     const phrase = HERO_PHRASES[phraseIndex];
     if (!deleting) {
@@ -1412,30 +956,24 @@ function initHeroTypewriter() {
       if (characterIndex === phrase.length) {
         deleting = true;
         window.setTimeout(step, 1800);
-        return;
-      }
-      window.setTimeout(step, 72);
+      } else window.setTimeout(step, 72);
       return;
     }
-
     characterIndex -= 1;
     heroTypewriter.textContent = phrase.slice(0, characterIndex);
     if (characterIndex === 0) {
       deleting = false;
       phraseIndex = (phraseIndex + 1) % HERO_PHRASES.length;
       window.setTimeout(step, 420);
-      return;
-    }
-    window.setTimeout(step, 28);
+    } else window.setTimeout(step, 28);
   };
-
   window.setTimeout(step, 500);
 }
 
 async function checkHealth() {
   const apiStatus = document.querySelector('#api-status');
   try {
-    const result = await api('/api/health');
+    await api('/api/health');
     apiStatus.classList.add('is-online');
   } catch {
     apiStatus.classList.add('is-error');
@@ -1453,30 +991,12 @@ async function api(path, options = {}) {
   return payload;
 }
 
-function formData(form) {
-  return Object.fromEntries(new FormData(form).entries());
-}
-
-function options(items, selected) {
-  return Object.entries(items).map(([value, label]) => `<option value="${escapeAttr(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${h(label)}</option>`).join('');
-}
-
 function field(label, control, span = false) {
   return `<label class="field ${span ? 'span-2' : ''}"><span>${label}</span>${control}</label>`;
 }
 
-function fact(label, value) {
-  return `<div><dt>${h(label)}</dt><dd>${h(value || '-')}</dd></div>`;
-}
-
-function resultBox(status, title, detail) {
-  return `<div class="result-box ${status}">${icon(status === 'healthy' ? 'check' : 'alert')}<div><strong>${h(title)}</strong><p>${h(detail)}</p></div></div>`;
-}
-
-function statusBadge(status, type = 'status') {
-  const key = type === 'priority' ? status : status;
-  const label = type === 'priority' ? (PRIORITY_LABELS[key] || key) : (STATUS_LABELS[key] || key || '-');
-  return `<span class="badge ${type} status-${escapeAttr(status)}">${h(label)}</span>`;
+function options(items, selected) {
+  return Object.entries(items).map(([value, label]) => `<option value="${escapeAttr(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${h(label)}</option>`).join('');
 }
 
 function emptyBlock(title, message) {
@@ -1492,88 +1012,50 @@ function errorTemplate(message) {
 }
 
 function icon(name, size = 18) {
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.settings}</svg>`;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.overview}</svg>`;
 }
 
-function phaseLabel(value) {
-  return Object.fromEntries(PHASES)[value] || value || '-';
+function reportTypeLabel(value) {
+  return { products: '商品表现', ads: '搜索词', inventory: '库存', after_sales: '退货/评论' }[value] || value;
 }
 
-function checkLabel(value) {
-  return { system: '环境预检', network: '网络检查', database: '数据库连接', backup: '备份恢复方案', app: '应用健康' }[value] || value || '检查';
+function activityTitle(value) {
+  return { import: '报表导入', import_preview: '导入预览', import_commit: '确认入库', import_cancel: '取消导入', action: '动作引擎', after_sale: '售后处理', report: '报告导出', create: '创建动作', update: '更新动作' }[value] || '运营动态';
 }
 
-function databaseKindLabel(value) {
-  return { sqlite: 'SQLite', mysql: 'MySQL', sqlserver: 'SQL Server' }[value] || value;
+function isClosedAction(status) {
+  return ['done', 'closed', 'ignored'].includes(status);
 }
 
-function databaseDefaultPort(value) {
-  return value === 'mysql' ? 3306 : value === 'sqlserver' ? 1433 : '';
+function actionCloseRate(actions) {
+  if (!actions.length) return 0;
+  return Math.round((actions.filter((item) => isClosedAction(item.status)).length / actions.length) * 100);
 }
 
-function handoverGroupTitle(category) {
-  return {
-    account: '账号与角色',
-    training: '培训与签到',
-    acceptance: '功能验收与签字',
-    document: '部署与运维文档'
-  }[category];
+function money(value, currency = '€') {
+  return `${currency || ''} ${Number(value || 0).toFixed(2)}`.trim();
 }
 
-function eventIcon(type) {
-  return icon({ diagnostic: 'network', validation: 'database', resolution: 'check', knowledge: 'book', contact: 'cases' }[type] || 'clock', 16);
-}
-
-function defaultSql(profile) {
-  if (!profile) return 'SELECT 1;';
-  if (profile.kind === 'sqlite') return 'SELECT * FROM stores ORDER BY store_code LIMIT 50;';
-  return profile.kind === 'mysql'
-    ? 'SELECT NOW() AS checked_at, CURRENT_USER() AS current_user;'
-    : 'SELECT GETDATE() AS checked_at, SUSER_SNAME() AS current_user;';
-}
-
-function memoryStatus(value) {
-  return Number(value) <= 85 ? 'healthy' : 'warning';
-}
-
-function formatCell(value) {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
-
-function formatBytes(value) {
-  const numberValue = Number(value);
-  if (!Number.isFinite(numberValue)) return '-';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let current = numberValue;
-  let index = 0;
-  while (current >= 1024 && index < units.length - 1) {
-    current /= 1024;
-    index += 1;
-  }
-  return `${current.toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
-}
-
-function humanDuration(seconds) {
-  const value = Number(seconds) || 0;
-  const days = Math.floor(value / 86400);
-  const hours = Math.floor((value % 86400) / 3600);
-  if (days) return `${days} 天 ${hours} 小时`;
-  const minutes = Math.floor((value % 3600) / 60);
-  return `${hours} 小时 ${minutes} 分钟`;
+function number(value) {
+  return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
 }
 
 function relativeTime(value) {
   if (!value) return '-';
   const diff = Date.now() - new Date(value).getTime();
   if (Number.isNaN(diff)) return '-';
-  const minutes = Math.floor(diff / 60000);
+  const minutes = Math.max(0, Math.floor(diff / 60000));
   if (minutes < 1) return '刚刚';
   if (minutes < 60) return `${minutes} 分钟前`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} 小时前`;
   return `${Math.floor(hours / 24)} 天前`;
+}
+
+function shortDateTime(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function formatDateTime(value) {
@@ -1582,21 +1064,12 @@ function formatDateTime(value) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN', { hour12: false });
 }
 
-function number(value) {
-  return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
-}
-
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
 function h(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
 function escapeAttr(value) {
@@ -1613,6 +1086,15 @@ function showToast(message, type = 'success') {
 
 function showError(error) {
   showToast(error.message || '操作失败', 'error');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(String(reader.result).split(',')[1] || ''));
+    reader.addEventListener('error', () => reject(new Error('文件读取失败')));
+    reader.readAsDataURL(file);
+  });
 }
 
 function readFontMode() {
@@ -1638,9 +1120,7 @@ function applyFontMode(mode) {
 
 function initFontToggle() {
   if (!fontToggle) return;
-  fontToggle.addEventListener('click', () => {
-    applyFontMode(readFontMode() === 'literary' ? 'original' : 'literary');
-  });
+  fontToggle.addEventListener('click', () => applyFontMode(readFontMode() === 'literary' ? 'original' : 'literary'));
 }
 
 function initSakura() {
@@ -1656,22 +1136,17 @@ function initSakura() {
   }).join('');
 }
 
-function initScrollCompanion() {
-  if (!scrollCompanion || !companionProgress || !companionDot || !companionNode) return;
+function initAppHeader() {
+  if (!appHeader || !navProgress) return;
   const scrollElement = document.scrollingElement || document.documentElement;
   let scheduled = false;
-
   const update = () => {
     const maxScroll = Math.max(0, scrollElement.scrollHeight - window.innerHeight);
     const progress = maxScroll ? Math.min(1, window.scrollY / maxScroll) : 0;
-    companionProgress.style.height = `${progress * 100}%`;
-    companionDot.style.top = `${progress * 100}%`;
-    companionNode.style.top = `${progress * 100}%`;
-    scrollCompanion.classList.toggle('is-visible', maxScroll > 120 && window.scrollY > 80);
-    scrollCompanion.classList.toggle('is-scrollable', maxScroll > 120);
+    appHeader.classList.toggle('is-scrolled', window.scrollY > 8);
+    navProgress.style.transform = `scaleX(${progress})`;
     scheduled = false;
   };
-
   window.addEventListener('scroll', () => {
     if (!scheduled) {
       scheduled = true;
@@ -1679,7 +1154,6 @@ function initScrollCompanion() {
     }
   }, { passive: true });
   window.addEventListener('resize', update);
-  companionNode.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   const observer = new MutationObserver(update);
   observer.observe(app, { childList: true, subtree: true });
   update();

@@ -3598,7 +3598,7 @@ button:disabled {
   }
 }
 
-/* DeployMate v3: document-flow shell, readable typography and restored product motion. */
+/* CrossPilot shell: document-flow layout, readable typography and product motion. */
 :root {
   --font-original: "Aptos", "Aptos Display", "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
   --font-literary: "Noto Serif SC", "Source Han Serif SC", "STZhongsong", "Songti SC", "SimSun", serif;

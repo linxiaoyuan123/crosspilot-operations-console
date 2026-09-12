@@ -3,56 +3,58 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DeployMate 实施交付工作台 - 面向软件实施与技术支持工程师的交付工具">
+    <meta name="description" content="CrossPilot 跨境电商运营决策中台 - 从报表导入、利润核算到运营动作闭环">
     <meta name="theme-color" content="#123b3a">
     <link rel="icon" href="/pig.png" type="image/png">
     <link rel="apple-touch-icon" href="/pig.png">
-    <title>DeployMate 实施交付工作台</title>
+    <title>CrossPilot · 跨境电商运营决策中台</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/final-shell.css">
+    <link rel="stylesheet" href="/crosspilot.css">
   </head>
   <body>
     <div id="sakura-layer" aria-hidden="true"></div>
 
     <div class="app-shell">
       <header class="app-header">
+        <span class="app-header-progress" aria-hidden="true"><span id="nav-progress"></span></span>
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt=""></span>
           <span class="brand-copy">
-            <strong>DeployMate</strong>
-            <small>实施交付工作台</small>
+            <strong>CrossPilot</strong>
+            <small>跨境电商运营决策中台</small>
           </span>
         </div>
 
         <nav class="main-nav" aria-label="主导航">
-          <button class="nav-item is-active" type="button" data-nav="workbench">
-            <span data-icon="workbench"></span><span>今日工作台</span>
+          <button class="nav-item is-active" type="button" data-nav="overview">
+            <span data-icon="overview"></span><span data-label="运营总览">运营总览</span>
           </button>
-          <button class="nav-item" type="button" data-nav="projects">
-            <span data-icon="projects"></span><span>实施项目</span>
+          <button class="nav-item" type="button" data-nav="imports">
+            <span data-icon="imports"></span><span data-label="数据导入">数据导入</span>
           </button>
-          <button class="nav-item" type="button" data-nav="preflight">
-            <span data-icon="preflight"></span><span>环境预检</span>
+          <button class="nav-item" type="button" data-nav="listings">
+            <span data-icon="listings"></span><span data-label="Listing与商品">Listing与商品</span>
           </button>
-          <button class="nav-item" type="button" data-nav="database">
-            <span data-icon="database"></span><span>数据库交付</span>
+          <button class="nav-item" type="button" data-nav="ads">
+            <span data-icon="ads"></span><span data-label="广告与流量">广告与流量</span>
           </button>
-          <button class="nav-item" type="button" data-nav="cases">
-            <span data-icon="cases"></span><span>技术支持</span>
+          <button class="nav-item" type="button" data-nav="inventory">
+            <span data-icon="inventory"></span><span data-label="库存与履约">库存与履约</span>
           </button>
-          <button class="nav-item" type="button" data-nav="handover">
-            <span data-icon="handover"></span><span>培训验收</span>
+          <button class="nav-item" type="button" data-nav="aftersales">
+            <span data-icon="aftersales"></span><span data-label="售后与账号">售后与账号</span>
           </button>
-          <button class="nav-item" type="button" data-nav="knowledge">
-            <span data-icon="knowledge"></span><span>知识库</span>
+          <button class="nav-item" type="button" data-nav="reviews">
+            <span data-icon="reviews"></span><span data-label="运营复盘">运营复盘</span>
           </button>
         </nav>
 
         <div class="app-header-actions">
           <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
-          <label class="project-switcher" for="global-project">
-            <span>当前项目</span>
-            <select id="global-project" aria-label="切换当前实施项目"></select>
+          <label class="project-switcher" for="global-store">
+            <span>当前店铺</span>
+            <select id="global-store" aria-label="切换当前店铺"></select>
           </label>
           <span class="sync-state" id="api-status">
             <span class="status-dot"></span><span>API 正常</span>
@@ -64,51 +66,53 @@
       </header>
 
       <div class="workspace">
-        <section class="hero-banner" aria-label="DeployMate 实施交付工作台">
+        <section class="hero-banner" aria-label="CrossPilot 跨境电商运营决策中台">
+          <div class="hero-slides" aria-hidden="true">
+            <div class="hero-slide hero-slide-1"></div>
+            <div class="hero-slide hero-slide-2"></div>
+            <div class="hero-slide hero-slide-3"></div>
+          </div>
           <div class="hero-shade" aria-hidden="true"></div>
           <div class="hero-copy">
-            <span class="hero-kicker">DeployMate · implementation delivery</span>
-            <h1>实施交付，从预检到验收</h1>
+            <span class="hero-kicker">CrossPilot · marketplace operations</span>
+            <h1>跨境运营，从数据到动作</h1>
             <p class="hero-subtitle"><span id="hero-typewriter"></span><span class="typing-caret" aria-hidden="true"></span></p>
           </div>
           <div class="hero-waves" aria-hidden="true">
-            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-              <path class="wave-back" d="M0 58C180 104 360 10 540 52C720 95 900 16 1080 48C1260 80 1350 58 1440 38V120H0Z" />
-              <path class="wave-front" d="M0 78C210 112 390 36 600 66C810 96 990 40 1200 62C1300 72 1380 58 1440 48V120H0Z" />
+            <svg viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="geometricPrecision">
+              <defs>
+                <path id="crosspilot-gentle-wave" d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v48h-352z" />
+              </defs>
+              <g class="hero-wave-parallax">
+                <use href="#crosspilot-gentle-wave" x="48" y="0" class="hero-wave-layer hero-wave-layer-1" />
+                <use href="#crosspilot-gentle-wave" x="48" y="3" class="hero-wave-layer hero-wave-layer-2" />
+                <use href="#crosspilot-gentle-wave" x="48" y="5" class="hero-wave-layer hero-wave-layer-3" />
+                <use href="#crosspilot-gentle-wave" x="48" y="7" class="hero-wave-layer hero-wave-layer-4" />
+              </g>
             </svg>
           </div>
         </section>
 
         <div class="page-frame">
-          <aside class="shell-aside shell-aside-left" id="shell-left" aria-label="项目基础信息"></aside>
+          <aside class="shell-aside shell-aside-left" id="shell-left" aria-label="店铺基础信息"></aside>
 
           <div class="page-main">
             <header class="topbar">
               <div class="topbar-title">
-                <span class="eyebrow" id="page-eyebrow">现场交付</span>
-                <h1 id="page-title">今日工作台</h1>
+                <span class="eyebrow" id="page-eyebrow">经营驾驶舱</span>
+                <h1 id="page-title">运营总览</h1>
               </div>
             </header>
 
             <main class="content" id="app" aria-live="polite"></main>
           </div>
 
-          <aside class="shell-aside shell-aside-right" id="shell-right" aria-label="交付状态与快捷入口"></aside>
+          <aside class="shell-aside shell-aside-right" id="shell-right" aria-label="运营状态与快捷入口"></aside>
         </div>
       </div>
     </div>
 
     <div id="modal-root"></div>
-    <div class="scroll-companion" id="scroll-companion" aria-hidden="true">
-      <span class="companion-rail"></span>
-      <span class="companion-progress" id="companion-progress"></span>
-      <button class="companion-node" id="companion-node" type="button" tabindex="-1" aria-label="返回顶部">
-        <img class="companion-pig" src="/pig.png" alt="">
-        <span class="companion-bubble">回到顶部</span>
-      </button>
-      <span class="companion-dot" id="companion-dot"></span>
-    </div>
-
     <div class="toast-stack" id="toast-root" aria-live="polite"></div>
     <script type="module" src="/app.js"></script>
   </body>

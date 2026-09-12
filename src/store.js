@@ -1,22 +1,18 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import DatabaseSync from 'better-sqlite3';
+import { actionsForStore } from './metrics.js';
 
-const DEFAULT_DB_PATH = resolve(process.env.DB_PATH || 'data/deploymate.db');
-const PROJECT_STAGES = [
-  ['requirement', '需求确认'],
-  ['preflight', '环境预检'],
-  ['deployment', '安装部署'],
-  ['data', '数据核验'],
-  ['integration', '联调测试'],
-  ['training', '用户培训'],
-  ['acceptance', '项目验收'],
-  ['review', '上线复盘']
-];
+export const DEFAULT_DB_PATH = resolve(process.env.DB_PATH || 'data/crosspilot.db');
+const nowIso = () => new Date().toISOString();
+const dateOffset = (offset) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+};
 
 export function createDatabase(dbPath = DEFAULT_DB_PATH) {
   mkdirSync(dirname(dbPath), { recursive: true });
-  ensureDemoDatabase(dbPath);
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec('PRAGMA journal_mode = WAL;');
@@ -28,591 +24,785 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
 
 function migrate(db) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS projects (
+    CREATE TABLE IF NOT EXISTS stores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       code TEXT NOT NULL UNIQUE,
-      project_name TEXT NOT NULL,
-      customer TEXT NOT NULL,
-      product_name TEXT NOT NULL DEFAULT '',
-      environment TEXT NOT NULL DEFAULT '生产环境',
-      phase TEXT NOT NULL DEFAULT 'requirement',
-      status TEXT NOT NULL DEFAULT 'active',
-      owner TEXT NOT NULL DEFAULT '',
-      customer_contact TEXT NOT NULL DEFAULT '',
-      go_live_date TEXT NOT NULL DEFAULT '',
-      notes TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL,
+      name TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      market TEXT NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      timezone TEXT NOT NULL DEFAULT 'Europe/Berlin',
+      fee_rate REAL NOT NULL DEFAULT 15,
+      fulfillment_fee REAL NOT NULL DEFAULT 0,
+      target_acos REAL NOT NULL DEFAULT 28,
+      target_margin REAL NOT NULL DEFAULT 20,
+      lead_time_days INTEGER NOT NULL DEFAULT 18,
+      safety_days INTEGER NOT NULL DEFAULT 14,
+      health_rating REAL NOT NULL DEFAULT 4.5,
+      order_defect_rate REAL NOT NULL DEFAULT 0,
+      late_shipment_rate REAL NOT NULL DEFAULT 0,
+      cancellation_rate REAL NOT NULL DEFAULT 0,
+      data_mode TEXT NOT NULL DEFAULT 'simulated',
       updated_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS project_tasks (
+
+    CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      stage TEXT NOT NULL,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      sku TEXT NOT NULL,
+      asin TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
-      sort_order INTEGER NOT NULL DEFAULT 0,
+      category TEXT NOT NULL DEFAULT '家居收纳',
+      price REAL NOT NULL DEFAULT 0,
+      unit_cost REAL NOT NULL DEFAULT 0,
+      referral_fee_rate REAL,
+      fulfillment_fee REAL,
+      units_30d INTEGER NOT NULL DEFAULT 0,
+      sales_30d REAL NOT NULL DEFAULT 0,
+      refund_amount_30d REAL NOT NULL DEFAULT 0,
+      ad_spend_30d REAL NOT NULL DEFAULT 0,
+      ad_sales_30d REAL NOT NULL DEFAULT 0,
+      sessions_30d INTEGER NOT NULL DEFAULT 0,
+      page_views_30d INTEGER NOT NULL DEFAULT 0,
+      returns_30d INTEGER NOT NULL DEFAULT 0,
+      rating REAL NOT NULL DEFAULT 0,
+      review_count INTEGER NOT NULL DEFAULT 0,
+      title_score REAL NOT NULL DEFAULT 0,
+      bullet_score REAL NOT NULL DEFAULT 0,
+      image_score REAL NOT NULL DEFAULT 0,
+      attribute_score REAL NOT NULL DEFAULT 0,
+      keyword_score REAL NOT NULL DEFAULT 0,
+      compliance_score REAL NOT NULL DEFAULT 0,
+      issue_summary TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL,
+      UNIQUE(store_id, sku)
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      metric_date TEXT NOT NULL,
+      sales REAL NOT NULL DEFAULT 0,
+      orders INTEGER NOT NULL DEFAULT 0,
+      ad_spend REAL NOT NULL DEFAULT 0,
+      cogs_est REAL NOT NULL DEFAULT 0,
+      sessions INTEGER NOT NULL DEFAULT 0,
+      returns INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(store_id, metric_date)
+    );
+
+    CREATE TABLE IF NOT EXISTS ad_search_terms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      campaign TEXT NOT NULL,
+      ad_group TEXT NOT NULL DEFAULT '',
+      search_term TEXT NOT NULL,
+      match_type TEXT NOT NULL DEFAULT 'broad',
+      clicks INTEGER NOT NULL DEFAULT 0,
+      impressions INTEGER NOT NULL DEFAULT 0,
+      spend REAL NOT NULL DEFAULT 0,
+      ad_sales REAL NOT NULL DEFAULT 0,
+      ad_orders INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      snapshot_date TEXT NOT NULL,
+      available INTEGER NOT NULL DEFAULT 0,
+      inbound INTEGER NOT NULL DEFAULT 0,
+      reserved INTEGER NOT NULL DEFAULT 0,
+      defective INTEGER NOT NULL DEFAULT 0,
+      avg_daily_sales REAL NOT NULL DEFAULT 0,
+      last_restock_date TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      UNIQUE(product_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS after_sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      case_no TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open',
+      priority TEXT NOT NULL DEFAULT 'medium',
       owner TEXT NOT NULL DEFAULT '',
       due_date TEXT NOT NULL DEFAULT '',
       evidence TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS check_runs (
+
+    CREATE TABLE IF NOT EXISTS actions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
-      check_type TEXT NOT NULL,
-      target TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL,
-      summary TEXT NOT NULL DEFAULT '',
-      details_json TEXT NOT NULL DEFAULT '[]',
-      created_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS check_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      run_id INTEGER NOT NULL REFERENCES check_runs(id) ON DELETE CASCADE,
-      item_key TEXT NOT NULL,
-      label TEXT NOT NULL,
-      expected_value TEXT NOT NULL DEFAULT '',
-      actual_value TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL,
-      detail TEXT NOT NULL DEFAULT ''
-    );
-    CREATE TABLE IF NOT EXISTS database_profiles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      host TEXT NOT NULL DEFAULT '',
-      port INTEGER,
-      database_name TEXT NOT NULL DEFAULT '',
-      username TEXT NOT NULL DEFAULT '',
-      file_path TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS data_validations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-      profile_id INTEGER REFERENCES database_profiles(id) ON DELETE SET NULL,
-      name TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      sql_text TEXT NOT NULL,
-      expected_value TEXT NOT NULL DEFAULT '0',
-      actual_value TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
-      last_run_at TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS support_cases (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_no TEXT NOT NULL UNIQUE,
-      project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      source_type TEXT NOT NULL,
+      source_id INTEGER NOT NULL DEFAULT 0,
+      source_key TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL,
       title TEXT NOT NULL,
-      customer TEXT NOT NULL DEFAULT '',
-      symptom TEXT NOT NULL DEFAULT '',
-      impact TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
       priority TEXT NOT NULL DEFAULT 'medium',
+      recommendation TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'open',
-      category TEXT NOT NULL DEFAULT '技术支持',
-      assignee TEXT NOT NULL DEFAULT '',
-      root_cause TEXT NOT NULL DEFAULT '',
-      resolution TEXT NOT NULL DEFAULT '',
-      next_action TEXT NOT NULL DEFAULT '',
+      owner TEXT NOT NULL DEFAULT '',
+      due_date TEXT NOT NULL DEFAULT '',
+      evidence TEXT NOT NULL DEFAULT '',
+      result TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      resolved_at TEXT
+      closed_at TEXT
     );
-    CREATE TABLE IF NOT EXISTS case_events (
+
+    CREATE TABLE IF NOT EXISTS action_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id INTEGER NOT NULL REFERENCES support_cases(id) ON DELETE CASCADE,
+      action_id INTEGER NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
       event_type TEXT NOT NULL,
       title TEXT NOT NULL,
       detail TEXT NOT NULL DEFAULT '',
-      metadata_json TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS handover_items (
+
+    CREATE TABLE IF NOT EXISTS import_batches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      category TEXT NOT NULL,
-      title TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      owner TEXT NOT NULL DEFAULT '',
-      due_date TEXT NOT NULL DEFAULT '',
-      evidence TEXT NOT NULL DEFAULT '',
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      report_type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'preview',
+      total_rows INTEGER NOT NULL DEFAULT 0,
+      valid_rows INTEGER NOT NULL DEFAULT 0,
+      error_rows INTEGER NOT NULL DEFAULT 0,
+      pii_columns_json TEXT NOT NULL DEFAULT '[]',
+      mapping_json TEXT NOT NULL DEFAULT '{}',
+      preview_json TEXT NOT NULL DEFAULT '[]',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS import_rows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id INTEGER NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
+      row_index INTEGER NOT NULL,
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      normalized_json TEXT NOT NULL DEFAULT '{}',
+      errors_json TEXT NOT NULL DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'valid'
+    );
+
     CREATE TABLE IF NOT EXISTS knowledge_articles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
-      symptom TEXT NOT NULL,
+      symptom TEXT NOT NULL DEFAULT '',
       solution TEXT NOT NULL,
       tags TEXT NOT NULL DEFAULT '',
       views INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS knowledge_links (
-      article_id INTEGER NOT NULL REFERENCES knowledge_articles(id) ON DELETE CASCADE,
-      project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
-      case_id INTEGER REFERENCES support_cases(id) ON DELETE SET NULL,
-      created_at TEXT NOT NULL,
-      PRIMARY KEY (article_id, project_id, case_id)
-    );
+
     CREATE TABLE IF NOT EXISTS activities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER REFERENCES stores(id) ON DELETE CASCADE,
       action TEXT NOT NULL,
       entity_type TEXT NOT NULL,
       entity_id INTEGER,
-      detail TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS diagnostics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      check_type TEXT NOT NULL,
-      target TEXT NOT NULL,
-      status TEXT NOT NULL,
-      latency_ms INTEGER,
-      detail TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_tasks_project ON project_tasks(project_id, sort_order);
-    CREATE INDEX IF NOT EXISTS idx_checks_project ON check_runs(project_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_cases_project ON support_cases(project_id, updated_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_events_case ON case_events(case_id, created_at);
-    CREATE INDEX IF NOT EXISTS idx_handover_project ON handover_items(project_id, id);
-    CREATE INDEX IF NOT EXISTS idx_validation_project ON data_validations(project_id, id);
+
+    CREATE INDEX IF NOT EXISTS idx_products_store ON products(store_id, id);
+    CREATE INDEX IF NOT EXISTS idx_daily_store_date ON daily_metrics(store_id, metric_date);
+    CREATE INDEX IF NOT EXISTS idx_ads_store ON ad_search_terms(store_id, id);
+    CREATE INDEX IF NOT EXISTS idx_inventory_store ON inventory_snapshots(store_id, product_id);
+    CREATE INDEX IF NOT EXISTS idx_after_sales_store ON after_sales(store_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_actions_store ON actions(store_id, status, priority);
+    CREATE INDEX IF NOT EXISTS idx_action_events_action ON action_events(action_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_imports_store ON import_batches(store_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_import_rows_batch ON import_rows(batch_id, row_index);
   `);
 }
 
 function seed(db) {
-  const count = Number(db.prepare('SELECT COUNT(*) AS count FROM projects').get().count);
-  if (count > 0) return seedKnowledge(db);
-
-  const now = Date.now();
-  const at = (hoursAgo) => new Date(now - hoursAgo * 3600000).toISOString();
-  const day = (offset) => new Date(now + offset * 86400000).toISOString().slice(0, 10);
-  const project = db.prepare(`
-    INSERT INTO projects (
-      code, project_name, customer, product_name, environment, phase, status,
-      owner, customer_contact, go_live_date, notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    'DM-2601', '华南零售 ERP 门店上线', '华南零售集团', '门店经营 ERP',
-    '生产环境', 'integration', 'active', '陈工', '李经理 · 13800000000',
-    day(18), '首批 12 家门店上线，重点关注主数据、结算接口和收银终端网络。', at(480), at(1)
-  );
-  const projectId = Number(project.lastInsertRowid);
-  const insertTask = db.prepare(`
-    INSERT INTO project_tasks (
-      project_id, stage, title, description, status, sort_order, owner, due_date, evidence, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  if (Number(db.prepare('SELECT COUNT(*) AS count FROM stores').get().count) > 0) return;
+  const timestamp = nowIso();
+  const insertStore = db.prepare(`
+    INSERT INTO stores (
+      code, name, platform, market, currency, timezone, fee_rate, fulfillment_fee,
+      target_acos, target_margin, lead_time_days, safety_days, health_rating,
+      order_defect_rate, late_shipment_rate, cancellation_rate, data_mode, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  [
-    ['requirement', '确认门店上线范围和验收标准', '整理门店清单、角色、数据范围和接口清单。', 'done', 1, '陈工', day(-8), '需求确认单 V1.2'],
-    ['preflight', '完成服务器与收银终端环境预检', '检查 Windows Server、门店终端、端口和依赖组件。', 'done', 2, '陈工', day(-5), '环境预检报告'],
-    ['deployment', '部署应用并完成基础参数配置', '安装应用并配置数据库、时区、日志和服务。', 'done', 3, '周工', day(-2), '部署记录 DEP-0921'],
-    ['data', '核对门店、商品和期初库存主数据', '执行数据量、空值、重复值和关联关系检查。', 'in_progress', 4, '陈工', day(2), '仍有 2 条门店区域编码异常'],
-    ['integration', '完成结算接口和会员接口联调', '验证支付、退款、会员积分和异常回滚。', 'in_progress', 5, '林工', day(5), '支付接口成功率 99.7%'],
-    ['training', '组织店长与收银员操作培训', '覆盖开班、收银、退款、交班和常见故障。', 'pending', 6, '陈工', day(9), ''],
-    ['acceptance', '完成门店验收与签字确认', '逐店验证关键场景并记录遗留问题。', 'pending', 7, '王工', day(15), ''],
-    ['review', '上线复盘并沉淀知识库', '汇总上线问题、根因和后续优化项。', 'pending', 8, '陈工', day(20), '']
-  ].forEach((row) => insertTask.run(projectId, ...row, at(120), at(1)));
+  insertStore.run('EU-HOME-01', 'AuroraHome Europe 旗舰店', 'Amazon', '欧洲站', 'EUR', 'Europe/Berlin', 15, 3.2, 28, 18, 18, 14, 4.18, 0.42, 4.6, 1.2, 'simulated', timestamp);
+  insertStore.run('TTS-DE-01', 'AuroraHome 德国店', 'TikTok Shop', '德国', 'EUR', 'Europe/Berlin', 8, 2.4, 32, 16, 16, 12, 4.62, 0.35, 2.1, 0.8, 'simulated', timestamp);
+  insertStore.run('SP-SG-01', 'AuroraHome 新加坡店', 'Shopee', '新加坡', 'SGD', 'Asia/Singapore', 10, 1.8, 30, 15, 14, 10, 4.71, 0.2, 1.4, 0.5, 'simulated', timestamp);
 
-  const profile = db.prepare(`
-    INSERT INTO database_profiles (
-      project_id, name, kind, host, port, database_name, username, file_path, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  const products = [
+    ['EU-HOME-01', 'AH-BAM-002', 'B0CPBAM204', 'Bamboo Drawer Organiser Set, Expandable 4-Piece Storage Dividers for Kitchen and Office', '竹制抽屉收纳', 29.99, 8.6, 412, 12355.88, 620.4, 1542, 6890, 12600, 16800, 47, 4.4, 826, 92, 90, 88, 86, 84, 96, '图片缺少场景尺寸对比'],
+    ['EU-HOME-01', 'AH-VAC-001', 'B0CPVAC101', 'Vacuum Storage Bags with Electric Pump, Reusable Space Saver Bags for Duvets and Clothes', '真空压缩袋', 22.99, 6.1, 368, 8460, 780, 1780, 4890, 11840, 15320, 39, 4.18, 642, 86, 78, 82, 76, 88, 94, 'ACOS 超目标，主图信息密度偏低'],
+    ['EU-HOME-01', 'AH-SHOE-003', 'B0CPSHO303', '4-Tier Shoe Rack for Entryway, Narrow Metal Storage Organiser Holds 12 Pairs', '窄型鞋架', 35.99, 13.8, 224, 8061.76, 640, 1420, 3120, 7840, 10320, 28, 4.31, 384, 88, 84, 80, 82, 79, 92, '广告转化偏弱，五点差异点不清晰'],
+    ['EU-HOME-01', 'AH-HOOK-004', 'B0CPHOO404', 'Adhesive Wall Hooks 12 Pack, No Drill Heavy Duty Hooks for Bathroom and Kitchen', '免打孔挂钩', 12.99, 2.75, 590, 7664.1, 210, 620, 3150, 14600, 19120, 31, 4.53, 1138, 91, 89, 86, 84, 90, 98, '保持低成本流量结构'],
+    ['EU-HOME-01', 'AH-SPICE-005', 'B0CPSPI505', 'Spice Rack Organiser for Cabinet, 3-Tier Expandable Shelf with Non-Slip Mats', '调料架', 26.49, 9.9, 182, 4821.18, 360, 980, 1940, 6420, 8390, 21, 4.09, 267, 74, 68, 65, 72, 70, 88, '属性缺失较多，主关键词覆盖不足'],
+    ['EU-HOME-01', 'AH-LAUN-006', 'B0CPLAU606', 'Laundry Sorter with 3 Removable Bags, Rolling Hamper Cart for Bathroom and Bedroom', '三袋脏衣篮', 31.99, 15.4, 156, 4990.44, 540, 870, 1680, 5220, 7080, 17, 3.92, 194, 79, 72, 74, 68, 76, 90, '净利为负，高退货与广告成本叠加'],
+    ['EU-HOME-01', 'AH-BED-007', 'B0CPBED707', 'Under Bed Storage Bags 2 Pack, Large Foldable Containers with Reinforced Handles', '床底收纳袋', 25.99, 7.8, 334, 8680.66, 410, 690, 3760, 10280, 13240, 24, 4.47, 711, 89, 86, 85, 88, 87, 97, '保持广告和库存节奏'],
+    ['EU-HOME-01', 'AH-CART-008', 'B0CPCAR808', 'Slim Rolling Storage Cart, 3-Tier Mobile Organiser for Laundry and Kitchen', '窄缝收纳车', 42.99, 19.8, 96, 4127.04, 290, 760, 980, 2940, 4020, 12, 4.06, 138, 85, 82, 84, 80, 83, 91, '高客单转化不足，利润空间过薄'],
+    ['TTS-DE-01', 'TT-CLIP-001', 'TT-CLIP-001', 'Küchen-Organizer Set mit 6 Clips', '厨房夹收纳套装', 18.9, 5.2, 286, 5405.4, 180, 460, 2180, 12300, 15900, 19, 4.62, 329, 88, 86, 84, 81, 85, 96, '短视频素材可继续放量'],
+    ['TTS-DE-01', 'TT-BOX-002', 'TT-BOX-002', 'Faltbare Aufbewahrungsbox 2er Set', '折叠收纳箱', 24.9, 9.1, 142, 3535.8, 210, 510, 1020, 7210, 9620, 17, 4.38, 187, 82, 80, 81, 78, 82, 95, '退货原因需按颜色归类'],
+    ['SP-SG-01', 'SP-HOOK-001', 'SP-HOOK-001', 'Multipurpose Adhesive Hook 10pcs', '多用途免钉挂钩', 9.9, 2.9, 342, 3385.8, 90, 280, 980, 11200, 14300, 14, 4.71, 512, 90, 88, 86, 84, 88, 97, '保持平台活动报名']
+  ];
+  const insertProduct = db.prepare(`
+    INSERT INTO products (
+      store_id, sku, asin, title, category, price, unit_cost, units_30d, sales_30d,
+      refund_amount_30d, ad_spend_30d, ad_sales_30d, sessions_30d, page_views_30d,
+      returns_30d, rating, review_count, title_score, bullet_score, image_score,
+      attribute_score, keyword_score, compliance_score, issue_summary, updated_at
+    )
+    SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    FROM stores WHERE code = ?
   `);
-  const sqliteProfileId = Number(profile.run(projectId, '内置 ERP 演示库', 'sqlite', '', null, 'demo-erp', '', 'demo-erp.db', at(300), at(300)).lastInsertRowid);
-  profile.run(projectId, 'MySQL 演示环境', 'mysql', '127.0.0.1', 3307, 'deploymate_demo', 'deploymate', '', at(300), at(300));
-
-  const validation = db.prepare(`
-    INSERT INTO data_validations (
-      project_id, profile_id, name, description, sql_text, expected_value, actual_value, status, last_run_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  [
-    ['门店区域编码完整性', '区域编码不能为空。', 'SELECT COUNT(*) AS invalid_count FROM stores WHERE region_code IS NULL OR TRIM(region_code) = \'\'', '0', '2', 'failed', at(4)],
-    ['订单金额非负', '订单金额不能小于 0。', 'SELECT COUNT(*) AS invalid_count FROM orders WHERE total_amount < 0', '0', '0', 'healthy', at(5)],
-    ['门店订单关联完整性', '订单门店必须存在。', 'SELECT COUNT(*) AS invalid_count FROM orders o LEFT JOIN stores s ON s.store_code = o.store_code WHERE s.store_code IS NULL', '0', '0', 'healthy', at(5)]
-  ].forEach((row) => validation.run(projectId, sqliteProfileId, ...row, at(120), at(5)));
-
-  const item = db.prepare(`
-    INSERT INTO support_cases (
-      case_no, project_id, title, customer, symptom, impact, priority, status,
-      category, assignee, root_cause, resolution, next_action, created_at, updated_at, resolved_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const caseOne = Number(item.run('DM-CASE-001', projectId, '部分门店收银终端无法连接结算服务', '华南零售集团', '3 家门店在高峰期间歇性支付超时。', '影响高峰期收银。', 'critical', 'in_progress', '网络故障', '陈工', '', '', '检查防火墙会话数和运营商链路。', at(6), at(1), null).lastInsertRowid);
-  const caseTwo = Number(item.run('DM-CASE-002', projectId, '门店主数据导入后缺少区域编码', '华南零售集团', '2 条门店数据区域编码为空。', '影响区域日报。', 'high', 'waiting', '数据问题', '林工', '客户 Excel 格式不一致。', '已整理错误清单。', '等待客户返回修订数据。', at(22), at(3), null).lastInsertRowid);
-  const caseThree = Number(item.run('DM-CASE-003', projectId, '应用服务启动后日志目录权限不足', '华南零售集团', 'Windows 服务启动后立即退出。', '测试环境部署中断。', 'high', 'resolved', '服务部署', '周工', '服务账号没有日志目录写权限。', '授权并重启服务。', '观察一个运行日。', at(48), at(30), at(30)).lastInsertRowid);
-  const event = db.prepare('INSERT INTO case_events (case_id, event_type, title, detail, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)');
-  event.run(caseOne, 'created', '问题受理', '客户反馈 3 家门店结算超时。', '{}', at(6));
-  event.run(caseOne, 'diagnostic', 'TCP 端口检查', '443 端口可连接，高峰期延迟超过 2000ms。', '{}', at(5));
-  event.run(caseTwo, 'validation', '执行数据校验', '发现 2 条区域编码为空。', '{}', at(20));
-  event.run(caseThree, 'resolution', '问题解决', '调整日志目录权限并重启服务。', '{}', at(30));
-
-  const handover = db.prepare(`
-    INSERT INTO handover_items (project_id, category, title, status, owner, due_date, evidence, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  [
-    ['account', '确认管理员、店长和收银员角色', 'done', '陈工', day(-1), '角色矩阵已确认。'],
-    ['training', '准备收银操作培训材料', 'in_progress', '陈工', day(6), 'PPT 初稿完成。'],
-    ['training', '完成培训签到', 'pending', '陈工', day(9), ''],
-    ['acceptance', '完成关键业务场景验收', 'pending', '王工', day(15), ''],
-    ['acceptance', '客户负责人签字确认', 'pending', '王工', day(15), ''],
-    ['document', '整理部署和运维手册', 'in_progress', '周工', day(10), '完成 70%。']
-  ].forEach((row) => handover.run(projectId, ...row, at(120), at(2)));
-
-  const check = db.prepare('INSERT INTO check_runs (project_id, check_type, target, status, summary, details_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  check.run(projectId, 'network', 'gateway.example.com:443', 'warning', 'TCP 可连接，高峰期延迟超过预期', JSON.stringify([{ key: 'tcp', label: 'TCP 连接', expected: '可连接且延迟 < 500ms', actual: '可连接，峰值 2140ms', status: 'warning', detail: '检查防火墙会话数。' }]), at(5));
-  check.run(projectId, 'database', '内置 ERP 演示库', 'healthy', '数据库连接和基础查询正常', JSON.stringify([{ key: 'connection', label: '连接测试', expected: '连接成功', actual: '12ms', status: 'healthy', detail: '' }]), at(4));
-  addActivity(db, 'project.seed', 'project', projectId, 'DeployMate 演示实施项目已初始化', at(1));
-  seedKnowledge(db);
-}
-
-function seedKnowledge(db) {
-  if (Number(db.prepare('SELECT COUNT(*) AS count FROM knowledge_articles').get().count) > 0) return;
-  const now = Date.now();
-  const at = (hoursAgo) => new Date(now - hoursAgo * 3600000).toISOString();
-  const insert = db.prepare('INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  [
-    ['门店终端无法连接结算服务', '网络故障', '收银终端高峰期间歇性支付超时。', '依次检查 DNS、TCP、链路延迟、防火墙会话数和服务端日志。', '门店,结算,网络,TCP', 31, at(120)],
-    ['Windows服务无法写入日志目录', '服务部署', '服务启动后立即退出，日志提示拒绝访问。', '检查运行账号和目录 ACL，授权后重启并观察日志。', 'Windows,服务,权限,日志', 22, at(180)],
-    ['MySQL备份文件不完整', '数据库', '备份任务成功但文件异常小。', '检查空间、权限、超时和错误日志，恢复前在测试库验证。', 'MySQL,备份,恢复', 25, at(240)],
-    ['门店主数据导入校验顺序', '数据交付', '导入后出现空值、重复和关联缺失。', '先查完整性，再查唯一性，最后查主外键关联。', '数据校验,SQL,主数据', 18, at(90)]
-  ].forEach((row) => insert.run(...row));
-}
-
-function ensureDemoDatabase(appDbPath) {
-  const demoPath = resolve(dirname(appDbPath), 'demo-erp.db');
-  const demo = new DatabaseSync(demoPath);
-  demo.exec(`
-    CREATE TABLE IF NOT EXISTS stores (store_code TEXT PRIMARY KEY, store_name TEXT NOT NULL, region_code TEXT, status TEXT NOT NULL DEFAULT 'active');
-    CREATE TABLE IF NOT EXISTS orders (order_no TEXT PRIMARY KEY, store_code TEXT NOT NULL, total_amount REAL NOT NULL, order_status TEXT NOT NULL, created_at TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS inventory (store_code TEXT NOT NULL, sku TEXT NOT NULL, quantity INTEGER NOT NULL, PRIMARY KEY (store_code, sku));
-    CREATE TABLE IF NOT EXISTS sync_log (id INTEGER PRIMARY KEY AUTOINCREMENT, store_code TEXT NOT NULL, sync_type TEXT NOT NULL, status TEXT NOT NULL, synced_at TEXT NOT NULL);
-  `);
-  if (Number(demo.prepare('SELECT COUNT(*) AS count FROM stores').get().count) === 0) {
-    const store = demo.prepare('INSERT INTO stores (store_code, store_name, region_code, status) VALUES (?, ?, ?, ?)');
-    [
-      ['S001', '天河旗舰店', 'GZ-01', 'active'], ['S002', '番禺万象店', 'GZ-02', 'active'],
-      ['S003', '海珠广场店', 'GZ-03', 'active'], ['S004', '越秀北京路店', 'GZ-04', 'active'],
-      ['S005', '白云新城店', 'GZ-05', 'active'], ['S006', '荔湾上下九店', 'GZ-06', 'active'],
-      ['S007', '黄埔科学城店', 'GZ-07', 'active'], ['S008', '南沙万达店', 'GZ-08', 'active'],
-      ['S009', '增城广场店', null, 'active'], ['S010', '从化街口店', null, 'active'],
-      ['S011', '花都融创店', 'GZ-11', 'active'], ['S012', '南沙湾店', 'GZ-12', 'active']
-    ].forEach((row) => store.run(...row));
-    const order = demo.prepare('INSERT INTO orders (order_no, store_code, total_amount, order_status, created_at) VALUES (?, ?, ?, ?, ?)');
-    for (let index = 1; index <= 36; index += 1) {
-      const storeCode = `S${String(((index - 1) % 12) + 1).padStart(3, '0')}`;
-      order.run(`ORD-${String(index).padStart(5, '0')}`, storeCode, 39.9 + index * 7.5, index % 9 === 0 ? 'refunded' : 'paid', new Date(Date.now() - index * 3600000).toISOString());
-    }
-    const inventory = demo.prepare('INSERT INTO inventory (store_code, sku, quantity) VALUES (?, ?, ?)');
-    ['SKU-1001', 'SKU-1002', 'SKU-1003'].forEach((sku, skuIndex) => {
-      for (let index = 1; index <= 12; index += 1) inventory.run(`S${String(index).padStart(3, '0')}`, sku, 20 + skuIndex * 13 + index);
-    });
-    const log = demo.prepare('INSERT INTO sync_log (store_code, sync_type, status, synced_at) VALUES (?, ?, ?, ?)');
-    ['S001', 'S002', 'S003', 'S004'].forEach((storeCode, index) => log.run(storeCode, 'sales', index === 3 ? 'warning' : 'success', new Date(Date.now() - index * 1800000).toISOString()));
+  for (const product of products) {
+    const [storeCode, sku, asin, title, category, price, unitCost, units, sales, refunds, adSpend, adSales, sessions, pageViews, returns, rating, reviews, titleScore, bulletScore, imageScore, attributeScore, keywordScore, complianceScore, issue] = product;
+    insertProduct.run(sku, asin, title, category, price, unitCost, units, sales, refunds, adSpend, adSales, sessions, pageViews, returns, rating, reviews, titleScore, bulletScore, imageScore, attributeScore, keywordScore, complianceScore, issue, timestamp, storeCode);
   }
-  demo.close();
-  return demoPath;
+
+  const dailyBase = [
+    [1540, 22, 215, 382, 1540, 3], [1690, 24, 238, 411, 1692, 4],
+    [1762, 25, 252, 438, 1770, 4], [1810, 26, 266, 451, 1815, 3],
+    [1935, 28, 292, 486, 1940, 5], [1848, 27, 281, 462, 1860, 4],
+    [2054, 30, 318, 521, 2061, 6], [2148, 31, 336, 548, 2150, 4],
+    [2081, 30, 324, 529, 2090, 5], [2260, 33, 350, 574, 2265, 4],
+    [2328, 34, 361, 591, 2330, 5], [2196, 32, 348, 556, 2200, 4],
+    [2442, 36, 382, 622, 2446, 6], [2515, 37, 397, 641, 2520, 5]
+  ];
+  const insertDaily = db.prepare(`
+    INSERT INTO daily_metrics (store_id, metric_date, sales, orders, ad_spend, cogs_est, sessions, returns)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  dailyBase.forEach((row, index) => insertDaily.run(dateOffset(index - 13), ...row));
+
+  const ads = [
+    ['AH-BAM-002', 'SP - Drawer Organiser', 'Core', 'bamboo drawer organizer', 'exact', 82, 8900, 226.4, 840, 25],
+    ['AH-BAM-002', 'SP - Drawer Organiser', 'Research', 'under bed storage', 'broad', 38, 4200, 104.8, 0, 0],
+    ['AH-LAUN-006', 'SP - Laundry', 'Core', 'laundry hamper large', 'phrase', 44, 3800, 90.1, 130, 2],
+    ['AH-SHOE-003', 'SP - Shoe Rack', 'Research', 'shoe rack 4 tier', 'broad', 22, 2600, 68.4, 0, 0],
+    ['AH-BAM-002', 'SP - Drawer Organiser', 'Scale', 'bamboo drawer organizer set', 'phrase', 116, 10200, 160.2, 720, 23],
+    ['AH-HOOK-004', 'SP - Hooks', 'Research', 'closet hooks no drill', 'broad', 16, 2100, 41.6, 0, 0],
+    ['AH-SPICE-005', 'SP - Spice Rack', 'Core', 'spice rack organizer', 'phrase', 63, 6100, 132.7, 210, 7],
+    ['AH-CART-008', 'SP - Rolling Cart', 'Core', 'rolling cart slim', 'broad', 31, 2400, 106.2, 98, 1],
+    ['AH-VAC-001', 'SP - Vacuum Bags', 'Core', 'vacuum storage bags electric pump', 'phrase', 94, 9900, 242.1, 740, 20],
+    ['AH-BED-007', 'SP - Under Bed', 'Scale', 'under bed storage bags', 'exact', 108, 12400, 218.7, 1060, 31],
+    ['AH-SPICE-005', 'SP - Spice Rack', 'Research', 'cabinet spice organizer', 'broad', 18, 1700, 48.3, 0, 0],
+    ['AH-HOOK-004', 'SP - Hooks', 'Scale', 'adhesive wall hooks heavy duty', 'exact', 129, 15400, 276.5, 1420, 42],
+    ['TT-CLIP-001', 'GMV Max', 'Kitchen', 'küchen organizer clips', 'auto', 62, 16800, 188.2, 920, 29],
+    ['TT-BOX-002', 'GMV Max', 'Storage', 'faltbare aufbewahrungsbox', 'auto', 45, 11200, 154.8, 610, 18],
+    ['SP-HOOK-001', 'Search Ads', 'Hooks', 'adhesive hook', 'auto', 74, 14200, 96.4, 530, 25]
+  ];
+  const insertAd = db.prepare(`
+    INSERT INTO ad_search_terms (
+      store_id, product_id, campaign, ad_group, search_term, match_type,
+      clicks, impressions, spend, ad_sales, ad_orders, updated_at
+    )
+    SELECT p.store_id, p.id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    FROM products p WHERE p.sku = ?
+  `);
+  for (const item of ads) {
+    const [sku, campaign, group, term, matchType, clicks, impressions, spend, sales, orders] = item;
+    insertAd.run(campaign, group, term, matchType, clicks, impressions, spend, sales, orders, timestamp, sku);
+  }
+
+  const inventory = [
+    ['AH-BAM-002', 620, 200, 34, 18, 13.7, -12, '主仓库存稳定'],
+    ['AH-VAC-001', 290, 0, 18, 6, 12.3, -25, '采购交期 18 天'],
+    ['AH-SHOE-003', 1240, 0, 42, 19, 7.5, -60, '活动后库存偏高'],
+    ['AH-HOOK-004', 760, 100, 25, 11, 19.7, -10, '畅销款正常补货'],
+    ['AH-SPICE-005', 320, 180, 16, 8, 6.1, -19, '新品组合补货'],
+    ['AH-LAUN-006', 980, 0, 31, 22, 5.2, -70, '退货率高，先清理库存'],
+    ['AH-BED-007', 480, 160, 21, 7, 11.1, -14, '旺季前备货'],
+    ['AH-CART-008', 155, 0, 9, 3, 3.2, -32, '高客单动销偏慢'],
+    ['TT-CLIP-001', 840, 260, 29, 11, 9.5, -9, '直播库存可售'],
+    ['TT-BOX-002', 510, 0, 17, 7, 4.7, -22, '颜色退货待分类'],
+    ['SP-HOOK-001', 690, 150, 23, 8, 11.4, -8, '活动库存充足']
+  ];
+  const insertInventory = db.prepare(`
+    INSERT INTO inventory_snapshots (
+      store_id, product_id, snapshot_date, available, inbound, reserved, defective,
+      avg_daily_sales, last_restock_date, note
+    )
+    SELECT p.store_id, p.id, ?, ?, ?, ?, ?, ?, ?, ?
+    FROM products p WHERE p.sku = ?
+  `);
+  for (const item of inventory) {
+    const [sku, available, inbound, reserved, defective, avgDaily, lastRestockOffset, note] = item;
+    insertInventory.run(dateOffset(0), available, inbound, reserved, defective, avgDaily, dateOffset(lastRestockOffset), note, sku);
+  }
+
+  const afterSales = [
+    ['AH-LAUN-006', 'AS-2401', '退货', '买家反馈袋体容量与预期不符', '商品尺寸描述不够直观', '退货原因集中在容量和滚轮安装，需回看主图及五点。', 'in_progress', 'high', '运营-林', 1],
+    ['AH-SPICE-005', 'AS-2402', '差评', '层板间距无法放下常用调料瓶', '尺寸信息不完整', '差评已联系买家补充信息，同时准备更新尺寸图和 A+。', 'open', 'high', '运营-周', -1],
+    ['AH-VAC-001', 'AS-2403', '买家消息', '询问是否适配 220V 电源', '售前产品属性缺失', '需把电压、插头类型和适用地区加入 Listing 属性。', 'open', 'medium', '客服-Amy', 0],
+    ['AH-SHOE-003', 'AS-2404', '索赔', '运输破损要求部分退款', '外箱边角缺少加强保护', '索赔已提交承运商，包装团队评估增加护角。', 'waiting', 'high', '供应链-陈', 2],
+    ['AH-CART-008', 'AS-2405', '订单缺陷', '轮子缺失导致 A-to-Z 风险', '配件漏发', '已安排补发轮组，订单缺陷率需连续两周观察。', 'in_progress', 'critical', '客服-Amy', -2],
+    ['AH-BAM-002', 'AS-2406', '评论', '希望提供更多安装示意', '内容优化建议', '计划增加 15 秒安装短视频和步骤图。', 'resolved', 'low', '内容-Alice', 8],
+    ['AH-BED-007', 'AS-2407', '退货', '买家重复购买后取消一单', '重复下单', '已退款并记录，不影响产品质量。', 'closed', 'low', '客服-Leo', -5],
+    ['TT-BOX-002', 'AS-2408', '退货', '颜色与页面显示存在差异', '色差', '待补充自然光色卡图并统一直播间灯光。', 'open', 'medium', 'TikTok运营-Mia', 1]
+  ];
+  const insertAfterSale = db.prepare(`
+    INSERT INTO after_sales (
+      store_id, product_id, case_no, type, subject, reason, detail, status,
+      priority, owner, due_date, evidence, created_at, updated_at
+    )
+    SELECT p.store_id, p.id, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?
+    FROM products p WHERE p.sku = ?
+  `);
+  afterSales.forEach((item, index) => {
+    const [sku, caseNo, type, subject, reason, detail, status, priority, owner, dueOffset] = item;
+    insertAfterSale.run(caseNo, type, subject, reason, detail, status, priority, owner, dateOffset(dueOffset), new Date(Date.now() - (index + 2) * 86400000).toISOString(), timestamp, sku);
+  });
+
+  const knowledge = [
+    ['ACOS 是否越低越好？先看利润和流量阶段', '广告', '新品或清库存阶段，低 ACOS 可能意味着流量不足。', '把 ACOS 与 TACOS、净利率、订单量同时观察。成熟款以目标 ACOS 为线，新品设置可接受亏损区间，并按搜索词逐步收敛。', 'ACOS,TACOS,利润', 86],
+    ['FBA 可售天数如何拆解补货风险', '库存', '只看可售库存容易忽略采购交期和在途差异。', '可售天数 = (FBA 可售 + 在途) ÷ 近 30 天日均销量。低于采购交期加安全期时创建补货动作，高于 90 天时进入滞销观察。', 'FBA,补货,库存周转', 72],
+    ['Listing 六维评分与执行清单', 'Listing', '标题、五点、图片和属性各有独立质量问题。', '按标题 20%、五点 20%、图片 20%、属性 15%、关键词 15%、合规 10% 计算总分。低于 75 分自动创建优化动作。', 'Listing,关键词,图片', 64],
+    ['欧洲站退货率复盘模板', '售后', '高退货通常同时指向产品、页面和履约三个环节。', '先按原因分类，再关联 SKU、批次和承运商。页面问题改内容，产品问题改设计或包装，履约问题升级异常时间线。', '退货,欧洲站,售后', 51],
+    ['多平台字段映射的最小字段集', '数据', '不同平台报表字段命名不一致。', '统一保留 SKU、日期、销售额、广告费、广告销售、库存和退货字段。买家姓名、邮箱、电话、地址等 PII 在导入预览阶段直接跳过。', '字段映射,CSV,XLSX', 43]
+  ];
+  const insertKnowledge = db.prepare(`
+    INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  knowledge.forEach((item, index) => insertKnowledge.run(...item, new Date(Date.now() - (index + 1) * 86400000).toISOString()));
+
+  const activities = [
+    ['import', 'import', 0, '完成 Amazon 商品表现、搜索词和库存 3 份模拟报表校验'],
+    ['action', 'action', 0, '规则引擎发现 11 项待处理运营异常'],
+    ['after_sale', 'after_sale', 0, 'AS-2405 A-to-Z 风险已升级为紧急事项'],
+    ['report', 'report', 0, '生成 8 月第 2 周运营复盘']
+  ];
+  const insertActivity = db.prepare(`
+    INSERT INTO activities (store_id, action, entity_type, entity_id, detail, created_at)
+    VALUES (1, ?, ?, ?, ?, ?)
+  `);
+  activities.forEach((item, index) => insertActivity.run(item[0], item[1], item[2], item[3], new Date(Date.now() - (index + 1) * 3600000).toISOString()));
+
+  refreshOperationalActions(db, 1);
+  refreshOperationalActions(db, 2);
+  refreshOperationalActions(db, 3);
 }
 
-export function listProjects(db) {
+export function listStores(db) {
+  return db.prepare('SELECT * FROM stores ORDER BY id').all();
+}
+
+export function getStore(db, storeId) {
+  return db.prepare('SELECT * FROM stores WHERE id = ?').get(Number(storeId));
+}
+
+export function listProducts(db, storeId) {
+  return db.prepare('SELECT * FROM products WHERE store_id = ? ORDER BY id').all(Number(storeId));
+}
+
+export function getProduct(db, productId, storeId) {
+  if (storeId) return db.prepare('SELECT * FROM products WHERE id = ? AND store_id = ?').get(Number(productId), Number(storeId));
+  return db.prepare('SELECT * FROM products WHERE id = ?').get(Number(productId));
+}
+
+export function listDailyMetrics(db, storeId, limit = 30) {
+  return db.prepare('SELECT * FROM daily_metrics WHERE store_id = ? ORDER BY metric_date DESC LIMIT ?').all(Number(storeId), Number(limit)).reverse();
+}
+
+export function listAdTerms(db, storeId) {
   return db.prepare(`
-    SELECT p.*,
-      (SELECT COUNT(*) FROM project_tasks t WHERE t.project_id = p.id AND t.status = 'done') AS completed_tasks,
-      (SELECT COUNT(*) FROM project_tasks t WHERE t.project_id = p.id) AS total_tasks
-    FROM projects p
-    ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'blocked' THEN 1 ELSE 2 END, p.updated_at DESC
-  `).all();
+    SELECT a.*, p.sku, p.title AS product_title
+    FROM ad_search_terms a
+    LEFT JOIN products p ON p.id = a.product_id
+    WHERE a.store_id = ?
+    ORDER BY a.spend DESC, a.id
+  `).all(Number(storeId));
 }
 
-export function getProject(db, id) {
-  const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
-  if (!project) return null;
+export function listInventory(db, storeId) {
+  return db.prepare(`
+    SELECT i.*, p.sku, p.title AS product_title
+    FROM inventory_snapshots i
+    JOIN products p ON p.id = i.product_id
+    WHERE i.store_id = ?
+    ORDER BY i.id
+  `).all(Number(storeId));
+}
+
+export function listAfterSales(db, storeId) {
+  return db.prepare(`
+    SELECT a.*, p.sku, p.title AS product_title
+    FROM after_sales a
+    LEFT JOIN products p ON p.id = a.product_id
+    WHERE a.store_id = ?
+    ORDER BY CASE a.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, a.due_date, a.id
+  `).all(Number(storeId));
+}
+
+export function listActions(db, storeId, status) {
+  const params = [Number(storeId)];
+  let sql = `
+    SELECT a.*, p.sku, p.title AS product_title,
+      (SELECT COUNT(*) FROM action_events e WHERE e.action_id = a.id) AS event_count
+    FROM actions a
+    LEFT JOIN products p ON p.id = a.product_id
+    WHERE a.store_id = ?
+  `;
+  if (status && status !== 'all') {
+    if (status === 'open') sql += " AND a.status NOT IN ('done', 'closed', 'ignored')";
+    else sql += ' AND a.status = ?';
+    params.push(status);
+  }
+  sql += " ORDER BY CASE a.status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'deferred' THEN 2 WHEN 'done' THEN 3 ELSE 4 END, CASE a.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, a.due_date, a.id";
+  return db.prepare(sql).all(...params);
+}
+
+export function getAction(db, actionId) {
+  const action = db.prepare(`
+    SELECT a.*, p.sku, p.title AS product_title
+    FROM actions a LEFT JOIN products p ON p.id = a.product_id
+    WHERE a.id = ?
+  `).get(Number(actionId));
+  if (!action) return null;
   return {
-    ...project,
-    tasks: listProjectTasks(db, id),
-    checks: listCheckRuns(db, id, 8),
-    profiles: listDatabaseProfiles(db, id),
-    validations: listDataValidations(db, id),
-    cases: listSupportCases(db, { projectId: id }),
-    handover: listHandoverItems(db, id)
+    ...action,
+    events: db.prepare('SELECT * FROM action_events WHERE action_id = ? ORDER BY created_at DESC, id DESC').all(action.id)
   };
 }
 
-export function createProject(db, input) {
-  const now = new Date().toISOString();
-  const count = Number(db.prepare('SELECT COUNT(*) AS count FROM projects').get().count) + 1;
+export function createAction(db, storeId, input) {
+  const createdAt = nowIso();
+  const sourceKey = input.sourceKey || `manual:${storeId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
   const result = db.prepare(`
-    INSERT INTO projects (code, project_name, customer, product_name, environment, phase, status, owner, customer_contact, go_live_date, notes, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO actions (
+      store_id, product_id, source_type, source_id, source_key, category, title,
+      description, priority, recommendation, status, owner, due_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    input.code || `DM-${2600 + count}`, input.projectName, input.customer, input.productName || '',
-    input.environment || '生产环境', input.phase || 'requirement', input.status || 'active',
-    input.owner || '', input.customerContact || '', input.goLiveDate || '', input.notes || '', now, now
+    Number(storeId), input.productId ? Number(input.productId) : null,
+    input.sourceType || 'manual', Number(input.sourceId) || 0, sourceKey,
+    input.category || '运营', input.title, input.description || '',
+    input.priority || 'medium', input.recommendation || 'manual',
+    input.status || 'open', input.owner || '', input.dueDate || '', createdAt, createdAt
   );
   const id = Number(result.lastInsertRowid);
-  const insert = db.prepare(`
-    INSERT INTO project_tasks (project_id, stage, title, description, status, sort_order, owner, due_date, evidence, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'pending', ?, '', '', '', ?, ?)
-  `);
-  [
-    ['requirement', '确认实施范围和验收标准', '整理范围、数据和验收口径。'],
-    ['preflight', '完成环境预检', '检查服务器、终端、网络、端口和服务。'],
-    ['deployment', '完成安装和参数配置', '完成应用、数据库、日志和服务配置。'],
-    ['data', '完成数据核验', '执行完整性、唯一性和关联关系检查。'],
-    ['integration', '完成接口联调', '验证关键业务链路和异常回滚。'],
-    ['training', '完成用户培训', '记录培训、签到和常见问题。'],
-    ['acceptance', '完成项目验收', '逐项验证并完成签字确认。'],
-    ['review', '完成上线复盘', '沉淀问题、根因和改进项。']
-  ].forEach(([stage, title, description], index) => insert.run(id, stage, title, description, index + 1, now, now));
-  addActivity(db, 'project.create', 'project', id, `${input.code || `DM-${2600 + count}`} 已创建`, now);
-  return getProject(db, id);
+  addActionEvent(db, id, 'created', '创建动作', input.description || input.title, createdAt);
+  addActivity(db, storeId, 'create', 'action', id, `创建运营动作：${input.title}`, createdAt);
+  return getAction(db, id);
 }
 
-export function updateProject(db, id, patch) {
-  const ok = updateRow(db, 'projects', id, patch, {
-    projectName: 'project_name', customer: 'customer', productName: 'product_name',
-    environment: 'environment', phase: 'phase', status: 'status', owner: 'owner',
-    customerContact: 'customer_contact', goLiveDate: 'go_live_date', notes: 'notes'
-  });
-  return ok ? getProject(db, id) : null;
-}
-
-export function listProjectTasks(db, projectId) {
-  return db.prepare('SELECT * FROM project_tasks WHERE project_id = ? ORDER BY sort_order, id').all(projectId);
-}
-
-export function createProjectTask(db, projectId, input) {
-  const now = new Date().toISOString();
-  const count = Number(db.prepare('SELECT COUNT(*) AS count FROM project_tasks WHERE project_id = ?').get(projectId).count) + 1;
-  const result = db.prepare(`
-    INSERT INTO project_tasks (project_id, stage, title, description, status, sort_order, owner, due_date, evidence, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(projectId, input.stage || 'requirement', input.title, input.description || '', input.status || 'pending', input.sortOrder || count, input.owner || '', input.dueDate || '', input.evidence || '', now, now);
-  return db.prepare('SELECT * FROM project_tasks WHERE id = ?').get(Number(result.lastInsertRowid));
-}
-
-export function updateProjectTask(db, id, patch) {
-  updateRow(db, 'project_tasks', id, patch, {
-    stage: 'stage', title: 'title', description: 'description', status: 'status',
-    sortOrder: 'sort_order', owner: 'owner', dueDate: 'due_date', evidence: 'evidence'
-  });
-  return db.prepare('SELECT * FROM project_tasks WHERE id = ?').get(id) || null;
-}
-
-export function getWorkbench(db, projectId) {
-  const project = projectId
-    ? db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId)
-    : db.prepare("SELECT * FROM projects ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'blocked' THEN 1 ELSE 2 END, updated_at DESC LIMIT 1").get();
-  if (!project) return { project: null, nextTasks: [], blockers: [], recentChecks: [], openCases: [], pendingHandover: [], recentEvents: [] };
-  return {
-    project,
-    nextTasks: db.prepare("SELECT * FROM project_tasks WHERE project_id = ? AND status != 'done' ORDER BY CASE status WHEN 'blocked' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END, sort_order LIMIT 5").all(project.id),
-    blockers: db.prepare("SELECT * FROM project_tasks WHERE project_id = ? AND status = 'blocked' ORDER BY sort_order").all(project.id),
-    recentChecks: listCheckRuns(db, project.id, 5),
-    openCases: listSupportCases(db, { projectId: project.id }).filter((item) => !['resolved', 'closed'].includes(item.status)).slice(0, 5),
-    pendingHandover: db.prepare("SELECT * FROM handover_items WHERE project_id = ? AND status != 'done' ORDER BY due_date, id LIMIT 5").all(project.id),
-    recentEvents: db.prepare('SELECT e.*, c.case_no, c.title AS case_title FROM case_events e JOIN support_cases c ON c.id = e.case_id WHERE c.project_id = ? ORDER BY e.created_at DESC LIMIT 6').all(project.id)
-  };
-}
-
-export function listCheckRuns(db, projectId, limit = 30) {
-  const where = projectId ? 'WHERE project_id = ?' : '';
-  const params = projectId ? [projectId, limit] : [limit];
-  return db.prepare(`SELECT * FROM check_runs ${where} ORDER BY created_at DESC, id DESC LIMIT ?`).all(...params);
-}
-
-export function getCheckRun(db, id) {
-  const run = db.prepare('SELECT * FROM check_runs WHERE id = ?').get(id);
-  if (!run) return null;
-  return { ...run, details: parseJson(run.details_json, []), results: db.prepare('SELECT * FROM check_results WHERE run_id = ? ORDER BY id').all(id) };
-}
-
-export function saveCheckRun(db, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO check_runs (project_id, check_type, target, status, summary, details_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-    input.projectId || null, input.type, input.target || '', input.status, input.summary || '', JSON.stringify(input.details || []), now
-  );
-  const id = Number(result.lastInsertRowid);
-  const insert = db.prepare('INSERT INTO check_results (run_id, item_key, label, expected_value, actual_value, status, detail) VALUES (?, ?, ?, ?, ?, ?, ?)');
-  for (const item of input.details || []) insert.run(id, item.key || '', item.label || '', item.expected || '', item.actual || '', item.status || input.status, item.detail || '');
-  addActivity(db, 'check.run', 'check', id, `${input.type} 检查完成：${input.status}`, now);
-  return getCheckRun(db, id);
-}
-
-export function listDatabaseProfiles(db, projectId) {
-  return db.prepare('SELECT * FROM database_profiles WHERE project_id = ? ORDER BY id').all(projectId);
-}
-
-export function getDatabaseProfile(db, id) {
-  return db.prepare('SELECT * FROM database_profiles WHERE id = ?').get(id) || null;
-}
-
-export function createDatabaseProfile(db, projectId, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare(`
-    INSERT INTO database_profiles (project_id, name, kind, host, port, database_name, username, file_path, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(projectId, input.name, input.kind, input.host || '', input.port || null, input.databaseName || '', input.username || '', input.filePath || '', now, now);
-  return getDatabaseProfile(db, Number(result.lastInsertRowid));
-}
-
-export function listDataValidations(db, projectId) {
-  return db.prepare('SELECT * FROM data_validations WHERE project_id = ? ORDER BY id').all(projectId);
-}
-
-export function getDataValidation(db, id) {
-  return db.prepare('SELECT * FROM data_validations WHERE id = ?').get(id) || null;
-}
-
-export function createDataValidation(db, projectId, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare(`
-    INSERT INTO data_validations (project_id, profile_id, name, description, sql_text, expected_value, actual_value, status, last_run_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, '', 'pending', NULL, ?, ?)
-  `).run(projectId, input.profileId || null, input.name, input.description || '', input.sqlText, input.expectedValue || '0', now, now);
-  return getDataValidation(db, Number(result.lastInsertRowid));
-}
-
-export function updateDataValidationResult(db, id, result) {
-  const now = new Date().toISOString();
-  db.prepare('UPDATE data_validations SET actual_value = ?, status = ?, last_run_at = ?, updated_at = ? WHERE id = ?').run(String(result.actualValue ?? ''), result.status, now, now, id);
-  return getDataValidation(db, id);
-}
-
-export function listSupportCases(db, { projectId, status = '', priority = '', q = '' } = {}) {
-  const clauses = [];
-  const params = [];
-  if (projectId) { clauses.push('project_id = ?'); params.push(projectId); }
-  if (status) { clauses.push('status = ?'); params.push(status); }
-  if (priority) { clauses.push('priority = ?'); params.push(priority); }
-  if (q) {
-    clauses.push('(case_no LIKE ? OR title LIKE ? OR customer LIKE ? OR symptom LIKE ?)');
-    const term = `%${q}%`;
-    params.push(term, term, term, term);
-  }
-  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-  return db.prepare(`SELECT * FROM support_cases ${where} ORDER BY updated_at DESC, id DESC`).all(...params);
-}
-
-export function getSupportCase(db, id) {
-  const item = db.prepare('SELECT * FROM support_cases WHERE id = ?').get(id);
-  return item ? { ...item, events: listCaseEvents(db, id) } : null;
-}
-
-export function createSupportCase(db, input) {
-  const now = new Date().toISOString();
-  const count = Number(db.prepare('SELECT COUNT(*) AS count FROM support_cases').get().count) + 1;
-  const caseNo = input.caseNo || `DM-CASE-${String(count).padStart(3, '0')}`;
-  const result = db.prepare(`
-    INSERT INTO support_cases (case_no, project_id, title, customer, symptom, impact, priority, status, category, assignee, root_cause, resolution, next_action, created_at, updated_at, resolved_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(caseNo, input.projectId || null, input.title, input.customer || '', input.symptom || '', input.impact || '', input.priority || 'medium', input.status || 'open', input.category || '技术支持', input.assignee || '', input.rootCause || '', input.resolution || '', input.nextAction || '', now, now, ['resolved', 'closed'].includes(input.status) ? now : null);
-  const id = Number(result.lastInsertRowid);
-  createCaseEvent(db, id, { eventType: 'created', title: '问题受理', detail: input.symptom || input.title });
-  addActivity(db, 'case.create', 'case', id, `${caseNo} 已创建`, now);
-  return getSupportCase(db, id);
-}
-
-export function updateSupportCase(db, id, patch) {
-  const current = db.prepare('SELECT * FROM support_cases WHERE id = ?').get(id);
+export function updateAction(db, actionId, patch) {
+  const current = db.prepare('SELECT * FROM actions WHERE id = ?').get(Number(actionId));
   if (!current) return null;
-  updateRow(db, 'support_cases', id, patch, {
-    title: 'title', customer: 'customer', symptom: 'symptom', impact: 'impact',
-    priority: 'priority', status: 'status', category: 'category', assignee: 'assignee',
-    rootCause: 'root_cause', resolution: 'resolution', nextAction: 'next_action'
-  }, patch.status && ['resolved', 'closed'].includes(patch.status) && !current.resolved_at ? { column: 'resolved_at', value: new Date().toISOString() } : null);
-  if (patch.status && patch.status !== current.status) {
-    createCaseEvent(db, id, { eventType: patch.status === 'resolved' ? 'resolution' : 'status', title: patch.status === 'resolved' ? '问题解决' : '状态更新', detail: `状态由 ${current.status} 更新为 ${patch.status}` });
+  const next = {
+    status: patch.status ?? current.status,
+    owner: patch.owner ?? current.owner,
+    due_date: patch.dueDate ?? current.due_date,
+    evidence: patch.evidence ?? current.evidence,
+    result: patch.result ?? current.result,
+    priority: patch.priority ?? current.priority,
+    description: patch.description ?? current.description
+  };
+  const updatedAt = nowIso();
+  const closedAt = ['done', 'closed'].includes(next.status) ? (current.closed_at || updatedAt) : null;
+  db.prepare(`
+    UPDATE actions SET status = ?, owner = ?, due_date = ?, evidence = ?, result = ?,
+      priority = ?, description = ?, updated_at = ?, closed_at = ?
+    WHERE id = ?
+  `).run(next.status, next.owner, next.due_date, next.evidence, next.result, next.priority, next.description, updatedAt, closedAt, Number(actionId));
+  const eventTitle = patch.eventTitle || statusLabel(next.status);
+  addActionEvent(db, Number(actionId), 'updated', eventTitle, patch.eventDetail || next.result || next.evidence || next.description, updatedAt);
+  addActivity(db, current.store_id, 'update', 'action', Number(actionId), `${eventTitle}：${current.title}`, updatedAt);
+  return getAction(db, actionId);
+}
+
+export function refreshOperationalActions(db, storeId) {
+  const store = getStore(db, storeId);
+  if (!store) return [];
+  const candidates = actionsForStore(db, Number(storeId));
+  const insert = db.prepare(`
+    INSERT INTO actions (
+      store_id, product_id, source_type, source_id, source_key, category, title,
+      description, priority, recommendation, status, owner, due_date, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', '', ?, ?, ?)
+  `);
+  const update = db.prepare(`
+    UPDATE actions SET product_id = ?, category = ?, title = ?, description = ?,
+      priority = ?, updated_at = ?
+    WHERE source_key = ? AND status NOT IN ('done', 'closed', 'ignored')
+  `);
+  const timestamp = nowIso();
+  const transaction = db.transaction(() => {
+    for (const item of candidates) {
+      const key = `${item.source_type}:${item.source_id}:${item.recommendation}`;
+      const existing = db.prepare('SELECT id FROM actions WHERE source_key = ?').get(key);
+      const dueDate = item.priority === 'critical' ? dateOffset(0) : item.priority === 'high' ? dateOffset(1) : dateOffset(3);
+      if (existing) update.run(item.product_id || null, item.category, item.title, item.description, item.priority, timestamp, key);
+      else insert.run(Number(storeId), item.product_id || null, item.source_type, Number(item.source_id), key, item.category, item.title, item.description, item.priority, item.recommendation, dueDate, timestamp, timestamp);
+    }
+  });
+  transaction();
+  return listActions(db, storeId);
+}
+
+export function listImports(db, storeId, limit = 30) {
+  return db.prepare('SELECT * FROM import_batches WHERE store_id = ? ORDER BY id DESC LIMIT ?').all(Number(storeId), Number(limit)).map(parseImportBatch);
+}
+
+export function getImport(db, batchId) {
+  const row = db.prepare('SELECT * FROM import_batches WHERE id = ?').get(Number(batchId));
+  if (!row) return null;
+  const batch = parseImportBatch(row);
+  batch.rows = db.prepare('SELECT * FROM import_rows WHERE batch_id = ? ORDER BY row_index').all(batch.id).map(parseImportRow);
+  return batch;
+}
+
+export function createImportBatch(db, storeId, input) {
+  const timestamp = nowIso();
+  const result = db.prepare(`
+    INSERT INTO import_batches (
+      store_id, filename, report_type, status, total_rows, valid_rows, error_rows,
+      pii_columns_json, mapping_json, preview_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    Number(storeId), input.filename, input.reportType, input.status || 'preview',
+    input.totalRows || 0, input.validRows || 0, input.errorRows || 0,
+    JSON.stringify(input.piiColumns || []), JSON.stringify(input.mapping || {}),
+    JSON.stringify((input.preview || []).slice(0, 20)), timestamp, timestamp
+  );
+  const batchId = Number(result.lastInsertRowid);
+  const insertRow = db.prepare(`
+    INSERT INTO import_rows (batch_id, row_index, raw_json, normalized_json, errors_json, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const rows = input.rows || [];
+  const transaction = db.transaction(() => {
+    for (const item of rows) {
+      insertRow.run(batchId, item.rowIndex, JSON.stringify(item.raw || {}), JSON.stringify(item.normalized || {}), JSON.stringify(item.errors || []), item.errors?.length ? 'error' : 'valid');
+    }
+  });
+  transaction();
+  addActivity(db, storeId, 'import_preview', 'import', batchId, `导入预览：${input.filename} · ${input.validRows || 0} 行可入库`, timestamp);
+  return getImport(db, batchId);
+}
+
+export function updateImportMapping(db, batchId, mapping) {
+  const batch = getImport(db, batchId);
+  if (!batch) return null;
+  db.prepare('UPDATE import_batches SET mapping_json = ?, updated_at = ? WHERE id = ?')
+    .run(JSON.stringify(mapping), nowIso(), Number(batchId));
+  return getImport(db, batchId);
+}
+
+export function replaceImportRows(db, batchId, result) {
+  const batch = getImport(db, batchId);
+  if (!batch) return null;
+  const insertRow = db.prepare(`
+    INSERT INTO import_rows (batch_id, row_index, raw_json, normalized_json, errors_json, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM import_rows WHERE batch_id = ?').run(Number(batchId));
+    for (const item of result.rows || []) {
+      insertRow.run(Number(batchId), item.rowIndex, JSON.stringify(item.raw || {}), JSON.stringify(item.normalized || {}), JSON.stringify(item.errors || []), item.errors?.length ? 'error' : 'valid');
+    }
+    db.prepare(`
+      UPDATE import_batches SET mapping_json = ?, preview_json = ?, valid_rows = ?,
+        error_rows = ?, updated_at = ? WHERE id = ?
+    `).run(JSON.stringify(result.mapping || {}), JSON.stringify((result.preview || []).slice(0, 20)), result.validRows || 0, result.errorRows || 0, nowIso(), Number(batchId));
+  });
+  transaction();
+  return getImport(db, batchId);
+}
+
+export function updateImportStatus(db, batchId, status, summary = {}) {
+  const batch = getImport(db, batchId);
+  if (!batch) return null;
+  db.prepare(`
+    UPDATE import_batches SET status = ?, valid_rows = ?, error_rows = ?, updated_at = ?
+    WHERE id = ?
+  `).run(status, summary.validRows ?? batch.valid_rows, summary.errorRows ?? batch.error_rows, nowIso(), Number(batchId));
+  addActivity(db, batch.store_id, status === 'committed' ? 'import_commit' : 'import_cancel', 'import', Number(batchId), `${status === 'committed' ? '确认入库' : '取消导入'}：${batch.filename}`, nowIso());
+  return getImport(db, batchId);
+}
+
+export function commitImportBatch(db, batchId) {
+  const batch = getImport(db, batchId);
+  if (!batch) throw new Error('导入批次不存在');
+  if (batch.status === 'committed') return batch;
+  if (batch.status === 'cancelled') throw new Error('已取消的导入批次不能再次提交');
+  const validRows = batch.rows.filter((row) => row.status === 'valid');
+  const transaction = db.transaction(() => {
+    for (const row of validRows) applyImportRow(db, batch, row.normalized);
+  });
+  transaction();
+  return updateImportStatus(db, batchId, 'committed', { validRows: validRows.length, errorRows: batch.error_rows });
+}
+
+function applyImportRow(db, batch, row) {
+  const timestamp = nowIso();
+  if (batch.report_type === 'products') {
+    const sku = text(row.sku);
+    if (!sku) return;
+    const product = db.prepare('SELECT id FROM products WHERE store_id = ? AND sku = ?').get(batch.store_id, sku);
+    if (product) {
+      db.prepare(`
+        UPDATE products SET title = COALESCE(NULLIF(?, ''), title), price = COALESCE(?, price),
+          unit_cost = COALESCE(?, unit_cost), units_30d = COALESCE(?, units_30d),
+          sales_30d = COALESCE(?, sales_30d), ad_spend_30d = COALESCE(?, ad_spend_30d),
+          ad_sales_30d = COALESCE(?, ad_sales_30d), returns_30d = COALESCE(?, returns_30d),
+          rating = COALESCE(?, rating), review_count = COALESCE(?, review_count), updated_at = ?
+        WHERE id = ?
+      `).run(row.title || '', numberOrNull(row.price), numberOrNull(row.unit_cost), numberOrNull(row.units_30d), numberOrNull(row.sales_30d), numberOrNull(row.ad_spend_30d), numberOrNull(row.ad_sales_30d), numberOrNull(row.returns_30d), numberOrNull(row.rating), numberOrNull(row.review_count), timestamp, product.id);
+    } else {
+      db.prepare(`
+        INSERT INTO products (
+          store_id, sku, asin, title, category, price, unit_cost, units_30d, sales_30d,
+          refund_amount_30d, ad_spend_30d, ad_sales_30d, sessions_30d, page_views_30d,
+          returns_30d, rating, review_count, title_score, bullet_score, image_score,
+          attribute_score, keyword_score, compliance_score, issue_summary, updated_at
+        ) VALUES (?, ?, '', ?, '导入商品', ?, ?, ?, ?, 0, ?, ?, 0, 0, ?, ?, ?, 0, 0, 0, 0, 0, 0, '等待 Listing 评估', ?)
+      `).run(batch.store_id, sku, row.title || sku, bid(row.price), bid(row.unit_cost), int(row.units_30d), bid(row.sales_30d), bid(row.ad_spend_30d), bid(row.ad_sales_30d), int(row.returns_30d), bid(row.rating), int(row.review_count), timestamp);
+    }
+    return;
   }
-  return getSupportCase(db, id);
-}
-
-export function listCaseEvents(db, caseId) {
-  return db.prepare('SELECT * FROM case_events WHERE case_id = ? ORDER BY created_at, id').all(caseId);
-}
-
-export function createCaseEvent(db, caseId, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO case_events (case_id, event_type, title, detail, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(caseId, input.eventType || 'note', input.title, input.detail || '', JSON.stringify(input.metadata || {}), now);
-  db.prepare('UPDATE support_cases SET updated_at = ? WHERE id = ?').run(now, caseId);
-  return db.prepare('SELECT * FROM case_events WHERE id = ?').get(Number(result.lastInsertRowid));
-}
-
-export function listHandoverItems(db, projectId) {
-  return db.prepare("SELECT * FROM handover_items WHERE project_id = ? ORDER BY CASE category WHEN 'account' THEN 0 WHEN 'training' THEN 1 WHEN 'acceptance' THEN 2 ELSE 3 END, id").all(projectId);
-}
-
-export function createHandoverItem(db, projectId, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO handover_items (project_id, category, title, status, owner, due_date, evidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, input.category, input.title, input.status || 'pending', input.owner || '', input.dueDate || '', input.evidence || '', now, now);
-  return db.prepare('SELECT * FROM handover_items WHERE id = ?').get(Number(result.lastInsertRowid));
-}
-
-export function updateHandoverItem(db, id, patch) {
-  updateRow(db, 'handover_items', id, patch, { category: 'category', title: 'title', status: 'status', owner: 'owner', dueDate: 'due_date', evidence: 'evidence' });
-  return db.prepare('SELECT * FROM handover_items WHERE id = ?').get(id) || null;
-}
-
-export function listKnowledge(db, { q = '', category = '' } = {}) {
-  const clauses = [];
-  const params = [];
-  if (q) {
-    clauses.push('(a.title LIKE ? OR a.symptom LIKE ? OR a.solution LIKE ? OR a.tags LIKE ?)');
-    const term = `%${q}%`;
-    params.push(term, term, term, term);
+  if (batch.report_type === 'ads') {
+    const product = db.prepare('SELECT id FROM products WHERE store_id = ? AND sku = ?').get(batch.store_id, text(row.sku));
+    db.prepare(`
+      INSERT INTO ad_search_terms (
+        store_id, product_id, campaign, ad_group, search_term, match_type,
+        clicks, impressions, spend, ad_sales, ad_orders, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(batch.store_id, product?.id || null, text(row.campaign), text(row.ad_group), text(row.search_term), text(row.match_type) || 'broad', int(row.clicks), int(row.impressions), bid(row.spend), bid(row.ad_sales), int(row.ad_orders), timestamp);
+    return;
   }
-  if (category) { clauses.push('a.category = ?'); params.push(category); }
-  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-  return db.prepare(`SELECT a.* FROM knowledge_articles a ${where} ORDER BY views DESC, created_at DESC`).all(...params);
+  if (batch.report_type === 'inventory') {
+    const product = db.prepare('SELECT id FROM products WHERE store_id = ? AND sku = ?').get(batch.store_id, text(row.sku));
+    if (!product) return;
+    db.prepare(`
+      INSERT INTO inventory_snapshots (
+        store_id, product_id, snapshot_date, available, inbound, reserved, defective,
+        avg_daily_sales, last_restock_date, note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(product_id) DO UPDATE SET snapshot_date = excluded.snapshot_date,
+        available = excluded.available, inbound = excluded.inbound, reserved = excluded.reserved,
+        defective = excluded.defective, avg_daily_sales = excluded.avg_daily_sales,
+        last_restock_date = excluded.last_restock_date, note = excluded.note
+    `).run(batch.store_id, product.id, text(row.snapshot_date) || dateOffset(0), int(row.available), int(row.inbound), int(row.reserved), int(row.defective), bid(row.avg_daily_sales), text(row.last_restock_date), text(row.note));
+    return;
+  }
+  if (batch.report_type === 'after_sales') {
+    const product = db.prepare('SELECT id FROM products WHERE store_id = ? AND sku = ?').get(batch.store_id, text(row.sku));
+    const caseNo = text(row.case_no) || `IMP-${batch.id}-${Date.now()}`;
+    db.prepare(`
+      INSERT INTO after_sales (
+        store_id, product_id, case_no, type, subject, reason, detail, status,
+        priority, owner, due_date, evidence, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(case_no) DO UPDATE SET subject = excluded.subject, reason = excluded.reason,
+        detail = excluded.detail, status = excluded.status, priority = excluded.priority,
+        owner = excluded.owner, due_date = excluded.due_date, updated_at = excluded.updated_at
+    `).run(batch.store_id, product?.id || null, caseNo, text(row.type) || '客服', text(row.subject) || '导入售后问题', text(row.reason), text(row.detail), text(row.status) || 'open', text(row.priority) || 'medium', text(row.owner), text(row.due_date), text(row.evidence), timestamp, timestamp);
+  }
 }
 
-export function getKnowledge(db, id) {
-  const article = db.prepare('SELECT * FROM knowledge_articles WHERE id = ?').get(id);
-  if (!article) return null;
-  db.prepare('UPDATE knowledge_articles SET views = views + 1 WHERE id = ?').run(id);
-  return { ...article, views: Number(article.views) + 1 };
+export function listKnowledge(db, query = '') {
+  if (query) {
+    const like = `%${query}%`;
+    return db.prepare('SELECT * FROM knowledge_articles WHERE title LIKE ? OR symptom LIKE ? OR solution LIKE ? OR tags LIKE ? ORDER BY id DESC').all(like, like, like, like);
+  }
+  return db.prepare('SELECT * FROM knowledge_articles ORDER BY id DESC').all();
+}
+
+export function getKnowledge(db, articleId) {
+  return db.prepare('SELECT * FROM knowledge_articles WHERE id = ?').get(Number(articleId));
 }
 
 export function createKnowledge(db, input) {
-  const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)').run(input.title, input.category || '技术支持', input.symptom, input.solution, input.tags || '', now);
-  const id = Number(result.lastInsertRowid);
-  if (input.projectId || input.caseId) db.prepare('INSERT OR REPLACE INTO knowledge_links (article_id, project_id, case_id, created_at) VALUES (?, ?, ?, ?)').run(id, input.projectId || null, input.caseId || null, now);
-  return getKnowledge(db, id);
+  const result = db.prepare(`
+    INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at)
+    VALUES (?, ?, ?, ?, ?, 0, ?)
+  `).run(input.title, input.category || '运营复盘', input.symptom || '', input.solution, input.tags || '', nowIso());
+  return getKnowledge(db, Number(result.lastInsertRowid));
 }
 
-export function listActivities(db, limit = 20) {
-  return db.prepare('SELECT * FROM activities ORDER BY created_at DESC, id DESC LIMIT ?').all(limit);
+export function listActivities(db, storeId, limit = 20) {
+  return db.prepare('SELECT * FROM activities WHERE store_id = ? ORDER BY created_at DESC, id DESC LIMIT ?').all(Number(storeId), Number(limit));
 }
 
-export function addActivity(db, action, entityType, entityId, detail, createdAt = new Date().toISOString()) {
-  db.prepare('INSERT INTO activities (action, entity_type, entity_id, detail, created_at) VALUES (?, ?, ?, ?, ?)').run(action, entityType, entityId, detail, createdAt);
+export function addActivity(db, storeId, action, entityType, entityId, detail, createdAt = nowIso()) {
+  db.prepare(`
+    INSERT INTO activities (store_id, action, entity_type, entity_id, detail, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(Number(storeId), action, entityType, entityId || null, detail, createdAt);
 }
 
-export function parseJson(value, fallback) {
-  try { return JSON.parse(value); } catch { return fallback; }
+function addActionEvent(db, actionId, eventType, title, detail, createdAt = nowIso()) {
+  db.prepare(`
+    INSERT INTO action_events (action_id, event_type, title, detail, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(Number(actionId), eventType, title, detail || '', createdAt);
 }
 
-function updateRow(db, table, id, patch, mapping, extra = null) {
-  const changes = Object.entries(patch).filter(([key, value]) => mapping[key] && value !== undefined);
-  if (!changes.length && !extra) return true;
-  const assignments = changes.map(([key]) => `${mapping[key]} = ?`);
-  const values = changes.map(([, value]) => String(value));
-  if (extra) { assignments.push(`${extra.column} = ?`); values.push(extra.value); }
-  assignments.push('updated_at = ?');
-  values.push(new Date().toISOString(), id);
-  db.prepare(`UPDATE ${table} SET ${assignments.join(', ')} WHERE id = ?`).run(...values);
-  return true;
+function parseImportBatch(row) {
+  return {
+    ...row,
+    pii_columns: parseJson(row.pii_columns_json, []),
+    mapping: parseJson(row.mapping_json, {}),
+    preview: parseJson(row.preview_json, [])
+  };
 }
 
-export { PROJECT_STAGES };
+function parseImportRow(row) {
+  return {
+    ...row,
+    raw: parseJson(row.raw_json, {}),
+    normalized: parseJson(row.normalized_json, {}),
+    errors: parseJson(row.errors_json, [])
+  };
+}
+
+function parseJson(value, fallback) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function numberOrNull(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function bid(value) {
+  return Number.isFinite(Number(value)) ? Number(value) : 0;
+}
+
+function int(value) {
+  return Number.isFinite(Number(value)) ? Math.round(Number(value)) : 0;
+}
+
+function text(value) {
+  return value === undefined || value === null ? '' : String(value).trim();
+}
+
+function statusLabel(status) {
+  return {
+    open: '重新打开',
+    in_progress: '开始执行',
+    deferred: '延期处理',
+    done: '完成动作',
+    closed: '关闭动作',
+    ignored: '忽略动作'
+  }[status] || '更新动作';
+}
