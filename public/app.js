@@ -1,5 +1,7 @@
 const ICON_PATHS = {
   overview: '<path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-4H4v4Zm10-11h6V4h-6v5Z"/>',
+  tools: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+  chevronDown: '<path d="m6 9 6 6 6-6"/>',
   imports: '<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
   listings: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h3"/><path d="m15 16 2 2 3-4"/>',
   ads: '<path d="m3 11 18-5v12L3 13v-2Z"/><path d="M7 13v5a2 2 0 0 0 4 0v-4"/>',
@@ -129,6 +131,7 @@ function init() {
   initSakura();
   initHeroTypewriter();
   initAppHeader();
+  initNavTools();
   document.querySelectorAll('[data-nav]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.nav)));
   document.querySelector('#refresh-button').addEventListener('click', () => loadCurrentView(true));
   storeSelect.addEventListener('change', async () => {
@@ -925,18 +928,26 @@ function closeModal() {
 
 async function navigate(view) {
   if (!VIEW_META[view]) return;
+  const changed = state.view !== view;
   state.view = view;
   window.location.hash = view;
   updateViewChrome();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
   await loadCurrentView();
+  if (changed) requestAnimationFrame(scrollToContentStart);
 }
 
 function updateViewChrome() {
   const meta = VIEW_META[state.view];
   pageTitle.textContent = meta.title;
   pageEyebrow.textContent = meta.eyebrow;
-  document.querySelectorAll('[data-nav]').forEach((button) => button.classList.toggle('is-active', button.dataset.nav === state.view));
+  document.querySelectorAll('[data-nav]').forEach((button) => {
+    const active = button.dataset.nav === state.view;
+    button.classList.toggle('is-active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  const toolsTrigger = document.querySelector('.nav-tools-trigger');
+  toolsTrigger?.classList.toggle('is-active', state.view !== 'overview');
 }
 
 function initHeroTypewriter() {
@@ -1157,4 +1168,66 @@ function initAppHeader() {
   const observer = new MutationObserver(update);
   observer.observe(app, { childList: true, subtree: true });
   update();
+}
+
+function initNavTools() {
+  if (!document.querySelector('link[href="/nav-shell.css"]')) {
+    const styleLink = document.createElement('link');
+    styleLink.rel = 'stylesheet';
+    styleLink.href = '/nav-shell.css';
+    document.head.append(styleLink);
+  }
+
+  const tools = document.querySelector('.nav-tools');
+  const trigger = tools?.querySelector('.nav-tools-trigger');
+  const menu = tools?.querySelector('.nav-tools-menu');
+  if (!tools || !trigger || !menu) return;
+
+  const setOpen = (open) => {
+    tools.classList.toggle('is-suppressed', !open);
+    tools.classList.toggle('is-open', open);
+    trigger.setAttribute('aria-expanded', String(open));
+  };
+
+  trigger.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(!tools.classList.contains('is-open'));
+  });
+
+  menu.querySelectorAll('[data-nav]').forEach((item) => {
+    item.addEventListener('click', () => setOpen(false));
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!tools.contains(event.target)) setOpen(false);
+  });
+
+  tools.addEventListener('focusout', () => {
+    window.setTimeout(() => {
+      if (!tools.contains(document.activeElement)) setOpen(false);
+    }, 0);
+  });
+
+  tools.addEventListener('mouseenter', () => {
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) trigger.setAttribute('aria-expanded', 'true');
+  });
+
+  tools.addEventListener('mouseleave', () => {
+    tools.classList.remove('is-suppressed');
+    if (!tools.classList.contains('is-open')) trigger.setAttribute('aria-expanded', 'false');
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
+}
+function scrollToContentStart() {
+  const contentAnchor = document.querySelector('.page-frame');
+  if (!contentAnchor) return;
+
+  const headerOffset = (appHeader?.getBoundingClientRect().height || 0) + 22;
+  const targetTop = contentAnchor.getBoundingClientRect().top + window.scrollY - headerOffset;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: Math.max(0, targetTop), behavior: reduceMotion ? 'auto' : 'smooth' });
 }

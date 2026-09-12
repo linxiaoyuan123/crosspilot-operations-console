@@ -30,24 +30,31 @@
           <button class="nav-item is-active" type="button" data-nav="overview">
             <span data-icon="overview"></span><span data-label="运营总览">运营总览</span>
           </button>
-          <button class="nav-item" type="button" data-nav="imports">
-            <span data-icon="imports"></span><span data-label="数据导入">数据导入</span>
-          </button>
-          <button class="nav-item" type="button" data-nav="listings">
-            <span data-icon="listings"></span><span data-label="Listing与商品">Listing与商品</span>
-          </button>
-          <button class="nav-item" type="button" data-nav="ads">
-            <span data-icon="ads"></span><span data-label="广告与流量">广告与流量</span>
-          </button>
-          <button class="nav-item" type="button" data-nav="inventory">
-            <span data-icon="inventory"></span><span data-label="库存与履约">库存与履约</span>
-          </button>
-          <button class="nav-item" type="button" data-nav="aftersales">
-            <span data-icon="aftersales"></span><span data-label="售后与账号">售后与账号</span>
-          </button>
-          <button class="nav-item" type="button" data-nav="reviews">
-            <span data-icon="reviews"></span><span data-label="运营复盘">运营复盘</span>
-          </button>
+          <div class="nav-tools">
+            <button class="nav-item nav-tools-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="operations-tools-menu">
+              <span data-icon="tools"></span><span data-label="运营工具">运营工具</span><span class="nav-tools-caret" data-icon="chevronDown"></span>
+            </button>
+            <div class="nav-tools-menu" id="operations-tools-menu" role="menu" aria-label="运营流程工具">
+              <button class="nav-item" type="button" role="menuitem" data-nav="imports">
+                <span data-icon="imports"></span><span data-label="数据导入">数据导入</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="listings">
+                <span data-icon="listings"></span><span data-label="Listing与商品">Listing与商品</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="ads">
+                <span data-icon="ads"></span><span data-label="广告与流量">广告与流量</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="inventory">
+                <span data-icon="inventory"></span><span data-label="库存与履约">库存与履约</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="aftersales">
+                <span data-icon="aftersales"></span><span data-label="售后与账号">售后与账号</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="reviews">
+                <span data-icon="reviews"></span><span data-label="运营复盘">运营复盘</span>
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div class="app-header-actions">

@@ -233,8 +233,14 @@ test('static shell is branded as CrossPilot and preserves the visual baseline', 
   assert.match(html, /运营总览/);
   assert.match(html, /Listing与商品/);
   assert.match(html, /\/pig\.png/);
+  assert.match(html, /nav-tools-trigger/);
+  assert.match(html, /operations-tools-menu/);
   const shellCss = await request('/final-shell.css');
   assert.match(shellCss.body, /hero-firefly\.avif/);
+  const navCss = await request('/nav-shell.css');
+  assert.match(navCss.body, /\.nav-tools-menu/);
+  assert.match(navCss.body, /filter:\s*blur/);
+  assert.match(html, /page-frame/);
   assert.match(html, /sakura-layer/);
   assert.match(html, /hero-waves/);
 });
