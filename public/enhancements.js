@@ -231,6 +231,12 @@ function syncSettingControls() {
   const showTransparency = settings.wallpaper === 'overlay' || (settings.wallpaper === 'fullscreen' && settings.fullscreenLayout === 'hero');
   getElement('[data-cp-transparency-heading]')?.toggleAttribute('hidden', !showTransparency);
   getElement('[data-cp-transparency-group]')?.toggleAttribute('hidden', !showTransparency);
+  const showBannerSettings = settings.wallpaper === 'banner' || settings.wallpaper === 'fullscreen';
+  getElement('[data-cp-banner-heading]')?.toggleAttribute('hidden', !showBannerSettings);
+  const bannerSettingKeys = new Set(['bannerTitle', 'carousel', 'waves', 'gradient']);
+  getElements('[data-cp-setting]').forEach((button) => {
+    if (bannerSettingKeys.has(button.dataset.cpSetting)) button.hidden = !showBannerSettings;
+  });
 }
 
 function initSearch() {
@@ -495,15 +501,7 @@ function initHeroVideo() {
   const video = getElement('#cp-hero-video');
   if (!button || !video) return;
 
-  const sync = (playing) => {
-    document.documentElement.classList.toggle('cp-video-playing', playing);
-    button.classList.toggle('is-playing', playing);
-    button.setAttribute('aria-pressed', String(playing));
-    button.setAttribute('aria-label', playing ? '暂停主页背景视频' : '播放主页背景视频');
-    button.title = playing ? '暂停主页背景视频' : '播放主页背景视频';
-    button.querySelector('.cp-icon-play')?.toggleAttribute('hidden', playing);
-    button.querySelector('.cp-icon-pause')?.toggleAttribute('hidden', !playing);
-  };
+  const sync = syncHeroVideoState;
 
   button.addEventListener('click', async () => {
     if (settings.wallpaper === 'none') {
@@ -537,6 +535,18 @@ function initHeroVideo() {
     sync(false);
     showEnhancementToast('背景视频加载失败，请稍后重试。', 'error');
   });
+}
+
+function syncHeroVideoState(playing) {
+  const button = getElement('#cp-video-toggle');
+  if (!button) return;
+  document.documentElement.classList.toggle('cp-video-playing', playing);
+  button.classList.toggle('is-playing', playing);
+  button.setAttribute('aria-pressed', String(playing));
+  button.setAttribute('aria-label', playing ? '暂停主页背景视频' : '播放主页背景视频');
+  button.title = playing ? '暂停主页背景视频' : '播放主页背景视频';
+  button.querySelector('.cp-icon-play')?.toggleAttribute('hidden', playing);
+  button.querySelector('.cp-icon-pause')?.toggleAttribute('hidden', !playing);
 }
 
 function initThemeCustomizer() {
@@ -757,7 +767,7 @@ function syncVideoAvailability() {
   button.title = disabled ? '纯色背景模式下不可播放视频' : '播放主页背景视频';
   if (disabled) {
     getElement('#cp-hero-video')?.pause();
-    document.documentElement.classList.remove('cp-video-playing');
+    syncHeroVideoState(false);
   }
 }
 

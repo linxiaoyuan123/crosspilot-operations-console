@@ -140,7 +140,7 @@
                   <div class="cp-choice-grid" role="group" aria-label="壁纸模式">
                     <button type="button" data-cp-wallpaper="banner" aria-pressed="false"><span data-icon="imageOutline"></span>横幅壁纸</button>
                     <button type="button" data-cp-wallpaper="fullscreen" aria-pressed="true"><span data-icon="wallpaper"></span>全屏壁纸</button>
-                    <button type="button" data-cp-wallpaper="overlay" aria-pressed="false"><span data-icon="overlay"></span>全屏透明</button>
+                    <button type="button" data-cp-wallpaper="overlay" aria-pressed="false"><span data-icon="overlay"></span>覆盖透明</button>
                     <button type="button" data-cp-wallpaper="none" aria-pressed="false"><span data-icon="hideImage"></span>纯色背景</button>
                   </div>
                   <div class="cp-setting-heading" data-cp-layout-heading><strong>全屏布局</strong></div>
@@ -155,7 +155,7 @@
                     <div class="cp-range-heading"><span>卡片透明度</span><output id="cp-card-opacity-value">60%</output></div>
                     <input id="cp-card-opacity" type="range" min="20" max="100" value="60" step="1" aria-label="卡片透明度">
                   </div>
-                  <div class="cp-setting-heading"><strong>壁纸设置</strong></div>
+                  <div class="cp-setting-heading" data-cp-banner-heading><strong>壁纸设置</strong></div>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="bannerTitle" aria-pressed="true"><span data-icon="titlecase"></span><span>首页壁纸标题</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="carousel" aria-pressed="true"><span data-icon="carousel"></span><span>壁纸轮播</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="waves" aria-pressed="true"><span data-icon="airwave"></span><span>水波纹动画</span><i></i></button>
@@ -192,14 +192,15 @@
       </header>
 
       <div class="workspace">
-        <section class="hero-banner" aria-label="CrossPilot 跨境电商运营决策中台">
+        <div class="wallpaper-wrapper" id="wallpaper-wrapper">
+          <section class="hero-banner" aria-label="CrossPilot 跨境电商运营决策中台">
           <div class="hero-slides" aria-hidden="true">
             <div class="hero-slide hero-slide-1"></div>
             <div class="hero-slide hero-slide-2"></div>
             <div class="hero-slide hero-slide-3"></div>
           </div>
           <div class="cp-hero-video-layer" id="cp-hero-video-layer" aria-hidden="true">
-            <video id="cp-hero-video" playsinline loop preload="none" poster="/assets/hero-firefly.avif" data-src="https://bed.twoleaf.cn/file/1785658612716_firefly.mp4"></video>
+            <video id="cp-hero-video" playsinline preload="none" poster="/assets/hero-firefly.avif" data-src="https://bed.twoleaf.cn/file/1785658612716_firefly.mp4"></video>
           </div>
           <div class="hero-shade" aria-hidden="true"></div>
           <div class="hero-copy">
@@ -221,6 +222,7 @@
             </svg>
           </div>
         </section>
+        </div>
 
         <div class="page-frame">
           <aside class="shell-aside shell-aside-left" id="shell-left" aria-label="店铺基础信息"></aside>

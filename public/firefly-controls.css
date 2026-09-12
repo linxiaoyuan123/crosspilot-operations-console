@@ -250,3 +250,130 @@ html[data-theme="light"].cp-card-opacity-custom[data-wallpaper-mode="fullscreen"
     transition: none;
   }
 }
+
+/* Unified wallpaper stage: carousel, image, video, shade, text and waves move together. */
+.wallpaper-wrapper {
+  margin-left: calc(50% - 50vw);
+  min-width: 0;
+  position: relative;
+  width: 100vw;
+  z-index: 1;
+}
+
+html[data-wallpaper-mode] .wallpaper-wrapper .hero-banner {
+  height: 100%;
+  inset: auto;
+  margin: 0;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+}
+
+html[data-wallpaper-mode="banner"] .wallpaper-wrapper {
+  height: min(74vh, 720px);
+  min-height: 560px;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="classic"] .wallpaper-wrapper {
+  height: 100vh;
+  height: 100lvh;
+  min-height: 100vh;
+  min-height: 100lvh;
+}
+
+html[data-wallpaper-mode="overlay"] .wallpaper-wrapper {
+  height: 100vh;
+  height: 100lvh;
+  inset: 0;
+  margin: 0;
+  max-height: none;
+  min-height: 0;
+  opacity: 0.84;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: none;
+  transition: opacity 600ms ease;
+  width: 100vw;
+  z-index: 0;
+}
+
+html[data-theme="light"][data-wallpaper-mode="overlay"] .wallpaper-wrapper {
+  opacity: 0.78;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .wallpaper-wrapper {
+  height: 100vh;
+  height: 100lvh;
+  inset: 0;
+  margin: 0;
+  max-height: none;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: none;
+  transition: opacity 600ms ease;
+  width: 100vw;
+  z-index: 0;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .workspace::before {
+  content: "";
+  display: block;
+  height: 100vh;
+  height: 100lvh;
+  min-height: 100vh;
+  min-height: 100lvh;
+}
+
+html[data-wallpaper-mode="none"] .wallpaper-wrapper {
+  display: none;
+}
+
+html[data-wallpaper-mode="overlay"] .hero-banner {
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .hero-banner {
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+}
+
+html.cp-video-playing .cp-hero-video-layer {
+  opacity: 1;
+}
+
+html.cp-video-playing .hero-slides,
+html.cp-video-playing .hero-shade,
+html.cp-video-playing .hero-copy,
+html.cp-video-playing .hero-waves,
+html.cp-video-playing .hero-banner::after {
+  opacity: 0 !important;
+}
+
+html.cp-video-playing .hero-slide {
+  animation-play-state: paused;
+}
+
+html:is([data-wallpaper-mode="overlay"], [data-wallpaper-mode="none"]) .hero-slide {
+  animation: none;
+  opacity: 0;
+}
+
+html:is([data-wallpaper-mode="overlay"], [data-wallpaper-mode="none"]) .hero-slide-1 {
+  opacity: 1;
+  transform: scale(1.015);
+}
+
+@media (max-width: 760px) {
+  html[data-wallpaper-mode="banner"] .wallpaper-wrapper {
+    height: 62vh;
+    min-height: 480px;
+  }
+}
