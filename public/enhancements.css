@@ -916,34 +916,6 @@ html.cp-video-playing .hero-slide {
   opacity: 0;
 }
 
-html[data-wallpaper-mode="compact"] .hero-banner {
-  height: min(74vh, 720px);
-  min-height: 560px;
-}
-
-html[data-wallpaper-mode="solid"] .hero-banner {
-  background:
-    radial-gradient(900px 520px at 16% 10%, hsl(var(--theme-hue, 191) 84% 64% / 0.34), transparent 64%),
-    radial-gradient(700px 480px at 84% 22%, rgba(117, 138, 255, 0.19), transparent 64%),
-    linear-gradient(145deg, #102b45, #071725 58%, #0b2132);
-}
-
-html[data-theme="light"][data-wallpaper-mode="solid"] .hero-banner {
-  background:
-    radial-gradient(900px 520px at 16% 10%, hsl(var(--theme-hue, 191) 80% 58% / 0.32), transparent 64%),
-    radial-gradient(700px 480px at 84% 22%, rgba(204, 220, 255, 0.62), transparent 64%),
-    linear-gradient(145deg, #b9dbe6, #e5f0f4 58%, #d2e4ec);
-}
-
-html[data-wallpaper-mode="solid"] .hero-slides,
-html[data-wallpaper-mode="solid"] .cp-hero-video-layer {
-  opacity: 0;
-}
-
-html[data-wallpaper-mode="solid"] .hero-banner::after {
-  display: none;
-}
-
 .cp-carousel-off .hero-slide {
   animation: none;
   opacity: 0;

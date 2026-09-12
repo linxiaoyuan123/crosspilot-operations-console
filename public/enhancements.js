@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   gradient: 'crosspilot-gradient',
   sakura: 'crosspilot-sakura',
   typewriter: 'crosspilot-typewriter',
+  visualVersion: 'crosspilot-visual-settings-version',
   musicVolume: 'crosspilot-music-volume'
 };
 
@@ -23,8 +24,8 @@ const DEFAULT_SETTINGS = {
   followTheme: true,
   wallpaper: 'fullscreen',
   fullscreenLayout: 'classic',
-  overlayBlur: 0,
-  cardOpacity: 100,
+  overlayBlur: 10,
+  cardOpacity: 60,
   bannerTitle: true,
   carousel: true,
   waves: true,
@@ -43,6 +44,7 @@ const VIEW_SEARCH_INDEX = [
   { title: '运营复盘', description: '日报、周报、月报和多格式报告导出', view: 'reviews', type: '模块', keywords: '复盘 报告 导出 html markdown csv xlsx 知识库' }
 ];
 const settings = { ...DEFAULT_SETTINGS };
+const VISUAL_SETTINGS_VERSION = '2';
 let searchIndex = [];
 let searchIndexStoreId = null;
 let activeSearchIndex = -1;
@@ -63,6 +65,7 @@ function initEnhancements() {
   initThemeCustomizer();
   initColorMode();
   initPopoverDismissal();
+  initWallpaperMotion();
 }
 
 function readBoolean(key, fallback) {
@@ -108,8 +111,24 @@ function applyStoredSettings() {
   if (!['classic', 'hero'].includes(settings.fullscreenLayout)) settings.fullscreenLayout = DEFAULT_SETTINGS.fullscreenLayout;
   settings.overlayBlur = Number.isFinite(settings.overlayBlur) ? Math.min(20, Math.max(0, settings.overlayBlur)) : DEFAULT_SETTINGS.overlayBlur;
   settings.cardOpacity = Number.isFinite(settings.cardOpacity) ? Math.min(100, Math.max(20, settings.cardOpacity)) : DEFAULT_SETTINGS.cardOpacity;
+  migrateLegacyVisualDefaults();
   applyVisualSettings();
   syncSettingControls();
+}
+
+function migrateLegacyVisualDefaults() {
+  if (readSetting(STORAGE_KEYS.visualVersion, '1') === VISUAL_SETTINGS_VERSION) return;
+  const storedBlur = readSetting(STORAGE_KEYS.overlayBlur, null);
+  const storedCardOpacity = readSetting(STORAGE_KEYS.cardOpacity, null);
+  if (storedBlur !== null && Number(storedBlur) === 0) {
+    settings.overlayBlur = DEFAULT_SETTINGS.overlayBlur;
+    writeSetting(STORAGE_KEYS.overlayBlur, settings.overlayBlur);
+  }
+  if (storedCardOpacity !== null && Number(storedCardOpacity) === 100) {
+    settings.cardOpacity = DEFAULT_SETTINGS.cardOpacity;
+    writeSetting(STORAGE_KEYS.cardOpacity, settings.cardOpacity);
+  }
+  writeSetting(STORAGE_KEYS.visualVersion, VISUAL_SETTINGS_VERSION);
 }
 
 function applyVisualSettings() {
@@ -131,7 +150,56 @@ function applyVisualSettings() {
   root.classList.toggle('cp-wallpaper-overlay', settings.wallpaper === 'overlay');
   root.classList.toggle('cp-wallpaper-none', settings.wallpaper === 'none');
   root.classList.toggle('cp-fullscreen-hero', settings.wallpaper === 'fullscreen' && settings.fullscreenLayout === 'hero');
+  syncHeaderClearance();
+  updateWallpaperMotion();
   syncVideoAvailability();
+}
+
+function initWallpaperMotion() {
+  let scheduled = false;
+  const requestUpdate = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      syncHeaderClearance();
+      updateWallpaperMotion();
+    });
+  };
+
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', requestUpdate);
+  const header = getElement('.app-header');
+  if (header && 'ResizeObserver' in window) new ResizeObserver(requestUpdate).observe(header);
+  requestUpdate();
+}
+
+function syncHeaderClearance() {
+  const header = getElement('.app-header');
+  if (!header) return;
+  const gap = window.matchMedia('(max-width: 760px)').matches ? 18 : 24;
+  const clearance = Math.max(92, Math.ceil(header.getBoundingClientRect().height) + gap);
+  document.documentElement.style.setProperty('--cp-header-clearance', `${clearance}px`);
+}
+
+function updateWallpaperMotion() {
+  const root = document.documentElement;
+  const isHero = settings.wallpaper === 'fullscreen' && settings.fullscreenLayout === 'hero';
+  if (!isHero) {
+    root.style.setProperty('--cp-fullscreen-blur', '0px');
+    root.style.setProperty('--cp-hero-copy-shift', '0px');
+    root.style.setProperty('--cp-hero-copy-opacity', '1');
+    return;
+  }
+
+  const scrollY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+  const blurProgress = Math.min(1, scrollY / 300);
+  const blur = Math.floor((blurProgress * settings.overlayBlur) / 2) * 2;
+  const fadeDistance = Math.max(1, window.innerHeight * 0.5);
+  const fadeProgress = Math.min(1, scrollY / fadeDistance);
+  root.style.setProperty('--cp-fullscreen-blur', `${blur}px`);
+  root.style.setProperty('--cp-hero-copy-shift', `${-scrollY}px`);
+  root.style.setProperty('--cp-hero-copy-opacity', String(1 - fadeProgress));
 }
 
 function syncSettingControls() {

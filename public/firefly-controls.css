@@ -1,7 +1,11 @@
 /* Firefly-inspired wallpaper modes, fullscreen layouts and transparency controls. */
 :root {
   --cp-overlay-blur: 0px;
+  --cp-fullscreen-blur: 0px;
   --cp-card-opacity: 1;
+  --cp-header-clearance: 116px;
+  --cp-hero-copy-shift: 0px;
+  --cp-hero-copy-opacity: 1;
 }
 
 .cp-range-setting {
@@ -37,68 +41,171 @@ html[data-theme="light"] .cp-range-heading {
   color: #5d7485;
 }
 
-html[data-wallpaper-mode="banner"] .hero-banner {
-  height: min(74vh, 720px);
-  min-height: 560px;
+/* Banner and full-screen classic remain ordinary document flow. */
+html[data-wallpaper-mode="banner"] .workspace,
+html[data-wallpaper-mode="fullscreen"] .workspace {
+  padding-top: 0;
 }
 
-html[data-wallpaper-mode="fullscreen"] .hero-banner {
+html[data-wallpaper-mode="banner"] .hero-banner {
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.24);
+  height: min(74vh, 720px);
+  inset: auto;
+  margin-left: calc(50% - 50vw);
+  margin-top: 0;
+  min-height: 560px;
+  opacity: 1;
+  overflow: hidden;
+  position: relative;
+  width: 100vw;
+  z-index: 1;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="classic"] .hero-banner {
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.24);
   height: 100vh;
   height: 100svh;
-  min-height: 680px;
+  inset: auto;
+  margin-left: calc(50% - 50vw);
+  margin-top: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  opacity: 1;
+  overflow: hidden;
+  position: relative;
+  width: 100vw;
+  z-index: 1;
+}
+
+/* Overlay starts directly below the navigation and keeps the wallpaper fixed. */
+html[data-wallpaper-mode="overlay"] .workspace,
+html[data-wallpaper-mode="none"] .workspace {
+  padding-top: var(--cp-header-clearance);
 }
 
 html[data-wallpaper-mode="overlay"] .hero-banner {
-  height: min(86vh, 840px);
-  min-height: 640px;
+  border-radius: 0;
+  box-shadow: none;
+  height: 100vh;
+  height: 100svh;
+  inset: 0;
+  margin: 0;
+  min-height: 0;
+  opacity: 0.84;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  width: 100vw;
+  z-index: 0;
 }
 
-html.cp-wallpaper-overlay .page-frame,
+html[data-theme="light"][data-wallpaper-mode="overlay"] .hero-banner {
+  opacity: 0.78;
+}
+
+html[data-wallpaper-mode="overlay"] :is(.hero-copy, .hero-waves) {
+  display: none;
+}
+
+html[data-wallpaper-mode="overlay"] .hero-banner::after {
+  display: none;
+}
+
+html[data-wallpaper-mode="overlay"] .hero-shade {
+  background:
+    linear-gradient(180deg, rgba(238, 248, 255, 0.08), rgba(8, 20, 34, 0.14)),
+    radial-gradient(760px 420px at 50% 42%, rgba(255, 255, 255, 0.06), transparent 72%);
+}
+
+html[data-theme="light"][data-wallpaper-mode="overlay"] .hero-shade {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(22, 49, 65, 0.04)),
+    radial-gradient(760px 420px at 50% 42%, rgba(255, 255, 255, 0.38), transparent 74%);
+}
+
+/* Fullscreen Hero keeps a fixed wallpaper behind a first-screen spacer. */
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .hero-banner {
+  border-radius: 0;
+  box-shadow: none;
+  height: 100vh;
+  height: 100svh;
+  inset: 0;
+  margin: 0;
+  min-height: 0;
+  opacity: 1;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  width: 100vw;
+  z-index: 0;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .workspace::before {
+  content: "";
+  display: block;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+/* None mode removes the wallpaper and starts from the navigation. */
+html[data-wallpaper-mode="none"] .hero-banner {
+  display: none;
+}
+
+/* Keep the original carousel and video processing, but only blur where Firefly does. */
+html[data-wallpaper-mode="banner"] :is(.hero-slides, .cp-hero-video-layer),
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="classic"] :is(.hero-slides, .cp-hero-video-layer),
+html[data-wallpaper-mode="none"] :is(.hero-slides, .cp-hero-video-layer) {
+  filter: none;
+  transform: scale(1.035);
+}
+
+html[data-wallpaper-mode="overlay"] :is(.hero-slides, .cp-hero-video-layer) {
+  filter: blur(var(--cp-overlay-blur));
+  transform: scale(1.055);
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] :is(.hero-slides, .cp-hero-video-layer) {
+  filter: blur(var(--cp-fullscreen-blur));
+  transform: scale(1.055);
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .hero-copy {
+  opacity: var(--cp-hero-copy-opacity);
+  transform: translate(-50%, calc(-50% + var(--cp-hero-copy-shift)));
+  transition: none;
+  will-change: transform, opacity;
+}
+
+html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .cp-banner-title-off .hero-copy {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% + 12px));
+}
+
+/* Overlay, none and hero all share the same content start anchor. */
+html[data-wallpaper-mode="overlay"] .page-frame,
+html[data-wallpaper-mode="none"] .page-frame,
 html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .page-frame {
-  margin-top: clamp(-260px, -22vh, -130px);
+  margin-top: 0;
+  padding-top: 14px;
   z-index: 5;
 }
 
-html[data-wallpaper-mode="none"] .hero-banner {
-  background:
-    radial-gradient(820px 440px at 16% 10%, hsl(var(--theme-hue, 191) 84% 64% / 0.28), transparent 64%),
-    linear-gradient(145deg, #102b45, #071725 58%, #0b2132);
-  height: 320px;
-  min-height: 320px;
-}
-
-html[data-theme="light"][data-wallpaper-mode="none"] .hero-banner {
-  background:
-    radial-gradient(820px 440px at 16% 10%, hsl(var(--theme-hue, 191) 80% 58% / 0.26), transparent 64%),
-    linear-gradient(145deg, #b9dbe6, #e5f0f4 58%, #d2e4ec);
-}
-
-html[data-wallpaper-mode="none"] :is(.hero-slides, .cp-hero-video-layer) {
-  opacity: 0 !important;
-}
-
-html[data-wallpaper-mode="none"] .hero-copy {
-  padding-bottom: 58px;
-}
-
-html[data-wallpaper-mode="none"] .hero-waves {
-  opacity: 0;
-}
-
-:is(.hero-slides, .cp-hero-video-layer) {
-  filter: blur(var(--cp-overlay-blur));
-  transform: scale(1.035);
-  transition: filter 260ms ease, opacity 520ms ease, transform 520ms ease;
-}
-
-html.cp-card-opacity-custom :is(.panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .knowledge-card, .compact-row, .case-list-panel) {
+/* Transparent surfaces are active only in the two transparent layouts. */
+html.cp-card-opacity-custom[data-wallpaper-mode="overlay"] :is(.view-head, .project-summary, .case-head, .panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .modal-card, .loading-state, .error-state, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .cp-import-summary > div, .cp-tabs, .knowledge-card, .compact-row, .case-list-panel, .cp-code-block, .cp-keyword-grid > div),
+html.cp-card-opacity-custom[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] :is(.view-head, .project-summary, .case-head, .panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .modal-card, .loading-state, .error-state, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .cp-import-summary > div, .cp-tabs, .knowledge-card, .compact-row, .case-list-panel, .cp-code-block, .cp-keyword-grid > div) {
   -webkit-backdrop-filter: blur(16px) saturate(130%);
   backdrop-filter: blur(16px) saturate(130%);
   background-color: rgba(10, 27, 44, var(--cp-card-opacity));
   background-image: linear-gradient(145deg, rgba(18, 39, 61, var(--cp-card-opacity)), rgba(12, 28, 45, var(--cp-card-opacity)));
 }
 
-html[data-theme="light"].cp-card-opacity-custom :is(.panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .knowledge-card, .compact-row, .case-list-panel) {
+html[data-theme="light"].cp-card-opacity-custom[data-wallpaper-mode="overlay"] :is(.view-head, .project-summary, .case-head, .panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .modal-card, .loading-state, .error-state, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .cp-import-summary > div, .cp-tabs, .knowledge-card, .compact-row, .case-list-panel, .cp-code-block, .cp-keyword-grid > div),
+html[data-theme="light"].cp-card-opacity-custom[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] :is(.view-head, .project-summary, .case-head, .panel, .metric-card, .focus-strip, .shell-aside, .aside-section, .modal-card, .loading-state, .error-state, .cp-recommendation-card, .cp-risk-card, .cp-health-card, .cp-drop-zone, .cp-import-summary > div, .cp-tabs, .knowledge-card, .compact-row, .case-list-panel, .cp-code-block, .cp-keyword-grid > div) {
   background-color: rgba(255, 255, 255, var(--cp-card-opacity));
   background-image: linear-gradient(145deg, rgba(255, 255, 255, var(--cp-card-opacity)), rgba(242, 248, 251, var(--cp-card-opacity)));
 }
@@ -123,9 +230,8 @@ html[data-theme="light"].cp-card-opacity-custom :is(.panel, .metric-card, .focus
 }
 
 @media (max-width: 760px) {
-  html[data-wallpaper-mode="overlay"] .page-frame,
-  html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .page-frame {
-    margin-top: -92px;
+  :root {
+    --cp-header-clearance: 212px;
   }
 
   html[data-wallpaper-mode="banner"] .hero-banner {
@@ -133,8 +239,14 @@ html[data-theme="light"].cp-card-opacity-custom :is(.panel, .metric-card, .focus
     min-height: 480px;
   }
 
-  html[data-wallpaper-mode="overlay"] .hero-banner {
-    height: 74vh;
-    min-height: 520px;
+  html[data-wallpaper-mode="overlay"] .workspace,
+  html[data-wallpaper-mode="none"] .workspace {
+    padding-top: var(--cp-header-clearance);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-wallpaper-mode="fullscreen"][data-fullscreen-layout="hero"] .hero-copy {
+    transition: none;
   }
 }

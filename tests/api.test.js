@@ -252,10 +252,16 @@ test('static shell is branded as CrossPilot and preserves the visual baseline', 
   assert.match(html, /data-cp-wallpaper="fullscreen"/);
   assert.match(html, /data-cp-wallpaper="overlay"/);
   assert.match(html, /data-cp-wallpaper="none"/);
+  assert.match(html, /全屏透明/);
   assert.match(html, /data-cp-layout="classic"/);
   assert.match(html, /data-cp-layout="hero"/);
   assert.match(html, /cp-overlay-blur/);
   assert.match(html, /cp-card-opacity/);
+  const fireflyCss = await request('/firefly-controls.css');
+  assert.match(fireflyCss.body, /data-wallpaper-mode="overlay"\] \.hero-banner/);
+  assert.match(fireflyCss.body, /data-fullscreen-layout="hero"\] \.workspace::before/);
+  assert.match(fireflyCss.body, /--cp-fullscreen-blur/);
+  assert.match(fireflyCss.body, /cp-card-opacity-custom/);
   assert.match(html, /firefly-controls\.css/);
   assert.doesNotMatch(html, /id="api-status"/);
   assert.doesNotMatch(html, /id="refresh-button"/);
