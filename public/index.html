@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-font-mode="literary">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,8 +11,10 @@
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
+    <div id="sakura-layer" aria-hidden="true"></div>
+
     <div class="app-shell">
-      <aside class="sidebar" id="sidebar">
+      <header class="app-header">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt=""></span>
           <span class="brand-copy">
@@ -45,42 +47,31 @@
           </button>
         </nav>
 
-        <div class="sidebar-foot">
-          <div class="service-state">
-            <span class="status-dot" id="sidebar-status-dot"></span>
-            <div>
-              <strong id="sidebar-status-label">服务检查中</strong>
-              <small>v2.0.0 · 本地工作台</small>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <div class="workspace">
-        <header class="topbar">
-          <button class="icon-button mobile-menu" id="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false">
-            <span data-icon="menu"></span>
+        <div class="app-header-actions">
+          <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
+          <label class="project-switcher" for="global-project">
+            <span>当前项目</span>
+            <select id="global-project" aria-label="切换当前实施项目"></select>
+          </label>
+          <span class="sync-state" id="api-status">
+            <span class="status-dot"></span><span>API 正常</span>
+          </span>
+          <button class="icon-button" id="refresh-button" type="button" title="刷新当前页面" aria-label="刷新当前页面">
+            <span data-icon="refresh"></span>
           </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <header class="topbar">
           <div class="topbar-title">
             <span class="eyebrow" id="page-eyebrow">现场交付</span>
             <h1 id="page-title">今日工作台</h1>
           </div>
-          <div class="topbar-actions">
-            <label class="project-switcher" for="global-project">
-              <span>当前项目</span>
-              <select id="global-project" aria-label="切换当前实施项目"></select>
-            </label>
-            <span class="sync-state" id="api-status">
-              <span class="status-dot"></span><span>API 正常</span>
-            </span>
-            <button class="icon-button" id="refresh-button" type="button" title="刷新当前页面" aria-label="刷新当前页面">
-              <span data-icon="refresh"></span>
-            </button>
-          </div>
         </header>
 
         <main class="content" id="app" aria-live="polite"></main>
-      </div>
+      </main>
     </div>
 
     <div id="modal-root"></div>

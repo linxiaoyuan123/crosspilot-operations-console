@@ -94,7 +94,7 @@ const pageEyebrow = document.querySelector('#page-eyebrow');
 const projectSelect = document.querySelector('#global-project');
 const modalRoot = document.querySelector('#modal-root');
 const toastRoot = document.querySelector('#toast-root');
-const sidebar = document.querySelector('#sidebar');
+const fontToggle = document.querySelector('#font-toggle');
 const scrollCompanion = document.querySelector('#scroll-companion');
 const companionProgress = document.querySelector('#companion-progress');
 const companionDot = document.querySelector('#companion-dot');
@@ -106,6 +106,9 @@ function init() {
   document.querySelectorAll('[data-icon]').forEach((element) => {
     element.innerHTML = icon(element.dataset.icon);
   });
+  applyFontMode(readFontMode());
+  initFontToggle();
+  initSakura();
   document.querySelectorAll('[data-nav]').forEach((button) => {
     button.addEventListener('click', () => navigate(button.dataset.nav));
   });
@@ -115,13 +118,9 @@ function init() {
     await loadCurrentView();
   });
   document.querySelector('#refresh-button').addEventListener('click', () => loadCurrentView(true));
-  document.querySelector('#menu-toggle').addEventListener('click', toggleSidebar);
   initScrollCompanion();
   document.addEventListener('click', handleClick);
   document.addEventListener('submit', handleSubmit);
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 900) closeSidebar();
-  });
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeModal();
   });
@@ -1286,7 +1285,7 @@ async function navigate(view) {
   state.view = view;
   window.location.hash = view;
   updateViewChrome();
-  closeSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   await loadCurrentView();
 }
 
@@ -1300,17 +1299,11 @@ function updateViewChrome() {
 }
 
 async function checkHealth() {
-  const indicator = document.querySelector('#sidebar-status-dot');
-  const label = document.querySelector('#sidebar-status-label');
   const apiStatus = document.querySelector('#api-status');
   try {
     const result = await api('/api/health');
-    indicator.className = 'status-dot is-online';
-    label.textContent = '本地服务正常';
     apiStatus.classList.add('is-online');
   } catch {
-    indicator.className = 'status-dot is-error';
-    label.textContent = '服务不可用';
     apiStatus.classList.add('is-error');
   }
 }
@@ -1488,42 +1481,71 @@ function showError(error) {
   showToast(error.message || '操作失败', 'error');
 }
 
-function toggleSidebar() {
-  const next = !sidebar.classList.contains('is-open');
-  sidebar.classList.toggle('is-open', next);
-  document.querySelector('#menu-toggle').setAttribute('aria-expanded', String(next));
+function readFontMode() {
+  try {
+    return localStorage.getItem('opsflow-font-mode') === 'original' ? 'original' : 'literary';
+  } catch {
+    return 'literary';
+  }
 }
 
-function closeSidebar() {
-  sidebar.classList.remove('is-open');
-  document.querySelector('#menu-toggle').setAttribute('aria-expanded', 'false');
+function applyFontMode(mode) {
+  const nextMode = mode === 'original' ? 'original' : 'literary';
+  document.documentElement.dataset.fontMode = nextMode;
+  try {
+    localStorage.setItem('opsflow-font-mode', nextMode);
+  } catch {}
+  if (fontToggle) {
+    fontToggle.title = nextMode === 'literary' ? '当前：文艺字体，点击切换原版字体' : '当前：原版字体，点击切换文艺字体';
+    fontToggle.setAttribute('aria-pressed', String(nextMode === 'original'));
+  }
+  return nextMode;
+}
+
+function initFontToggle() {
+  if (!fontToggle) return;
+  fontToggle.addEventListener('click', () => {
+    applyFontMode(readFontMode() === 'literary' ? 'original' : 'literary');
+  });
+}
+
+function initSakura() {
+  const layer = document.querySelector('#sakura-layer');
+  if (!layer || layer.childElementCount) return;
+  layer.innerHTML = Array.from({ length: 28 }, (_, index) => {
+    const left = (index * 37 + 9) % 100;
+    const size = 7 + ((index * 5) % 7);
+    const drift = 24 + ((index * 29) % 72);
+    const duration = 13 + ((index * 7) % 12);
+    const delay = -((index * 11) % 19);
+    return `<span class="sakura-petal" style="--left:${left}%;--size:${size}px;--drift:${drift}px;--duration:${duration}s;--delay:${delay}s"></span>`;
+  }).join('');
 }
 
 function initScrollCompanion() {
   if (!scrollCompanion || !companionProgress || !companionDot || !companionNode) return;
-  const scrollElement = document.querySelector('.workspace');
-  if (!scrollElement) return;
+  const scrollElement = document.scrollingElement || document.documentElement;
   let scheduled = false;
 
   const update = () => {
-    const maxScroll = Math.max(0, scrollElement.scrollHeight - scrollElement.clientHeight);
-    const progress = maxScroll ? Math.min(1, scrollElement.scrollTop / maxScroll) : 0;
+    const maxScroll = Math.max(0, scrollElement.scrollHeight - window.innerHeight);
+    const progress = maxScroll ? Math.min(1, window.scrollY / maxScroll) : 0;
     companionProgress.style.height = `${progress * 100}%`;
     companionDot.style.top = `${progress * 100}%`;
     companionNode.style.top = `${progress * 100}%`;
-    scrollCompanion.classList.toggle('is-visible', maxScroll > 120 && scrollElement.scrollTop > 80);
+    scrollCompanion.classList.toggle('is-visible', maxScroll > 120 && window.scrollY > 80);
     scrollCompanion.classList.toggle('is-scrollable', maxScroll > 120);
     scheduled = false;
   };
 
-  scrollElement.addEventListener('scroll', () => {
+  window.addEventListener('scroll', () => {
     if (!scheduled) {
       scheduled = true;
       requestAnimationFrame(update);
     }
   }, { passive: true });
   window.addEventListener('resize', update);
-  companionNode.addEventListener('click', () => scrollElement.scrollTo({ top: 0, behavior: 'smooth' }));
+  companionNode.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
   const observer = new MutationObserver(update);
   observer.observe(app, { childList: true, subtree: true });
   update();
