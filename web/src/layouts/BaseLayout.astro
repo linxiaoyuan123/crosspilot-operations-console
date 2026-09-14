@@ -1,9 +1,9 @@
 ---
 import '../styles/global.css';
 import 'katex/dist/katex.min.css';
+import { ClientRouter } from 'astro:transitions';
 import SiteHeader from '../components/SiteHeader.astro';
 import ImmersiveHero from '../components/ImmersiveHero.astro';
-import WorkspaceAside from '../components/WorkspaceAside.svelte';
 
 type Props = {
   title?: string;
@@ -12,6 +12,7 @@ type Props = {
   pageTitle?: string;
   hero?: boolean;
   compactHero?: boolean;
+  workspaceAside?: boolean;
 };
 
 const {
@@ -19,8 +20,9 @@ const {
   description = 'CrossPilot 把报表导入、利润诊断、动作执行和内容复盘放在同一套工作流里。',
   eyebrow = 'CrossPilot 内容与运营总览',
   pageTitle = '运营工作区',
-  hero = true,
-  compactHero = false
+  hero = false,
+  compactHero = true,
+  workspaceAside = false
 } = Astro.props;
 ---
 
@@ -35,11 +37,16 @@ const {
 >
   <head>
     <meta charset="UTF-8" />
+    <ClientRouter />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#123b3a" />
     <link rel="icon" type="image/png" href="/pig.png" />
     <title>{title}</title>
+    <style is:inline>
+      html, body { background: #07111f; }
+      html[data-theme="light"], html[data-theme="light"] body { background: #eaf2f7; }
+    </style>
     <script is:inline>
       (() => {
         try {
@@ -59,27 +66,20 @@ const {
     <link rel="stylesheet" href="/enhancements.css" />
     <link rel="stylesheet" href="/theme-controls.css" />
     <link rel="stylesheet" href="/nav-shell.css" />
+    <link rel="stylesheet" href="/page-transition.css" />
   </head>
-  <body>
+  <body class="content-page">
     <div id="sakura-layer" aria-hidden="true"></div>
     <div class="app-shell">
       <SiteHeader />
       <div class="workspace">
         {hero && <ImmersiveHero compact={compactHero} />}
-        <div class="page-frame">
-          <WorkspaceAside side="left" client:load />
+        <div class:list={['page-frame', { single: !workspaceAside }]}>
           <div class="page-main">
-            <header class="topbar">
-              <div class="topbar-title">
-                <span class="eyebrow">{eyebrow}</span>
-                <h1>{pageTitle}</h1>
-              </div>
-            </header>
             <main class="content">
               <slot />
             </main>
           </div>
-          <WorkspaceAside side="right" client:load />
         </div>
         <footer class="site-footer">
           <span>CrossPilot · 本地优先的跨境运营工作区</span>
@@ -93,6 +93,85 @@ const {
 
     <script is:inline>
       (() => {
+        const runtimeKey = '__crosspilotPageRuntime';
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const update = () => {
+          const root = document.scrollingElement || document.documentElement;
+          const maxScroll = Math.max(0, root.scrollHeight - window.innerHeight);
+          const scrollProgress = document.querySelector('#app-scroll-progress');
+          if (scrollProgress) {
+            scrollProgress.style.transform = `scaleX(${maxScroll ? Math.min(1, window.scrollY / maxScroll) : 0})`;
+          }
+          document.querySelector('.app-header')?.classList.toggle('is-scrolled', window.scrollY > 8);
+        };
+
+        if (!window[runtimeKey]) {
+          let transitionAnimation = null;
+
+          const startTransition = () => {
+            document.documentElement.classList.add('is-page-transitioning');
+            const bar = document.querySelector('#page-transition-progress i');
+            if (!bar) return;
+            transitionAnimation?.cancel();
+            transitionAnimation = bar.animate(
+              [
+                { transform: 'scaleX(0.04)', opacity: 1 },
+                { transform: 'scaleX(0.72)', opacity: 1 },
+                { transform: 'scaleX(0.9)', opacity: 1 }
+              ],
+              {
+                duration: reduceMotion ? 1 : 5000,
+                easing: 'cubic-bezier(0.12, 0.72, 0.18, 1)',
+                fill: 'forwards'
+              }
+            );
+          };
+
+          const finishTransition = () => {
+            const bar = document.querySelector('#page-transition-progress i');
+            transitionAnimation?.cancel();
+            transitionAnimation = null;
+            if (bar) {
+              const animation = bar.animate(
+                [
+                  { transform: 'scaleX(0.96)', opacity: 1 },
+                  { transform: 'scaleX(1)', opacity: 1 },
+                  { transform: 'scaleX(1)', opacity: 0 }
+                ],
+                { duration: reduceMotion ? 1 : 420, easing: 'ease-out', fill: 'forwards' }
+              );
+              animation.finished.finally(() => {
+                bar.style.transform = 'scaleX(0)';
+                bar.style.opacity = '0';
+              });
+            }
+            window.requestAnimationFrame(() => document.documentElement.classList.remove('is-page-transitioning'));
+          };
+
+          const refresh = () => {
+            update();
+          };
+
+          window[runtimeKey] = { refresh, startTransition, finishTransition };
+          window.addEventListener('scroll', update, { passive: true });
+          window.addEventListener('resize', update);
+          window.addEventListener('pageshow', finishTransition);
+          document.addEventListener('astro:before-preparation', startTransition, true);
+          document.addEventListener('astro:after-swap', refresh);
+          document.addEventListener('astro:page-load', finishTransition);
+          document.addEventListener('click', (event) => {
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+            if (!link || !link.hasAttribute('data-astro-reload') || link.target === '_blank' || link.hasAttribute('download')) return;
+            const target = new URL(link.href, location.href);
+            if (target.origin !== location.origin || target.href === location.href) return;
+            event.preventDefault();
+            startTransition();
+            window.setTimeout(() => location.assign(target.href), reduceMotion ? 0 : 90);
+          }, true);
+        }
+
         const layer = document.querySelector('#sakura-layer');
         if (layer && !layer.childElementCount) {
           layer.innerHTML = Array.from({ length: 28 }, (_, index) => {
@@ -105,16 +184,6 @@ const {
           }).join('');
         }
 
-        const header = document.querySelector('.app-header');
-        const progress = document.querySelector('#nav-progress');
-        const update = () => {
-          const root = document.scrollingElement || document.documentElement;
-          const maxScroll = Math.max(0, root.scrollHeight - window.innerHeight);
-          if (progress) progress.style.transform = `scaleX(${maxScroll ? Math.min(1, window.scrollY / maxScroll) : 0})`;
-          header?.classList.toggle('is-scrolled', window.scrollY > 8);
-        };
-        window.addEventListener('scroll', update, { passive: true });
-        window.addEventListener('resize', update);
         update();
       })();
     </script>
@@ -123,8 +192,82 @@ const {
 </html>
 
 <style>
-  :global(.page-frame.single) {
+  :global(body.content-page) {
+    background:
+      linear-gradient(180deg, rgba(5, 15, 27, 0.72), rgba(4, 12, 23, 0.86)),
+      url('/assets/hero-crosspilot-2.avif') center / cover fixed no-repeat,
+      #07111f;
+    min-height: 100vh;
+  }
+
+  :global(html[data-theme="light"] body.content-page) {
+    background:
+      linear-gradient(180deg, rgba(239, 246, 250, 0.78), rgba(228, 239, 245, 0.9)),
+      url('/assets/hero-crosspilot-2.avif') center / cover fixed no-repeat,
+      #edf3f7;
+  }
+
+  :global(body.content-page .workspace) {
+    padding: 112px clamp(18px, 4vw, 56px) 58px;
+  }
+
+  :global(body.content-page .page-frame),
+  :global(body.content-page .page-frame.single) {
     grid-template-columns: minmax(0, 1fr);
+    margin: 0 auto;
+    max-width: 1280px;
+    padding: 0;
+    width: 100%;
+  }
+
+  :global(body.content-page .page-main) {
+    animation: cp-content-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    min-width: 0;
+  }
+
+  :global(body.content-page .content) {
+    min-width: 0;
+    padding-bottom: 36px;
+  }
+
+  :global(body.content-page .content .panel),
+  :global(body.content-page .content .cp-card) {
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+    background:
+      linear-gradient(145deg, rgba(23, 47, 70, 0.77), rgba(8, 24, 40, 0.73)),
+      linear-gradient(115deg, rgba(255, 255, 255, 0.07), transparent 36%);
+    border-color: rgba(185, 225, 244, 0.18);
+  }
+
+  :global(body.content-page .content .panel) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.025),
+      0 18px 48px rgba(0, 0, 0, 0.22);
+  }
+
+  :global(html[data-theme="light"] body.content-page .content .panel),
+  :global(html[data-theme="light"] body.content-page .content .cp-card) {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(239, 247, 251, 0.76)),
+      linear-gradient(115deg, rgba(255, 255, 255, 0.62), transparent 42%);
+    border-color: rgba(50, 91, 114, 0.15);
+  }
+
+  :global(html[data-theme="light"] body.content-page .content .panel) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.96),
+      0 18px 42px rgba(42, 78, 99, 0.11);
+  }
+
+  @keyframes cp-content-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  :global(.page-frame.single .page-main) {
+    grid-column: 1;
   }
 
   :global(.wallpaper-wrapper.is-compact .hero-banner) {
@@ -148,7 +291,7 @@ const {
     font-size: 12px;
     justify-content: space-between;
     margin: 0 auto;
-    max-width: 1400px;
+    max-width: 1280px;
     padding: 22px 0 8px;
   }
 
@@ -156,7 +299,11 @@ const {
     color: #60798a;
   }
 
-  @media (max-width: 680px) {
+  @media (max-width: 760px) {
+    :global(body.content-page .workspace) {
+      padding: 202px 12px 42px;
+    }
+
     .site-footer {
       align-items: flex-start;
       flex-direction: column;

@@ -21,13 +21,9 @@
   let activeMonth = initialMonth;
   let loading = true;
   let error = '';
-  let viewMode: 'grid' | 'list' = 'grid';
+  let viewMode: 'grid' | 'list' = 'list';
   let offset = 0;
   const pageSize = 24;
-
-  function requestedStatus() {
-    return 'published';
-  }
 
   async function load(reset = true) {
     if (reset) offset = 0;
@@ -35,7 +31,7 @@
     error = '';
     try {
       const params = new URLSearchParams({
-        status: requestedStatus(),
+        status: 'published',
         limit: String(pageSize),
         offset: String(offset)
       });
@@ -121,16 +117,11 @@
   });
 </script>
 
-<header class="page-head panel cp-view-head-card">
+<header class="page-head cp-card">
   <div>
     <span class="cp-kicker">{mode === 'search' ? 'full text search' : 'content library'}</span>
     <h1>{title}</h1>
-    <p class="cp-subtitle">文章以 SQLite 为内容真源，支持 Markdown、分类、标签、系列、归档和全文检索。</p>
-  </div>
-  <div class="stats">
-    <span><strong>{stats?.published || 0}</strong>已发布</span>
-    <span><strong>{stats?.total || 0}</strong>全部内容</span>
-    <span><strong>{stats?.views || 0}</strong>累计阅读</span>
+    <p>按文章本身阅读，不把店铺资料和经营指标混进内容区。</p>
   </div>
 </header>
 
@@ -159,21 +150,17 @@
   </div>
 {/if}
 
-{#if mode === 'series'}
-  {#if stats?.series?.length}
-    <div class="series-grid">
-      {#each stats.series as series}
-        <a class="series-card cp-card" href={`/articles?series=${encodeURIComponent(series.slug)}`}>
-          <span class="cp-kicker">series</span>
-          <h2>{series.name}</h2>
-          <p>{series.description || '按顺序阅读这一主题下的文章。'}</p>
-          <strong>{series.count} 篇</strong>
-        </a>
-      {/each}
-    </div>
-  {:else}
-    <div class="cp-empty">还没有内容系列。</div>
-  {/if}
+{#if mode === 'series' && stats?.series?.length}
+  <div class="series-grid">
+    {#each stats.series as series}
+      <a class="series-card cp-card" href={`/articles?series=${encodeURIComponent(series.slug)}`}>
+        <span class="cp-kicker">series</span>
+        <h2>{series.name}</h2>
+        <p>{series.description || '按顺序阅读这一主题下的文章。'}</p>
+        <strong>{series.count} 篇</strong>
+      </a>
+    {/each}
+  </div>
 {/if}
 
 {#if mode === 'archive' && archive.length}
@@ -202,11 +189,11 @@
   <div class:grid-view={viewMode === 'grid'} class:list-view={viewMode === 'list'} class="article-list">
     {#each items as article (article.id)}
       <article class="article cp-card">
-        <a class="cover" href={`/articles/${encodeURIComponent(article.slug)}`}>
-          {#if article.cover_image}<img src={article.cover_image} alt="" loading="lazy" />{:else}<BookOpen size={28} />{/if}
+        <a class="cover" href={`/articles/${encodeURIComponent(article.slug)}`} aria-label={`阅读 ${article.title}`}>
+          {#if article.cover_image}<img src={article.cover_image} alt="" loading="lazy" />{:else}<BookOpen size={26} />{/if}
         </a>
         <div class="copy">
-          <div class="meta-top"><span class="cp-kicker">{article.category}</span>{#if article.featured}<span class="cp-badge accent">置顶</span>{/if}</div>
+          <div class="meta-top"><span class="cp-kicker">{article.category || '未分类'}</span>{#if article.featured}<span class="cp-badge accent">置顶</span>{/if}</div>
           <h2><a href={`/articles/${encodeURIComponent(article.slug)}`}>{article.title}</a></h2>
           <p>{article.excerpt}</p>
           <div class="tags">
@@ -232,35 +219,21 @@
 
 <style>
   .page-head {
-    align-items: end;
-    display: flex;
-    gap: 18px;
-    justify-content: space-between;
     margin: 0 0 16px;
-    padding: clamp(18px, 2.6vw, 28px);
+    padding: clamp(20px, 3vw, 30px);
   }
 
-  .stats {
-    display: flex;
-    gap: 8px;
+  .page-head h1 {
+    font-size: clamp(28px, 3.6vw, 42px);
+    line-height: 1.2;
+    margin: 7px 0 9px;
   }
 
-  .stats span {
-    background: var(--cp-surface-muted);
-    border: 1px solid var(--cp-line);
-    border-radius: 7px;
-    color: var(--cp-text-muted);
-    display: grid;
-    font-size: 8px;
-    gap: 2px;
-    min-width: 76px;
-    padding: 9px;
-    text-align: right;
-  }
-
-  .stats strong {
-    color: var(--cp-text);
-    font-size: 16px;
+  .page-head p {
+    color: var(--cp-text-soft);
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 0;
   }
 
   .search-bar {
@@ -335,8 +308,8 @@
 
   .series-card p {
     color: var(--cp-text-soft);
-    font-size: 10px;
-    line-height: 1.6;
+    font-size: 11px;
+    line-height: 1.65;
     margin: 0;
   }
 
@@ -375,7 +348,7 @@
     align-items: center;
     color: var(--cp-text-muted);
     display: flex;
-    font-size: 9px;
+    font-size: 10px;
     justify-content: space-between;
     margin: 18px 2px 9px;
   }
@@ -408,11 +381,11 @@
 
   .article-list {
     display: grid;
-    gap: 14px;
+    gap: 12px;
   }
 
   .article-list.grid-view {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
   }
 
   .article-list.list-view {
@@ -420,16 +393,19 @@
   }
 
   .article {
-    display: grid;
-    grid-template-rows: 154px minmax(0, 1fr);
-    min-height: 302px;
+    min-height: 0;
     overflow: hidden;
   }
 
   .list-view .article {
-    grid-template-columns: 210px minmax(0, 1fr);
-    grid-template-rows: auto;
-    min-height: 185px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 226px;
+    grid-template-rows: minmax(150px, auto);
+  }
+
+  .grid-view .article {
+    display: grid;
+    grid-template-rows: 150px minmax(0, 1fr);
   }
 
   .cover {
@@ -439,30 +415,54 @@
     display: flex;
     justify-content: center;
     overflow: hidden;
+    text-decoration: none;
+  }
+
+  .list-view .cover {
+    border: 1px solid var(--cp-line);
+    border-radius: 7px;
+    grid-column: 2;
+    grid-row: 1;
+    margin: 15px 15px 15px 0;
+    min-height: 126px;
   }
 
   .cover img {
     height: 100%;
     object-fit: cover;
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
     width: 100%;
+  }
+
+  .article:hover .cover img {
+    transform: scale(1.035);
   }
 
   .copy {
     display: grid;
-    gap: 7px;
-    padding: 13px;
+    gap: 8px;
+    min-width: 0;
+    padding: 17px 20px;
+  }
+
+  .list-view .copy {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 20px 22px;
   }
 
   .meta-top {
     align-items: center;
     display: flex;
+    gap: 8px;
     justify-content: space-between;
   }
 
   h2 {
-    font-size: 14px;
-    line-height: 1.45;
+    font-size: 18px;
+    line-height: 1.42;
     margin: 0;
+    overflow-wrap: anywhere;
   }
 
   h2 a {
@@ -476,12 +476,12 @@
   .copy > p {
     color: var(--cp-text-soft);
     display: -webkit-box;
-    font-size: 11px;
-    line-height: 1.65;
+    font-size: 12px;
+    line-height: 1.7;
     margin: 0;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
   }
 
   .tags {
@@ -492,19 +492,18 @@
 
   .tags a {
     background: var(--cp-accent-soft);
-    border: 0;
     border-radius: 999px;
     color: var(--cp-text-soft);
-    text-decoration: none;
     font-size: 8px;
     padding: 4px 7px;
+    text-decoration: none;
   }
 
   .meta {
     color: var(--cp-text-muted);
     display: flex;
-    font-size: 8px;
-    gap: 10px;
+    font-size: 9px;
+    gap: 12px;
     margin-top: auto;
   }
 
@@ -516,11 +515,6 @@
   }
 
   @media (max-width: 980px) {
-    .page-head {
-      align-items: start;
-      flex-direction: column;
-    }
-
     .article-list.grid-view,
     .series-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -528,17 +522,6 @@
   }
 
   @media (max-width: 680px) {
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      width: 100%;
-    }
-
-    .stats span {
-      min-width: 0;
-      text-align: left;
-    }
-
     .search-bar {
       grid-template-columns: auto minmax(0, 1fr);
     }
@@ -548,14 +531,36 @@
     }
 
     .article-list.grid-view,
-    .article-list.list-view,
     .series-grid {
       grid-template-columns: 1fr;
     }
 
     .list-view .article {
-      grid-template-columns: 1fr;
-      grid-template-rows: 170px auto;
+      grid-template-columns: minmax(0, 1fr) 102px;
+      grid-template-rows: minmax(112px, auto);
+    }
+
+    .list-view .cover {
+      margin: 11px 11px 11px 0;
+      min-height: 88px;
+    }
+
+    .list-view .copy {
+      gap: 6px;
+      padding: 14px 14px 14px 16px;
+    }
+
+    h2 {
+      font-size: 15px;
+    }
+
+    .copy > p {
+      -webkit-line-clamp: 2;
+    }
+
+    .tags,
+    .meta span:nth-child(1) {
+      display: none;
     }
   }
 </style>

@@ -1,0 +1,126 @@
+/* Shared page transitions and the right-to-left store switcher reveal on legacy pages. */
+@view-transition {
+  navigation: auto;
+}
+
+#page-transition-progress {
+  height: 3px;
+  inset: 0 0 auto;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 9999;
+}
+
+#page-transition-progress i {
+  background: linear-gradient(90deg, #35d9ff 0%, #70f0cb 42%, #d6f477 66%, #ff8ec5 84%, #9f8cff 100%);
+  box-shadow:
+    0 0 10px rgba(53, 217, 255, 0.7),
+    0 0 24px rgba(159, 140, 255, 0.34);
+  display: block;
+  height: 100%;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  width: 100%;
+  will-change: opacity, transform;
+}
+
+html.is-page-transitioning .page-main,
+html.is-page-transitioning .content-panel {
+  filter: blur(1px);
+  opacity: 0.78;
+  transform: translateY(5px);
+  transition:
+    filter 150ms ease,
+    opacity 150ms ease,
+    transform 150ms cubic-bezier(0.22, 0.72, 0.22, 1);
+}
+
+html.is-page-transitioning .app-header {
+  pointer-events: none;
+}
+
+::view-transition-old(root) {
+  animation: cp-crossfade-out 150ms ease-out both;
+}
+
+::view-transition-new(root) {
+  animation: cp-crossfade-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cp-crossfade-out {
+  to { opacity: 0.58; }
+}
+
+@keyframes cp-crossfade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* The operations shell keeps the store selector, revealed after the rest of the header is stable. */
+html:not(.cp-header-ready) .app-header .cp-store-picker {
+  border-width: 0;
+  margin: 0;
+  max-width: 0;
+  min-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding-inline: 0;
+  pointer-events: none;
+  transform: translateX(36px);
+  width: 0;
+}
+
+html.cp-header-ready .app-header .cp-store-picker {
+  border-width: 1px;
+  margin: 0;
+  max-width: 310px;
+  min-width: 245px;
+  opacity: 1;
+  padding: 3px 5px 3px 10px;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition:
+    border-width 0s linear,
+    max-width 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    min-width 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 420ms ease 130ms,
+    padding 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 680ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 260px;
+}
+
+.app-header-actions {
+  transition: gap 360ms ease;
+}
+
+@media (max-width: 1120px) {
+  html.cp-header-ready .app-header .cp-store-picker {
+    max-width: 230px;
+    min-width: 205px;
+    width: 220px;
+  }
+}
+
+@media (max-width: 760px) {
+  html.cp-header-ready .app-header .cp-store-picker {
+    max-width: 100%;
+    min-width: 0;
+    width: min(100%, 320px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.is-page-transitioning .page-main,
+  html.is-page-transitioning .content-panel,
+  html.cp-header-ready .app-header .cp-store-picker {
+    transition-duration: 1ms;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+}

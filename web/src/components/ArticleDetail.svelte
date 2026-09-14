@@ -403,7 +403,7 @@
     flex-wrap: wrap;
     gap: 7px;
     justify-content: flex-end;
-    margin: 24px 0 12px;
+    margin: 0 0 12px;
   }
 
   .detail-actions .active {
@@ -435,7 +435,7 @@
     border: 0;
     cursor: zoom-in;
     display: block;
-    height: clamp(250px, 37vw, 510px);
+    height: clamp(190px, 24vw, 320px);
     overflow: hidden;
     padding: 0;
     width: 100%;
@@ -450,7 +450,7 @@
   .reading-head {
     margin: 0 auto;
     max-width: 860px;
-    padding: clamp(30px, 5vw, 62px) clamp(22px, 5vw, 58px) 24px;
+    padding: clamp(28px, 4vw, 48px) clamp(22px, 5vw, 58px) 22px;
     text-align: center;
   }
 
@@ -462,7 +462,7 @@
   }
 
   .reading-head h1 {
-    font-size: clamp(31px, 4.8vw, 56px);
+    font-size: clamp(29px, 3.8vw, 46px);
     line-height: 1.15;
     margin: 12px 0 14px;
   }
@@ -797,6 +797,10 @@
   }
 
   @media (max-width: 760px) {
+    .reading-cover {
+      height: clamp(150px, 46vw, 220px);
+    }
+
     .reading-grid {
       grid-template-columns: 1fr;
     }

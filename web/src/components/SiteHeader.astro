@@ -24,7 +24,6 @@ import {
   Wrench,
   X
 } from 'lucide-svelte';
-import StorePicker from './StorePicker.svelte';
 
 const path = Astro.url.pathname;
 const active = (prefix: string) => prefix === '/' ? path === '/' : path.startsWith(prefix);
@@ -32,8 +31,10 @@ const activeArticles = ['/articles', '/archive', '/categories', '/tags', '/serie
 const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales', '/reviews'].some((item) => path.startsWith(item));
 ---
 
-<header class="app-header">
-  <span class="app-header-progress" aria-hidden="true"><span id="nav-progress"></span></span>
+<div class="page-transition-progress" id="page-transition-progress" aria-hidden="true"><i></i></div>
+
+<header class="app-header" transition:persist>
+  <span class="app-header-progress" aria-hidden="true"><span id="app-scroll-progress"></span></span>
   <a class="brand" href="/" aria-label="CrossPilot 主页">
     <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt="" /></span>
     <span class="brand-copy">
@@ -60,7 +61,7 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
         <a class="nav-item" href="/studio" role="menuitem"><span data-icon="edit"><FilePenLine size={18} /></span><span data-label="内容后台">内容后台</span></a>
       </div>
     </div>
-    <a class:list={['nav-item', { 'is-active': active('/overview') }]} href="/overview">
+    <a class:list={['nav-item', { 'is-active': active('/overview') }]} href="/overview" data-astro-reload>
       <span data-icon="overview"><LayoutDashboard size={18} /></span><span data-label="运营总览">运营总览</span>
     </a>
     <div class="nav-tools">
@@ -68,12 +69,12 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
         <span data-icon="tools"><Wrench size={18} /></span><span data-label="运营工具">运营工具</span><span class="nav-tools-caret" data-icon="chevronDown"><ChevronDown size={15} /></span>
       </button>
       <div class="nav-tools-menu" id="operations-tools-menu" role="menu" aria-label="运营流程工具">
-        <a class="nav-item" href="/imports" role="menuitem"><span data-icon="imports"><FileText size={18} /></span><span data-label="数据导入">数据导入</span></a>
-        <a class="nav-item" href="/listings" role="menuitem"><span data-icon="listings"><ListChecks size={18} /></span><span data-label="Listing与商品">Listing与商品</span></a>
-        <a class="nav-item" href="/ads" role="menuitem"><span data-icon="ads"><Target size={18} /></span><span data-label="广告与流量">广告与流量</span></a>
-        <a class="nav-item" href="/inventory" role="menuitem"><span data-icon="inventory"><Grid2X2 size={18} /></span><span data-label="库存与履约">库存与履约</span></a>
-        <a class="nav-item" href="/aftersales" role="menuitem"><span data-icon="aftersales"><MessageSquare size={18} /></span><span data-label="售后与账号">售后与账号</span></a>
-        <a class="nav-item" href="/reviews" role="menuitem"><span data-icon="reviews"><BookOpen size={18} /></span><span data-label="运营复盘">运营复盘</span></a>
+        <a class="nav-item" href="/imports" role="menuitem" data-astro-reload><span data-icon="imports"><FileText size={18} /></span><span data-label="数据导入">数据导入</span></a>
+        <a class="nav-item" href="/listings" role="menuitem" data-astro-reload><span data-icon="listings"><ListChecks size={18} /></span><span data-label="Listing与商品">Listing与商品</span></a>
+        <a class="nav-item" href="/ads" role="menuitem" data-astro-reload><span data-icon="ads"><Target size={18} /></span><span data-label="广告与流量">广告与流量</span></a>
+        <a class="nav-item" href="/inventory" role="menuitem" data-astro-reload><span data-icon="inventory"><Grid2X2 size={18} /></span><span data-label="库存与履约">库存与履约</span></a>
+        <a class="nav-item" href="/aftersales" role="menuitem" data-astro-reload><span data-icon="aftersales"><MessageSquare size={18} /></span><span data-label="售后与账号">售后与账号</span></a>
+        <a class="nav-item" href="/reviews" role="menuitem" data-astro-reload><span data-icon="reviews"><BookOpen size={18} /></span><span data-label="运营复盘">运营复盘</span></a>
       </div>
     </div>
   </nav>
@@ -191,13 +192,31 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
     </div>
 
     <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
-    <StorePicker client:load />
   </div>
 </header>
 
 <script>
   const fontToggle = document.querySelector<HTMLButtonElement>('#font-toggle');
   const groups = [...document.querySelectorAll<HTMLElement>('.nav-tools')];
+
+  function updateNavigationState() {
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    const isContent = ['/articles', '/archive', '/categories', '/tags', '/series', '/search', '/studio'].some((item) => path.startsWith(item)) || /^\/articles\/[^/]+$/.test(path);
+    const isTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales', '/reviews'].some((item) => path.startsWith(item));
+
+    document.querySelectorAll<HTMLElement>('.main-nav > .nav-item[href], .nav-tools-menu .nav-item[href]').forEach((item) => {
+      const href = (item as HTMLAnchorElement).getAttribute('href') || '';
+      const active = href === '/' ? path === '/' : href === '/overview' ? path === '/overview' : path.startsWith(href);
+      item.classList.toggle('is-active', active);
+      if (active) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
+    });
+
+    const articleTrigger = document.querySelector<HTMLElement>('[aria-controls="articles-menu"]');
+    const toolsTrigger = document.querySelector<HTMLElement>('[aria-controls="operations-tools-menu"]');
+    articleTrigger?.classList.toggle('is-active', isContent);
+    toolsTrigger?.classList.toggle('is-active', isTools);
+  }
 
   function readFontMode() {
     try {
@@ -246,4 +265,11 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeGroups();
   });
+
+  updateNavigationState();
+  document.addEventListener('astro:after-swap', () => {
+    closeGroups();
+    updateNavigationState();
+  });
+  document.addEventListener('astro:page-load', updateNavigationState);
 </script>

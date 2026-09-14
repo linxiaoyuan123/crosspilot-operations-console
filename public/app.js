@@ -213,6 +213,7 @@ const shellRight = document.querySelector('#shell-right');
 init();
 
 function init() {
+  initPageTransitions();
   document.querySelectorAll('[data-icon]').forEach((element) => {
     element.innerHTML = icon(element.dataset.icon);
   });
@@ -1439,11 +1440,11 @@ async function navigate(view) {
   if (!VIEW_META[view]) return false;
   if (view === 'article') {
     if (!state.articleSlug) return false;
-    window.location.assign(`/articles/${encodeURIComponent(state.articleSlug)}`);
+    leaveForPage(`/articles/${encodeURIComponent(state.articleSlug)}`);
     return true;
   }
   if (CONTENT_ROUTES[view]) {
-    window.location.assign(CONTENT_ROUTES[view]);
+    leaveForPage(CONTENT_ROUTES[view]);
     return true;
   }
   const changed = state.view !== view;
@@ -1503,7 +1504,59 @@ function highlightSearchTarget(selector) {
 
 async function openKnowledgeArticle(id) {
   const article = await api(`/api/knowledge/${id}`);
-  if (article?.slug) window.location.assign(`/articles/${encodeURIComponent(article.slug)}`);
+  if (article?.slug) leaveForPage(`/articles/${encodeURIComponent(article.slug)}`);
+}
+
+function initPageTransitions() {
+  const bar = document.querySelector('#page-transition-progress i');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let animation = null;
+
+  function start() {
+    document.documentElement.classList.add('is-page-transitioning');
+    if (!bar) return;
+    animation?.cancel();
+    animation = bar.animate(
+      [
+        { transform: 'scaleX(0.04)', opacity: 1 },
+        { transform: 'scaleX(0.72)', opacity: 1 },
+        { transform: 'scaleX(0.9)', opacity: 1 }
+      ],
+      { duration: reduceMotion ? 1 : 5000, easing: 'cubic-bezier(0.12, 0.72, 0.18, 1)', fill: 'forwards' }
+    );
+  }
+
+  function finish() {
+    animation?.cancel();
+    animation = null;
+    if (bar) {
+      bar.animate(
+        [
+          { transform: 'scaleX(0.96)', opacity: 1 },
+          { transform: 'scaleX(1)', opacity: 1 },
+          { transform: 'scaleX(1)', opacity: 0 }
+        ],
+        { duration: reduceMotion ? 1 : 420, easing: 'ease-out', fill: 'forwards' }
+      ).finished.finally(() => {
+        bar.style.transform = 'scaleX(0)';
+        bar.style.opacity = '0';
+      });
+    }
+    window.requestAnimationFrame(() => document.documentElement.classList.remove('is-page-transitioning'));
+  }
+
+  window.crosspilotPageTransition = { start, finish };
+  window.addEventListener('pageshow', finish);
+  window.requestAnimationFrame(() => {
+    document.documentElement.classList.add('cp-header-ready');
+    start();
+    window.setTimeout(finish, reduceMotion ? 0 : 260);
+  });
+}
+
+function leaveForPage(url) {
+  window.crosspilotPageTransition?.start();
+  window.setTimeout(() => window.location.assign(url), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 90);
 }
 
 function updateViewChrome() {

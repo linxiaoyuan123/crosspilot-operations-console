@@ -368,16 +368,19 @@ test('Astro content routes and legacy operations fallback preserve their contrac
   const html = await response.text();
   assert.equal(response.status, 200);
   assert.match(html, /CrossPilot · 跨境电商运营决策中台/);
-  assert.match(html, /运营工作区/);
-  assert.match(html, /从经营状态到方法沉淀/);
-  assert.match(html, /跨境运营，从数据到动作/);
+  assert.match(html, /把跨境运营经验/);
+  assert.doesNotMatch(html, /从经营状态到方法沉淀/);
+  assert.doesNotMatch(html, /cp-home-profile/);
   assert.match(html, /\/pig\.png/);
   assert.match(html, /astro-island/);
-  assert.match(html, /StorePicker/);
+  assert.doesNotMatch(html, /StorePicker/);
+  assert.match(html, /astro-view-transitions-enabled/);
+  assert.match(html, /page-transition\.css/);
 
   const articlePage = await request('/articles/');
   assert.equal(articlePage.response.status, 200);
   assert.match(articlePage.body, /全部文章/);
+  assert.match(articlePage.body, /文章本身阅读/);
   const detailPage = await request('/articles/crosspilot-usage-guide');
   assert.equal(detailPage.response.status, 200);
   assert.match(detailPage.body, /ArticleDetail/);
