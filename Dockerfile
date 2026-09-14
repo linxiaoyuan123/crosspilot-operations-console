@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
@@ -7,6 +7,8 @@ COPY web/package.json ./web/package.json
 RUN pnpm install --frozen-lockfile
 COPY web/ ./web/
 RUN pnpm --dir web build
+
+FROM node:24-bookworm-slim AS runtime
 
 WORKDIR /app
 
@@ -21,7 +23,7 @@ RUN corepack enable && corepack prepare pnpm@11.19.0 --activate && pnpm install 
 COPY src ./src
 COPY public ./public
 
-COPY --from=0 /build/web/dist ./web/dist
+COPY --from=build /build/web/dist ./web/dist
 
 RUN mkdir -p /app/data && chown -R node:node /app
 
