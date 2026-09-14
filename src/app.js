@@ -692,24 +692,15 @@ async function serveFile({ request, response, filePath, cacheControl }) {
 function mapWebRoute(pathname) {
   const value = pathname.replace(/\/+$/, '') || '/';
   const staticRoutes = {
-    '/': 'index.html',
     '/index.html': 'index.html',
-    '/articles': 'articles/index.html',
-    '/archive': 'archive/index.html',
-    '/categories': 'categories/index.html',
-    '/tags': 'tags/index.html',
-    '/series': 'series/index.html',
-    '/search': 'search/index.html',
     '/dynamic': 'dynamic/index.html',
     '/projects': 'projects/index.html',
     '/gallery': 'gallery/index.html',
     '/resources': 'resources/index.html',
     '/guestbook': 'guestbook/index.html',
     '/about': 'about/index.html',
-    '/studio': 'studio/index.html'
   };
   if (staticRoutes[value]) return staticRoutes[value];
-  if (/^\/articles\/[^/]+$/.test(value)) return 'articles/detail/index.html';
   const detailMatch = value.match(/^\/(projects|gallery|resources)\/[^/]+\/?$/);
   if (detailMatch) return `${detailMatch[1]}/detail/index.html`;
   if (value.startsWith('/_astro/')) return value.slice(1);
@@ -718,15 +709,24 @@ function mapWebRoute(pathname) {
 }
 
 function isLegacyRoute(pathname) {
+  const value = pathname.replace(/\/+$/, '') || '/';
   return new Set([
+    '/',
+    '/articles',
+    '/archive',
+    '/categories',
+    '/tags',
+    '/series',
+    '/search',
     '/overview',
+    '/studio',
     '/imports',
     '/listings',
     '/ads',
     '/inventory',
     '/aftersales',
     '/reviews'
-  ]).has(pathname);
+  ]).has(value) || /^\/articles\/[^/]+$/.test(value);
 }
 
 function resolveWithin(baseDirectory, relativePath) {

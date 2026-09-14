@@ -101,9 +101,15 @@ const VIEW_META = {
 };
 
 const CONTENT_ROUTES = {
-  home: '/',
-  articles: '/articles',
-  studio: '/studio'
+};
+
+const ARTICLE_MODE_ROUTES = {
+  all: '/articles',
+  archive: '/archive',
+  categories: '/categories',
+  tags: '/tags',
+  series: '/series',
+  search: '/search'
 };
 
 const LEGACY_HASH_ROUTES = {
@@ -175,12 +181,26 @@ const state = {
   stores: [],
   articles: [],
   articleStats: { total: 0, published: 0, drafts: 0, categories: [], tags: [] },
+  homeQuery: '',
   articleQuery: '',
   articleMode: 'all',
+  articleView: 'list',
   articleCategory: '',
   articleTag: '',
+  articleMonth: '',
+  articleSeries: '',
+  articleArchive: [],
   articleSlug: '',
   currentArticle: null,
+  studioTab: 'articles',
+  studioEditingId: null,
+  studioArticleForm: null,
+  studioPreview: '',
+  studioMedia: [],
+  studioComments: [],
+  studioContent: [],
+  studioContentId: null,
+  studioContentForm: null,
   overview: null,
   actions: [],
   imports: [],
@@ -209,6 +229,8 @@ let heroTypewriterTimer = 0;
 let heroTypewriterEnabled = null;
 const shellLeft = document.querySelector('#shell-left');
 const shellRight = document.querySelector('#shell-right');
+let studioPreviewTimer = 0;
+let studioPreviewRequest = 0;
 
 init();
 
@@ -231,6 +253,7 @@ function init() {
   window.addEventListener('crosspilot:search-navigate', (event) => handleSearchNavigation(event.detail || {}));
   document.addEventListener('click', handleClick);
   document.addEventListener('submit', handleSubmit);
+  document.addEventListener('input', handleInput);
   document.addEventListener('change', handleChange);
   document.addEventListener('dragover', handleDragOver);
   document.addEventListener('drop', handleDrop);
@@ -243,10 +266,6 @@ function init() {
   }
   if (LEGACY_HASH_ROUTES[hashValue]) {
     const target = LEGACY_HASH_ROUTES[hashValue];
-    if (target.startsWith('/') && !['/overview', '/imports', '/listings', '/ads', '/inventory', '/aftersales', '/reviews'].includes(target)) {
-      window.location.replace(target);
-      return;
-    }
     window.history.replaceState({}, '', target);
   }
   restoreViewFromLocation();
@@ -265,13 +284,37 @@ function restoreViewFromLocation() {
     window.history.replaceState({}, '', LEGACY_HASH_ROUTES[hashValue]);
   }
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/article') return;
-  const operationView = Object.entries(LEGACY_HASH_ROUTES).find(([, route]) => route === path)?.[0];
-  if (operationView && VIEW_META[operationView]) {
-    state.view = operationView;
-    updateViewChrome();
-    if (state.stores.length) loadCurrentView(true);
+  const params = new URLSearchParams(window.location.search);
+  const articleDetailMatch = path.match(/^\/articles\/([^/]+)$/);
+  const articleMode = Object.entries(ARTICLE_MODE_ROUTES).find(([, route]) => route === path)?.[0];
+  const requestedStudioId = Number(params.get('edit')) || null;
+
+  if (path === '/') {
+    state.view = 'home';
+  } else if (articleDetailMatch) {
+    state.view = 'article';
+    state.articleSlug = decodeURIComponent(articleDetailMatch[1]);
+  } else if (articleMode) {
+    state.view = 'articles';
+    state.articleMode = articleMode;
+    state.articleQuery = params.get('q') || '';
+    state.articleCategory = params.get('category') || '';
+    state.articleTag = params.get('tag') || '';
+    state.articleSeries = params.get('series') || '';
+    state.articleMonth = params.get('month') || '';
+  } else if (path === '/studio') {
+    state.view = 'studio';
+    state.studioTab = 'articles';
+    if (requestedStudioId) {
+      state.studioEditingId = requestedStudioId;
+      state.studioArticleForm = null;
+    }
+  } else {
+    const operationView = Object.entries(LEGACY_HASH_ROUTES).find(([, route]) => route === path)?.[0];
+    if (operationView && VIEW_META[operationView]) state.view = operationView;
   }
+  updateViewChrome();
+  if (state.stores.length) loadCurrentView(true);
 }
 
 async function bootstrap() {
@@ -326,7 +369,7 @@ async function loadHome(request = state.viewRequest) {
   const [overview, actions, articles] = await Promise.all([
     api(`/api/overview?storeId=${state.storeId}`),
     api(`/api/actions?storeId=${state.storeId}&status=all`),
-    api('/api/knowledge?status=published&limit=6')
+    api('/api/knowledge?status=published&limit=12')
   ]);
   if (!isCurrentViewRequest(request, view) || view !== 'home') return;
   state.overview = overview;
@@ -342,10 +385,18 @@ async function loadArticles(request = state.viewRequest) {
   if (state.articleQuery) params.set('q', state.articleQuery);
   if (state.articleCategory) params.set('category', state.articleCategory);
   if (state.articleTag) params.set('tag', state.articleTag);
-  const data = await api(`/api/knowledge?${params}`);
+  if (state.articleSeries) params.set('series', state.articleSeries);
+  if (state.articleMonth) params.set('month', state.articleMonth);
+  const [data, archive] = await Promise.all([
+    api(`/api/knowledge?${params}`),
+    state.articleMode === 'archive' && !state.articleArchive.length
+      ? api('/api/knowledge/archive')
+      : Promise.resolve(null)
+  ]);
   if (!isCurrentViewRequest(request, view) || view !== 'articles') return;
   state.articles = data.items;
   state.articleStats = data.stats;
+  if (archive) state.articleArchive = archive.items || [];
   renderArticles();
 }
 
@@ -365,11 +416,40 @@ async function loadArticle(request = state.viewRequest) {
 
 async function loadStudio(request = state.viewRequest) {
   const view = state.view;
-  const data = await api('/api/knowledge?status=all&limit=100');
+  if (!isCurrentViewRequest(request, view) || view !== 'studio') return;
+  const [data, media, comments, content, overview, actions] = await Promise.all([
+    api('/api/knowledge?status=all&limit=500'),
+    api('/api/media?limit=200'),
+    api('/api/comments?status=all&limit=300'),
+    api('/api/content?status=all&limit=200'),
+    api(`/api/overview?storeId=${state.storeId}`),
+    api(`/api/actions?storeId=${state.storeId}&status=all`)
+  ]);
   if (!isCurrentViewRequest(request, view) || view !== 'studio') return;
   state.articles = data.items;
   state.articleStats = data.stats;
+  state.studioMedia = media.items || [];
+  state.studioComments = comments.items || [];
+  state.studioContent = content.items || [];
+  state.overview = overview;
+  state.actions = actions.items || [];
+  if (!state.studioArticleForm) {
+    const target = state.articles.find((item) => item.id === Number(state.studioEditingId)) || state.articles[0];
+    if (target) selectStudioArticle(target, false);
+    else resetStudioArticle(false);
+  }
+  if (!state.studioContentForm) {
+    const target = state.studioContent.find((item) => item.id === Number(state.studioContentId)) || state.studioContent[0];
+    if (target) {
+      state.studioContentId = target.id;
+      state.studioContentForm = contentToStudioForm(target);
+    } else {
+      state.studioContentId = null;
+      state.studioContentForm = blankStudioContentForm();
+    }
+  }
   renderStudio();
+  scheduleStudioPreview();
 }
 
 async function loadOverview(request = state.viewRequest) {
@@ -439,76 +519,72 @@ async function loadReviews(request = state.viewRequest) {
 }
 
 function renderHome() {
-  const data = state.overview;
-  const k = data.kpis;
-  const store = state.stores.find((item) => item.id === state.storeId);
-  const openActions = state.actions.filter((item) => !isClosedAction(item.status));
-  const featured = state.articles.find((item) => item.featured) || state.articles[0];
-  const latest = state.articles.filter((item) => item.id !== featured?.id).slice(0, 3);
+  const keyword = state.homeQuery.trim().toLowerCase();
+  const visible = state.articles.filter((article) => { if (!keyword) return true; return `${article.title} ${article.excerpt} ${article.category} ${article.tags}`.toLowerCase().includes(keyword); });
   app.innerHTML = `
-    ${viewHead('从经营状态到方法沉淀', '主页汇集当前店铺、待办动作、关键指标和最新文章，日常从这里进入各模块。', `
-      <button class="button secondary" data-nav="articles">${icon('book')}浏览文章</button>
-      <button class="button primary" data-action="new-article">${icon('plus')}写新文章</button>`)}
-    <section class="cp-home-lead-grid">
-      ${featured ? renderFeaturedArticle(featured) : `<section class="panel">${emptyBlock('还没有文章', '进入内容后台写下第一篇运营方法。')}</section>`}
-      <aside class="panel cp-home-profile">
-        <div class="cp-home-profile-head"><span class="cp-home-avatar">${icon('target', 24)}</span><div><span class="panel-kicker">active workspace</span><h3>${h(store?.name || 'CrossPilot')}</h3><p>${h(store ? `${store.platform} · ${store.market}` : '跨境运营工作区')}</p></div></div>
-        <div class="cp-home-profile-stats">
-          <div><span>待办动作</span><strong>${openActions.length}</strong></div>
-          <div><span>已发布文章</span><strong>${state.articleStats.published || 0}</strong></div>
-          <div><span>库存风险</span><strong>${k.inventoryRiskCount}</strong></div>
-          <div><span>售后事项</span><strong>${k.pendingAfterSales}</strong></div>
-        </div>
-        <div class="cp-home-profile-note"><span>${icon('sparkles')}</span><p>规则引擎会持续复核利润、广告、库存和售后异常。</p></div>
-        <div class="cp-home-profile-actions"><button class="button secondary" data-nav="overview">进入总览</button><button class="button secondary" data-nav="studio">维护内容</button></div>
-      </aside>
-    </section>
-    <section class="cp-home-section">
-      <header class="cp-home-section-head"><div><span class="panel-kicker">latest notes</span><h3>最新文章</h3></div><button class="text-button" data-nav="articles">查看全部 ${icon('arrow')}</button></header>
-      <div class="cp-article-grid compact">${latest.length ? latest.map(renderArticleCard).join('') : emptyBlock('暂无更多文章', '内容后台发布的文章会显示在这里。')}</div>
-    </section>
-    <section class="cp-home-section">
-      <header class="cp-home-section-head"><div><span class="panel-kicker">operations pulse</span><h3>运营脉冲</h3></div><span class="muted">近 30 天</span></header>
-      <div class="metric-grid cp-metric-grid">
-        ${metricCard('chart', '净销售额', money(k.netSales, data.store.currency), `净利润 ${money(k.profit, data.store.currency)}`, 'overview', 'accent')}
-        ${metricCard('ads', 'ACOS', `${k.acos}%`, `目标 ${data.store.target_acos}%`, 'ads', k.acos > data.store.target_acos ? 'amber' : 'green')}
-        ${metricCard('inventory', '库存风险', `${k.inventoryRiskCount} 个 SKU`, '缺货与滞销', 'inventory', k.inventoryRiskCount ? 'amber' : 'green')}
-        ${metricCard('check', '待执行动作', `${openActions.length} 项`, `P0 ${openActions.filter((item) => item.priority === 'critical').length}`, 'overview', openActions.length ? 'amber' : 'green')}
+    <section class="home-intro cp-card" aria-labelledby="home-title">
+      <div class="home-intro-copy">
+        <span class="cp-kicker">CrossPilot journal</span>
+        <h1 id="home-title">把跨境运营经验，整理成可以复用的方法</h1>
+        <p>这里只保留文章与写作入口，经营指标、店铺状态和待办动作继续放在运营总览与工具模块。</p>
       </div>
+      <div class="home-intro-actions">
+        <button class="button secondary" type="button" data-nav="articles">${icon('book', 15)}全部文章</button>
+        <button class="button primary" type="button" data-action="new-article">${icon('edit', 15)}写新文章</button>
+      </div>
+    </section>
+    <section class="home-library cp-card" aria-labelledby="home-library-title">
+      <header class="home-library-head">
+        <div><span class="cp-kicker">latest notes</span><h2 id="home-library-title">最新文章</h2><p>按更新时间浏览运营方法、项目复盘和实战记录。</p></div>
+        <form id="home-search-form" class="home-search">${icon('search', 15)}<input name="q" type="search" value="${escapeAttr(state.homeQuery)}" placeholder="筛选文章" aria-label="筛选文章"><button type="submit">搜索</button></form>
+      </header>
+      ${visible.length ? `<div class="home-feed">${visible.map(renderHomeStory).join('')}</div>` : emptyBlock('没有匹配文章', '调整筛选词后再试。')}
     </section>`;
 }
 
-function renderFeaturedArticle(article) {
-  return `<article class="panel cp-featured-article" data-action="open-article" data-slug="${escapeAttr(article.slug)}" tabindex="0" role="link">
-    <div class="cp-featured-media">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : `<span>${icon('book', 36)}</span>`}</div>
-    <div class="cp-featured-copy"><span class="project-kicker">${h(article.category)} · featured</span><h2>${h(article.title)}</h2><p>${h(article.excerpt)}</p><div class="cp-article-meta"><span>${formatDate(article.updated_at)}</span><span>${article.reading_minutes} 分钟阅读</span><span>${number(article.views)} 次查看</span></div><span class="text-button">继续阅读 ${icon('arrow')}</span></div>
-  </article>`;
+function renderHomeStory(article, index) {
+  const tags = String(article.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, index === 0 ? 4 : 2);
+  return `<a class="home-story${index === 0 ? ' featured' : ''}" href="/articles/${encodeURIComponent(article.slug)}" data-article-slug="${escapeAttr(article.slug)}">
+    <span class="home-story-copy">
+      <span class="home-story-meta"><span>${h(article.category || '未分类')}</span>${article.featured ? '<strong>置顶</strong>' : ''}<time>${formatDate(article.updated_at)}</time></span>
+      <h3>${h(article.title)}</h3>
+      ${index === 0 ? `<p>${h(article.excerpt)}</p>` : ''}
+      <span class="home-story-tags">${tags.map((tag) => `<span>#${h(tag)}</span>`).join('')}</span>
+      <span class="home-story-foot"><span>${article.reading_minutes || 1} 分钟阅读</span><span>${number(article.views)} 次查看</span><em>继续阅读 ${icon('arrow', 13)}</em></span>
+    </span>
+    <span class="home-story-cover" aria-hidden="true">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="" loading="${index > 1 ? 'lazy' : 'eager'}">` : icon('book', 28)}</span>
+  </a>`;
 }
 
 function renderArticleCard(article) {
-  const tags = String(article.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 3);
-  return `<article class="panel cp-article-card">
-    <button type="button" class="cp-article-cover" data-action="open-article" data-slug="${escapeAttr(article.slug)}" aria-label="阅读 ${escapeAttr(article.title)}">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : `<span>${icon('book', 30)}</span>`}</button>
-    <div class="cp-article-card-body"><div class="cp-article-card-top"><span class="project-kicker">${h(article.category)}</span><time>${formatDate(article.updated_at)}</time></div><h3><button type="button" data-action="open-article" data-slug="${escapeAttr(article.slug)}">${h(article.title)}</button></h3><p>${h(article.excerpt)}</p><div class="cp-article-tags">${tags.map((tag) => `<button type="button" data-action="filter-tag" data-tag="${escapeAttr(tag)}"># ${h(tag)}</button>`).join('')}</div><div class="cp-article-meta"><span>${article.reading_minutes} 分钟</span><span>${number(article.views)} 次查看</span></div></div>
+  const tags = String(article.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 4);
+  return `<article class="article cp-card">
+    <a class="cover" href="/articles/${encodeURIComponent(article.slug)}" data-article-slug="${escapeAttr(article.slug)}" aria-label="阅读 ${escapeAttr(article.title)}">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="" loading="lazy">` : icon('book', 26)}</a>
+    <div class="copy">
+      <div class="meta-top"><span class="cp-kicker">${h(article.category || '未分类')}</span>${article.featured ? '<span class="cp-badge accent">置顶</span>' : ''}</div>
+      <h2><a href="/articles/${encodeURIComponent(article.slug)}" data-article-slug="${escapeAttr(article.slug)}">${h(article.title)}</a></h2>
+      <p>${h(article.excerpt)}</p>
+      <div class="tags">${tags.map((tag) => `<button type="button" data-action="filter-tag" data-tag="${escapeAttr(tag)}">#${h(tag)}</button>`).join('')}</div>
+      <div class="meta"><span>${formatDate(article.updated_at)}</span><span>${article.reading_minutes || 1} 分钟</span><span>${number(article.views)} 次查看</span></div>
+    </div>
   </article>`;
 }
 
 function renderArticles() {
   const stats = state.articleStats || {};
-  const modes = { all: '全部文章', categories: '分类', tags: '标签' };
+  const title = { all: '全部文章', archive: '文章归档', categories: '文章分类', tags: '标签索引', series: '内容系列', search: '全文搜索' }[state.articleMode] || '全部文章';
   const filters = state.articleMode === 'categories' ? stats.categories : state.articleMode === 'tags' ? stats.tags : [];
+  const series = state.articleMode === 'series' ? stats.series || [] : [];
+  const modes = [['all', '全部'], ['categories', '分类'], ['tags', '标签'], ['archive', '归档'], ['series', '系列'], ['search', '搜索']];
   app.innerHTML = `
-    ${viewHead('CrossPilot 文章', '记录项目使用方法、运营流程和复盘方法。支持 Markdown、分类、标签与图片。', `
-      <button class="button secondary" data-nav="studio">${icon('edit')}内容后台</button>
-      <button class="button primary" data-action="new-article">${icon('plus')}写新文章</button>`)}
-    <section class="panel cp-article-index">
-      <div class="cp-article-index-toolbar">
-        <div class="cp-article-mode-tabs">${Object.entries(modes).map(([value, label]) => `<button type="button" class="${state.articleMode === value ? 'is-active' : ''}" data-action="article-mode" data-mode="${value}">${label}</button>`).join('')}</div>
-        <form id="article-search-form" class="cp-search-form compact"><input name="q" value="${escapeAttr(state.articleQuery)}" placeholder="搜索文章标题、正文或标签"><button class="icon-button" type="submit">${icon('search')}</button></form>
-      </div>
-      ${filters.length ? `<div class="cp-filter-cloud"><button type="button" class="${!state.articleCategory && !state.articleTag ? 'is-active' : ''}" data-action="clear-article-filter">全部</button>${filters.map((item) => `<button type="button" class="${(state.articleMode === 'categories' ? state.articleCategory : state.articleTag) === item.name ? 'is-active' : ''}" data-action="filter-${state.articleMode === 'categories' ? 'category' : 'tag'}" data-value="${escapeAttr(item.name)}">${h(item.name)}<span>${item.count}</span></button>`).join('')}</div>` : ''}
-      <div class="cp-article-grid">${state.articles.length ? state.articles.map(renderArticleCard).join('') : emptyBlock('没有匹配文章', '调整搜索或筛选条件后再试。')}</div>
-    </section>`;
+    <header class="page-head cp-card"><div><span class="cp-kicker">${state.articleMode === 'search' ? 'full text search' : 'content library'}</span><h1>${title}</h1><p>按文章本身阅读，不把店铺资料和经营指标混进内容区。</p></div><div class="page-head-actions"><button class="button secondary" type="button" data-nav="studio">${icon('edit', 14)}内容后台</button><button class="button primary" type="button" data-action="new-article">${icon('plus', 14)}写新文章</button></div></header>
+    <nav class="cp-article-mode-tabs" aria-label="文章浏览方式">${modes.map(([mode, label]) => `<button type="button" class="${state.articleMode === mode ? 'is-active' : ''}" data-action="article-mode" data-mode="${mode}"${state.articleMode === mode ? ' aria-current="page"' : ''}>${label}</button>`).join('')}</nav>
+    ${state.articleMode === 'all' || state.articleMode === 'search' ? `<form id="article-search-form" class="search-bar cp-card">${icon('search', 16)}<input class="cp-field" name="q" value="${escapeAttr(state.articleQuery)}" type="search" placeholder="搜索标题、正文、标签" aria-label="搜索文章"><button class="button secondary" type="submit">搜索</button></form>` : ''}
+    ${filters.length ? `<div class="taxonomy cp-card"><div class="taxonomy-head">${icon('target', 15)}<strong>${state.articleMode === 'categories' ? '按分类筛选' : '按标签筛选'}</strong></div><div class="taxonomy-list">${filters.map((item) => `<button type="button" class="${(state.articleMode === 'categories' ? state.articleCategory : state.articleTag) === item.name ? 'active' : ''}" data-action="filter-${state.articleMode === 'categories' ? 'category' : 'tag'}" data-value="${escapeAttr(item.name)}">${h(item.name)}<span>${item.count}</span></button>`).join('')}</div></div>` : ''}
+    ${series.length ? `<div class="series-grid">${series.map((item) => `<button type="button" class="series-card cp-card${state.articleSeries === item.slug ? ' active' : ''}" data-action="filter-series" data-value="${escapeAttr(item.slug)}"><span class="cp-kicker">series</span><h2>${h(item.name)}</h2><p>${h(item.description || '按顺序阅读这一主题下的文章。')}</p><strong>${item.count} 篇</strong></button>`).join('')}</div>` : ''}
+    ${state.articleMode === 'archive' && state.articleArchive.length ? `<div class="archive-strip cp-card cp-scroll">${state.articleArchive.map((item) => `<button type="button" class="${state.articleMonth === item.month ? 'active' : ''}" data-action="toggle-month" data-value="${escapeAttr(item.month)}"><strong>${h(item.month)}</strong><span>${item.count} 篇</span></button>`).join('')}</div>` : ''}
+    <div class="toolbar"><span>共显示 ${state.articles.length} 篇</span><div class="view-switch"><button type="button" class="${state.articleView === 'grid' ? 'active' : ''}" data-action="article-view" data-view="grid" title="网格视图">${icon('grid', 14)}</button><button type="button" class="${state.articleView === 'list' ? 'active' : ''}" data-action="article-view" data-view="list" title="列表视图">${icon('rows', 14)}</button></div></div>
+    ${state.articles.length ? `<div class="article-list ${state.articleView}-view">${state.articles.map(renderArticleCard).join('')}</div>` : emptyBlock('没有匹配文章', '调整搜索或筛选条件后再试。')}`;
 }
 
 function renderArticleDetail() {
@@ -527,31 +603,359 @@ function renderArticleDetail() {
     </article>`;
 }
 
+const STUDIO_CONTENT_TYPES = {
+  dynamic: '运营动态',
+  project: '案例项目',
+  gallery: '证据相册',
+  resource: '资源导航',
+  guestbook: '反馈留言',
+  about: '关于页面'
+};
+
+function blankStudioArticleForm() {
+  return {
+    title: '',
+    slug: '',
+    category: '运营复盘',
+    tags: '',
+    excerpt: '',
+    contentMd: '## 背景\n\n写下问题发生的场景。\n\n## 处理过程\n\n1. 第一步\n2. 第二步\n\n## 结论\n\n记录判断标准和结果。',
+    coverImage: '',
+    status: 'draft',
+    featured: false,
+    publishAt: ''
+  };
+}
+
+function blankStudioContentForm(type = 'dynamic') {
+  return {
+    type,
+    slug: '',
+    title: '',
+    summary: '',
+    contentMd: '',
+    coverImage: '',
+    metadataText: '{}',
+    status: 'published',
+    featured: false,
+    publishedAt: ''
+  };
+}
+
+function studioDateTime(value = '') {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function articleToStudioForm(article) {
+  return {
+    title: article.title || '',
+    slug: article.slug || '',
+    category: article.category || '运营复盘',
+    tags: article.tags || '',
+    excerpt: article.excerpt || '',
+    contentMd: article.content_md || '',
+    coverImage: article.cover_image || '',
+    status: article.status === 'published' ? 'published' : 'draft',
+    featured: Boolean(article.featured),
+    publishAt: studioDateTime(article.publish_at || '')
+  };
+}
+
+function contentToStudioForm(item) {
+  return {
+    type: item.type || 'dynamic',
+    slug: item.slug || '',
+    title: item.title || '',
+    summary: item.summary || '',
+    contentMd: item.content_md || '',
+    coverImage: item.cover_image || '',
+    metadataText: JSON.stringify(item.metadata || {}, null, 2),
+    status: item.status === 'draft' ? 'draft' : 'published',
+    featured: Boolean(item.featured),
+    publishedAt: studioDateTime(item.published_at || '')
+  };
+}
+
+function resetStudioArticle(render = true) {
+  state.studioEditingId = null;
+  state.studioArticleForm = blankStudioArticleForm();
+  state.studioPreview = '';
+  state.studioTab = 'articles';
+  if (render) renderStudio();
+}
+
+function selectStudioArticle(article, render = true) {
+  state.studioEditingId = article.id;
+  state.studioArticleForm = articleToStudioForm(article);
+  state.studioPreview = article.html || '';
+  state.studioTab = 'articles';
+  if (render) renderStudio();
+}
+
+function resetStudioContent(type = 'dynamic', render = true) {
+  state.studioContentId = null;
+  state.studioContentForm = blankStudioContentForm(type);
+  if (render) renderStudio();
+}
+
+function selectStudioContent(item, render = true) {
+  state.studioContentId = item.id;
+  state.studioContentForm = contentToStudioForm(item);
+  state.studioTab = 'structured';
+  if (render) renderStudio();
+}
+
 function renderStudio() {
   const stats = state.articleStats || {};
+  const tabs = [
+    ['articles', '文章'],
+    ['comments', '评论审核'],
+    ['media', '媒体库'],
+    ['structured', '内容模块']
+  ];
   app.innerHTML = `
-    ${viewHead('内容后台', '文章以 Markdown 保存，可上传封面和正文截图，并随时切换草稿或发布状态。', `
-      <button class="button secondary" data-nav="articles">${icon('eye')}查看文章页</button>
-      <button class="button primary" data-action="new-article">${icon('plus')}新建文章</button>`)}
+    <header class="page-head cp-card"><div><span class="cp-kicker">content studio</span><h1>内容后台</h1><p>文章、评论、媒体和结构化内容统一维护，正文支持 Markdown、拖拽上传与实时预览。</p></div><div class="page-head-actions"><button class="button secondary" type="button" data-nav="articles">${icon('eye', 14)}查看文章页</button><button class="button primary" type="button" data-action="studio-new-article">${icon('plus', 14)}新建文章</button></div></header>
     <div class="metric-grid cp-metric-grid cp-studio-stats">
       ${metricCard('book', '文章总数', String(stats.total || 0), '全部内容', null, 'accent')}
       ${metricCard('check', '已发布', String(stats.published || 0), '文章页可见', null, 'green')}
       ${metricCard('edit', '草稿', String(stats.drafts || 0), '仅后台可见', null, 'amber')}
-      ${metricCard('grid', '分类数量', String(stats.categories?.length || 0), `${stats.tags?.length || 0} 个标签`, null, 'accent')}
+      ${metricCard('message', '待审核', String(stats.comments?.pending || state.studioComments.filter((item) => item.status === 'pending').length), '读者留言', null, stats.comments?.pending ? 'amber' : 'green')}
     </div>
-    <section class="panel cp-studio-table-panel">
-      <div class="panel-head"><div><span class="panel-kicker">content inventory</span><h3>全部文章</h3></div><span class="muted">Markdown 正文 · 草稿与发布状态</span></div>
-      ${state.articles.length ? `<div class="cp-studio-list">${state.articles.map(renderStudioRow).join('')}</div>` : emptyBlock('还没有文章', '点击“新建文章”开始写作。')}
-    </section>`;
+    <nav class="cp-article-mode-tabs cp-studio-tabs" aria-label="内容后台模块">${tabs.map(([tab, label]) => `<button type="button" class="${state.studioTab === tab ? 'is-active' : ''}" data-action="studio-tab" data-tab="${tab}"${state.studioTab === tab ? ' aria-current="page"' : ''}>${label}</button>`).join('')}</nav>
+    ${state.studioTab === 'comments' ? renderStudioCommentsTab() : state.studioTab === 'media' ? renderStudioMediaTab() : state.studioTab === 'structured' ? renderStudioStructuredTab() : renderStudioArticlesTab()}`;
 }
 
-function renderStudioRow(article) {
-  return `<article class="cp-studio-row">
-    <span class="cp-studio-cover">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : icon('book', 22)}</span>
-    <div class="cp-studio-main"><div><span class="badge status-${article.status === 'published' ? 'healthy' : 'warning'}">${article.status === 'published' ? '已发布' : '草稿'}</span>${article.featured ? '<span class="badge status-accent">置顶</span>' : ''}</div><strong>${h(article.title)}</strong><small>${h(article.excerpt)}</small></div>
-    <div class="cp-studio-meta"><span>${h(article.category)}</span><small>${formatDate(article.updated_at)} · ${article.reading_minutes} 分钟</small></div>
-    <div class="cp-studio-actions"><button class="icon-button small" data-action="preview-article" data-slug="${escapeAttr(article.slug)}" title="预览">${icon('eye', 15)}</button><button class="icon-button small" data-action="edit-article" data-id="${article.id}" title="编辑">${icon('edit', 15)}</button><button class="icon-button small cp-danger-button" data-action="delete-article" data-id="${article.id}" title="删除">${icon('trash', 15)}</button></div>
-  </article>`;
+function renderStudioArticlesTab() {
+  return `<div class="cp-studio-workbench">
+    <aside class="panel cp-studio-sidebar">
+      <header><div><span class="panel-kicker">article list</span><h3>文章清单</h3></div><span class="muted">${state.articles.length}</span></header>
+      <div class="cp-studio-sidebar-list">${state.articles.length ? state.articles.map(renderStudioArticleItem).join('') : emptyBlock('还没有文章', '点击新建文章开始写作。')}</div>
+    </aside>
+    ${renderStudioArticleEditor()}
+  </div>`;
+}
+
+function renderStudioArticleItem(article) {
+  return `<button type="button" class="cp-studio-sidebar-item${state.studioEditingId === article.id ? ' is-active' : ''}" data-action="studio-select-article" data-id="${article.id}">
+    <span class="cp-studio-sidebar-dot ${article.status === 'published' ? 'is-published' : ''}"></span>
+    <span><strong>${h(article.title)}</strong><small>${h(article.category || '未分类')} · ${formatDate(article.updated_at)}</small></span>
+  </button>`;
+}
+
+function renderStudioArticleEditor() {
+  const form = state.studioArticleForm || blankStudioArticleForm();
+  const preview = state.studioPreview || '<p class="markdown-placeholder">Markdown 预览会显示在这里。</p>';
+  const categories = (state.articleStats?.categories || []).map((item) => `<option value="${escapeAttr(item.name)}"></option>`).join('');
+  return `<form id="studio-article-form" class="panel cp-studio-editor article-editor-form">
+    <div class="cp-studio-editor-head"><div><span class="cp-kicker">${state.studioEditingId ? 'edit article' : 'new article'}</span><h2>${state.studioEditingId ? '编辑文章' : '新建文章'}</h2></div><div class="cp-studio-editor-actions">${state.studioEditingId && form.status === 'published' ? `<button class="button secondary" type="button" data-action="studio-open-preview" data-slug="${escapeAttr(form.slug)}">${icon('eye', 14)}查看文章</button>` : ''}${state.studioEditingId ? `<button class="button secondary cp-danger-button" type="button" data-action="studio-delete-article" data-id="${state.studioEditingId}">${icon('trash', 14)}删除</button>` : ''}<button class="button primary" type="submit">${icon('save', 14)}保存文章</button></div></div>
+    <div class="article-editor-meta">
+      ${field('文章标题', `<input class="cp-field" name="title" value="${escapeAttr(form.title)}" maxlength="160" required>` , true)}
+      ${field('URL 标识', `<input class="cp-field" name="slug" value="${escapeAttr(form.slug)}" maxlength="80" placeholder="留空自动生成">`)}
+      ${field('分类', `<input class="cp-field" name="category" value="${escapeAttr(form.category)}" list="studio-category-options" maxlength="50"><datalist id="studio-category-options">${categories}</datalist>`)}
+      ${field('标签', `<input class="cp-field" name="tags" value="${escapeAttr(form.tags)}" placeholder="用逗号分隔">`)}
+      ${field('发布状态', `<select class="cp-field" name="status"><option value="draft"${form.status === 'draft' ? ' selected' : ''}>草稿</option><option value="published"${form.status === 'published' ? ' selected' : ''}>已发布</option></select>`)}
+      ${field('定时发布', `<input class="cp-field" name="publishAt" type="datetime-local" value="${escapeAttr(form.publishAt)}">`)}
+      <label class="cp-check-field"><input type="checkbox" name="featured"${form.featured ? ' checked' : ''}><span>设为主页置顶文章</span></label>
+      ${field('摘要', `<textarea class="cp-field cp-scroll" name="excerpt" rows="3" maxlength="320">${h(form.excerpt)}</textarea>`, true)}
+    </div>
+    <div class="cp-cover-editor">
+      <div class="cp-cover-preview">${form.coverImage ? `<img src="${escapeAttr(form.coverImage)}" alt="">` : `<span>${icon('image', 24)}文章封面</span>`}</div>
+      <input type="hidden" name="coverImage" value="${escapeAttr(form.coverImage)}">
+      <div><strong>封面设置</strong><p>支持 PNG、JPG、WebP、GIF、AVIF，最大 5 MB。</p><div class="cp-studio-upload-actions"><label class="button secondary cp-upload-button">${icon('upload', 14)}上传封面<input id="studio-cover-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif"></label>${form.coverImage ? `<button class="button secondary" type="button" data-action="studio-clear-cover">${icon('trash', 14)}清空封面</button>` : ''}</div></div>
+    </div>
+    <div class="markdown-workbench">
+      <div class="markdown-toolbar"><div class="markdown-toolbar-group">
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="heading" title="二级标题">${icon('heading', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="bold" title="粗体">${icon('bold', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="italic" title="斜体">${icon('italic', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="list" title="无序列表">${icon('list', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="orderedList" title="有序列表">${icon('orderedList', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="quote" title="引用">${icon('quote', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="link" title="链接">${icon('link', 15)}</button>
+        <button class="icon-button small" type="button" data-action="studio-format" data-format="code" title="代码块">${icon('code', 15)}</button>
+      </div><div class="markdown-toolbar-group"><label class="button secondary cp-upload-button">${icon('image', 14)}正文图片<input id="studio-body-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif"></label><button class="button secondary cp-editor-preview-button" type="button" data-action="studio-preview">${icon('eye', 14)}刷新预览</button></div></div>
+      <div class="markdown-editor-grid"><label class="markdown-pane"><span>Markdown</span><textarea name="contentMd" spellcheck="false">${h(form.contentMd)}</textarea></label><div class="markdown-pane"><span>预览</span><div class="markdown-preview" data-studio-preview>${preview}</div></div></div>
+    </div>
+    <div class="article-editor-actions"><span>${state.studioEditingId ? `文章 ID ${state.studioEditingId}` : '保存后会生成新的文章 ID'}</span><button class="button primary" type="submit">${icon('save', 14)}保存文章</button></div>
+  </form>`;
+}
+
+function renderStudioCommentsTab() {
+  const items = state.studioComments || [];
+  const pending = items.filter((item) => item.status === 'pending').length;
+  return `<section class="panel cp-studio-panel"><div class="panel-head"><div><span class="panel-kicker">moderation</span><h3>评论审核</h3></div><span class="muted">${pending} 条待审核</span></div><div class="cp-studio-comment-list">${items.length ? items.map((item) => `<article class="cp-studio-comment"><div><span class="badge status-${item.status === 'approved' ? 'healthy' : item.status === 'pending' ? 'warning' : 'failed'}">${item.status === 'approved' ? '已通过' : item.status === 'pending' ? '待审核' : '已拒绝'}</span><strong>${h(item.nickname || '匿名访客')}</strong><small>文章 #${item.article_id} · ${formatDateTime(item.created_at)}</small><p>${h(item.content)}</p></div><div class="cp-studio-comment-actions">${item.status !== 'approved' ? `<button class="button secondary" data-action="studio-comment" data-id="${item.id}" data-status="approved">${icon('check', 13)}通过</button>` : ''}${item.status !== 'rejected' ? `<button class="button secondary" data-action="studio-comment" data-id="${item.id}" data-status="rejected">拒绝</button>` : ''}<button class="button secondary cp-danger-button" data-action="studio-delete-comment" data-id="${item.id}">${icon('trash', 13)}删除</button></div></article>`).join('') : emptyBlock('还没有评论', '文章页收到的留言会显示在这里。')}</div></section>`;
+}
+
+function renderStudioMediaTab() {
+  const items = state.studioMedia || [];
+  return `<section class="panel cp-studio-panel"><div class="panel-head"><div><span class="panel-kicker">media library</span><h3>媒体库</h3></div><span class="muted">${items.length} 个文件</span></div><div class="cp-studio-media-grid">${items.length ? items.map((item) => `<article><img src="${escapeAttr(item.url)}" alt="" loading="lazy"><div><strong>${h(item.filename)}</strong><small>${number(Math.round((Number(item.size) || 0) / 1024))} KB · ${formatDate(item.created_at)}</small></div><button class="button secondary" data-action="studio-copy-media" data-url="${escapeAttr(item.url)}">${icon('file', 13)}复制地址</button></article>`).join('') : emptyBlock('还没有上传图片', '文章封面和正文图片会显示在这里。')}</div></section>`;
+}
+
+function renderStudioStructuredTab() {
+  const items = state.studioContent || [];
+  const form = state.studioContentForm || blankStudioContentForm();
+  const typeOptions = Object.entries(STUDIO_CONTENT_TYPES).map(([value, label]) => `<option value="${value}"${form.type === value ? ' selected' : ''}>${h(label)}</option>`).join('');
+  return `<div class="cp-studio-workbench cp-studio-structured-layout"><aside class="panel cp-studio-sidebar"><header><div><span class="panel-kicker">structured content</span><h3>内容模块</h3></div><button class="button primary" data-action="studio-new-content">${icon('plus', 13)}新建</button></header><div class="cp-studio-sidebar-list">${items.length ? items.map((item) => `<button type="button" class="cp-studio-sidebar-item${state.studioContentId === item.id ? ' is-active' : ''}" data-action="studio-select-content" data-id="${item.id}"><span class="cp-studio-sidebar-dot ${item.status === 'published' ? 'is-published' : ''}"></span><span><strong>${h(item.title)}</strong><small>${h(STUDIO_CONTENT_TYPES[item.type] || item.type)} · ${formatDate(item.updated_at)}</small></span></button>`).join('') : emptyBlock('还没有内容模块', '点击新建开始创建。')}</div></aside><form id="studio-content-form" class="panel cp-studio-editor article-editor-form"><div class="cp-studio-editor-head"><div><span class="cp-kicker">${state.studioContentId ? 'edit module' : 'new module'}</span><h2>${state.studioContentId ? '编辑内容模块' : '新建内容模块'}</h2></div><div class="cp-studio-editor-actions">${state.studioContentId ? `<button class="button secondary cp-danger-button" type="button" data-action="studio-delete-content" data-id="${state.studioContentId}">${icon('trash', 13)}删除</button>` : ''}<button class="button primary" type="submit">${icon('save', 13)}保存内容</button></div></div><div class="article-editor-meta">${field('内容类型', state.studioContentId ? `<input class="cp-field" value="${escapeAttr(STUDIO_CONTENT_TYPES[form.type] || form.type)}" readonly>` : `<select class="cp-field" name="type">${typeOptions}</select>`)}${field('发布状态', `<select class="cp-field" name="status"><option value="draft"${form.status === 'draft' ? ' selected' : ''}>草稿</option><option value="published"${form.status === 'published' ? ' selected' : ''}>已发布</option></select>`)}${field('标题', `<input class="cp-field" name="title" value="${escapeAttr(form.title)}" maxlength="160" required>`)}${field('URL 标识', `<input class="cp-field" name="slug" value="${escapeAttr(form.slug)}" maxlength="80" placeholder="留空自动生成">`)}${field('摘要', `<textarea class="cp-field cp-scroll" name="summary" rows="3" maxlength="500">${h(form.summary)}</textarea>`, true)}${field('正文 Markdown', `<textarea class="cp-field cp-scroll" name="contentMd" rows="10" spellcheck="false">${h(form.contentMd)}</textarea>`, true)}${field('封面图片', `<input class="cp-field" name="coverImage" value="${escapeAttr(form.coverImage)}" placeholder="/uploads/... 或 https://...">`, true)}<div class="cp-cover-editor span-2"><div class="cp-cover-preview">${form.coverImage ? `<img src="${escapeAttr(form.coverImage)}" alt="">` : `<span>${icon('image', 22)}内容封面</span>`}</div><div><strong>封面设置</strong><p>上传后会在保存内容时写入封面字段。</p><label class="button secondary cp-upload-button">${icon('upload', 13)}上传封面<input id="studio-content-cover-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif"></label></div></div>${field('扩展数据（JSON）', `<textarea class="cp-field cp-scroll" name="metadataText" rows="6" spellcheck="false">${h(form.metadataText)}</textarea>`, true)}<label class="cp-check-field span-2"><input type="checkbox" name="featured"${form.featured ? ' checked' : ''}><span>设为精选内容</span></label></div></form></div>`;
+}
+
+function syncStudioArticleForm(form = app.querySelector('#studio-article-form')) {
+  if (!(form instanceof HTMLFormElement) || !state.studioArticleForm) return;
+  const data = new FormData(form);
+  state.studioArticleForm = {
+    ...state.studioArticleForm,
+    title: String(data.get('title') || ''),
+    slug: String(data.get('slug') || ''),
+    category: String(data.get('category') || ''),
+    tags: String(data.get('tags') || ''),
+    excerpt: String(data.get('excerpt') || ''),
+    contentMd: String(data.get('contentMd') || ''),
+    coverImage: String(data.get('coverImage') || ''),
+    status: data.get('status') === 'draft' ? 'draft' : 'published',
+    publishAt: String(data.get('publishAt') || ''),
+    featured: Boolean(form.elements.namedItem('featured')?.checked)
+  };
+}
+
+function syncStudioContentForm(form = app.querySelector('#studio-content-form')) {
+  if (!(form instanceof HTMLFormElement) || !state.studioContentForm) return;
+  const data = new FormData(form);
+  state.studioContentForm = {
+    ...state.studioContentForm,
+    type: String(data.get('type') || state.studioContentForm.type || 'dynamic'),
+    title: String(data.get('title') || ''),
+    slug: String(data.get('slug') || ''),
+    summary: String(data.get('summary') || ''),
+    contentMd: String(data.get('contentMd') || ''),
+    coverImage: String(data.get('coverImage') || ''),
+    metadataText: String(data.get('metadataText') || '{}'),
+    status: data.get('status') === 'draft' ? 'draft' : 'published',
+    publishedAt: String(data.get('publishedAt') || ''),
+    featured: Boolean(form.elements.namedItem('featured')?.checked)
+  };
+}
+
+function scheduleStudioPreview() {
+  window.clearTimeout(studioPreviewTimer);
+  studioPreviewTimer = window.setTimeout(() => refreshStudioPreview(), 420);
+}
+
+async function previewMarkdown(markdown) {
+  const { html } = await api('/api/knowledge/preview', { method: 'POST', body: { markdown: String(markdown || '') } });
+  return html;
+}
+
+async function refreshStudioPreview() {
+  if (state.view !== 'studio' || state.studioTab !== 'articles') return;
+  const textarea = app.querySelector('#studio-article-form textarea[name="contentMd"]');
+  if (textarea) syncStudioArticleForm(textarea.form);
+  const markdown = String(textarea?.value ?? state.studioArticleForm?.contentMd ?? '');
+  if (!markdown.trim()) {
+    state.studioPreview = '<p class="markdown-placeholder">Markdown 预览会显示在这里。</p>';
+    updateStudioPreviewDom();
+    return;
+  }
+  const request = ++studioPreviewRequest;
+  try {
+    const html = await previewMarkdown(markdown);
+    if (request !== studioPreviewRequest || state.view !== 'studio' || state.studioTab !== 'articles') return;
+    state.studioPreview = html;
+    updateStudioPreviewDom();
+  } catch (error) {
+    if (request === studioPreviewRequest) showError(error);
+  }
+}
+
+function updateStudioPreviewDom() {
+  const preview = app.querySelector('[data-studio-preview]');
+  if (preview) preview.innerHTML = state.studioPreview || '<p class="markdown-placeholder">Markdown 预览会显示在这里。</p>';
+}
+
+function applyStudioMarkdownFormat(format) {
+  const textarea = app.querySelector('#studio-article-form textarea[name="contentMd"]');
+  if (!textarea) return;
+  const value = textarea.value;
+  const start = textarea.selectionStart ?? value.length;
+  const end = textarea.selectionEnd ?? start;
+  const selected = value.slice(start, end);
+  let replacement = selected;
+  let selectionStart = start;
+  let selectionEnd = end;
+  if (format === 'heading' || format === 'list' || format === 'orderedList' || format === 'quote') {
+    const prefix = format === 'heading' ? '## ' : format === 'list' ? '- ' : format === 'orderedList' ? '1. ' : '> ';
+    replacement = (selected || '在这里输入内容').split('\n').map((line, index) => `${format === 'orderedList' ? `${index + 1}. ` : prefix}${line.replace(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '')}`).join('\n');
+    selectionStart = start + prefix.length;
+    selectionEnd = start + replacement.length;
+  } else if (format === 'bold' || format === 'italic') {
+    const marker = format === 'bold' ? '**' : '*';
+    replacement = `${marker}${selected || '文字'}${marker}`;
+    selectionStart = start + marker.length;
+    selectionEnd = selectionStart + (selected || '文字').length;
+  } else if (format === 'link') {
+    replacement = `[${selected || '链接文字'}](https://)`;
+    selectionStart = start + 1;
+    selectionEnd = selectionStart + (selected || '链接文字').length;
+  } else if (format === 'code') {
+    replacement = `\n\`\`\`\n${selected || '在这里输入代码'}\n\`\`\`\n`;
+    selectionStart = start + 4;
+    selectionEnd = selectionStart + (selected || '在这里输入代码').length;
+  }
+  textarea.value = `${value.slice(0, start)}${replacement}${value.slice(end)}`;
+  textarea.focus();
+  textarea.setSelectionRange(selectionStart, selectionEnd);
+  state.studioArticleForm.contentMd = textarea.value;
+  scheduleStudioPreview();
+}
+
+async function uploadStudioImage(file, target) {
+  if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
+  if (file.size > 5 * 1024 * 1024) throw new Error('图片不能超过 5 MB');
+  const textarea = target === 'studio-body-upload' ? app.querySelector('#studio-article-form textarea[name="contentMd"]') : null;
+  const selectionStart = textarea?.selectionStart ?? 0;
+  const selectionEnd = textarea?.selectionEnd ?? selectionStart;
+  showToast('正在上传图片', 'warning');
+  const contentBase64 = await fileToBase64(file);
+  const uploaded = await api('/api/uploads', {
+    method: 'POST',
+    body: {
+      filename: file.name,
+      contentBase64,
+      mimeType: file.type,
+      articleId: target === 'studio-body-upload' || target === 'studio-cover-upload' ? state.studioEditingId : null
+    }
+  });
+  state.studioMedia = [{ ...uploaded, created_at: new Date().toISOString() }, ...state.studioMedia];
+  if (target === 'studio-content-cover-upload') {
+    state.studioContentForm.coverImage = uploaded.url;
+    renderStudio();
+  } else if (target === 'studio-cover-upload') {
+    state.studioArticleForm.coverImage = uploaded.url;
+    renderStudio();
+    scheduleStudioPreview();
+  } else if (textarea) {
+    const markdown = `\n\n![图片](${uploaded.url})\n\n`;
+    textarea.value = `${textarea.value.slice(0, selectionStart)}${markdown}${textarea.value.slice(selectionEnd)}`;
+    textarea.focus();
+    textarea.setSelectionRange(selectionStart + markdown.length, selectionStart + markdown.length);
+    state.studioArticleForm.contentMd = textarea.value;
+    scheduleStudioPreview();
+  }
+  showToast('图片已上传');
+}
+
+async function copyText(value) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
+  const input = document.createElement('textarea');
+  input.value = value;
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand('copy');
+  input.remove();
 }
 
 function renderOverview() {
@@ -1039,6 +1443,13 @@ function renderShellSidebars() {
 
 async function handleClick(event) {
   if (handleCustomSelectClick(event.target)) return;
+  const articleLink = event.target.closest('[data-article-slug]');
+  if (articleLink && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    state.articleSlug = articleLink.dataset.articleSlug || '';
+    await navigate('article');
+    return;
+  }
   const nav = event.target.closest('[data-nav]');
   const explicitAction = event.target.closest('[data-action]');
   if (nav) {
@@ -1048,8 +1459,17 @@ async function handleClick(event) {
       state.articleCategory = '';
       state.articleTag = '';
       state.articleQuery = '';
+      state.articleMonth = '';
+      state.articleSeries = '';
     }
-    if (filter === 'categories' || filter === 'tags') state.articleMode = filter;
+    if (['categories', 'tags', 'archive', 'series', 'search'].includes(filter)) {
+      state.articleMode = filter;
+      state.articleCategory = '';
+      state.articleTag = '';
+      state.articleMonth = '';
+      state.articleSeries = '';
+      if (filter === 'search') state.articleQuery = '';
+    }
     return navigate(nav.dataset.nav);
   }
   if (!explicitAction) return;
@@ -1135,14 +1555,95 @@ async function handleClick(event) {
     if (action === 'open-knowledge') {
       await openKnowledgeArticle(id);
     }
+    if (action === 'studio-tab') {
+      state.studioTab = ['articles', 'comments', 'media', 'structured'].includes(tab) ? tab : 'articles';
+      if (state.studioTab === 'articles' && !state.studioArticleForm) resetStudioArticle(false);
+      if (state.studioTab === 'structured' && !state.studioContentForm) resetStudioContent('dynamic', false);
+      renderStudio();
+      if (state.studioTab === 'articles') scheduleStudioPreview();
+    }
+    if (action === 'studio-new-article') {
+      resetStudioArticle(false);
+      if (state.view === 'studio') renderStudio();
+      else await navigate('studio');
+      scheduleStudioPreview();
+    }
+    if (action === 'studio-select-article') {
+      const article = state.articles.find((item) => item.id === Number(id));
+      if (article) {
+        selectStudioArticle(article);
+        scheduleStudioPreview();
+      }
+    }
+    if (action === 'studio-delete-article') {
+      const article = state.articles.find((item) => item.id === Number(id));
+      if (!window.confirm(`确定删除“${article?.title || '这篇文章'}”吗？`)) return;
+      await api(`/api/knowledge/${id}`, { method: 'DELETE' });
+      resetStudioArticle(false);
+      showToast('文章已删除');
+      await loadStudio();
+    }
+    if (action === 'studio-clear-cover') {
+      syncStudioArticleForm();
+      state.studioArticleForm.coverImage = '';
+      renderStudio();
+    }
+    if (action === 'studio-preview') await refreshStudioPreview();
+    if (action === 'studio-format') {
+      syncStudioArticleForm();
+      applyStudioMarkdownFormat(explicitAction.dataset.format || '');
+    }
+    if (action === 'studio-open-preview') {
+      state.articleSlug = explicitAction.dataset.slug || '';
+      await navigate('article');
+    }
+    if (action === 'studio-comment') {
+      await api(`/api/comments/${id}`, { method: 'PATCH', body: { status: explicitAction.dataset.status || 'pending' } });
+      showToast('评论状态已更新');
+      await loadStudio();
+    }
+    if (action === 'studio-delete-comment') {
+      if (!window.confirm('确定删除这条评论吗？')) return;
+      await api(`/api/comments/${id}`, { method: 'DELETE' });
+      showToast('评论已删除');
+      await loadStudio();
+    }
+    if (action === 'studio-copy-media') {
+      await copyText(explicitAction.dataset.url || '');
+      showToast('图片地址已复制');
+    }
+    if (action === 'studio-new-content') {
+      resetStudioContent('dynamic', false);
+      renderStudio();
+    }
+    if (action === 'studio-select-content') {
+      const item = state.studioContent.find((entry) => entry.id === Number(id));
+      if (item) selectStudioContent(item);
+    }
+    if (action === 'studio-delete-content') {
+      const item = state.studioContent.find((entry) => entry.id === Number(id));
+      if (!item || !window.confirm(`确定删除“${item.title}”吗？`)) return;
+      await api(`/api/content/${encodeURIComponent(item.type)}/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+      resetStudioContent('dynamic', false);
+      showToast('内容模块已删除');
+      await loadStudio();
+    }
     if (action === 'open-article' || action === 'preview-article') {
       state.articleSlug = explicitAction.dataset.slug || '';
       await navigate('article');
     }
     if (action === 'back-articles') await navigate('articles');
-    if (action === 'new-article') window.location.assign('/studio');
+    if (action === 'new-article') {
+      resetStudioArticle(false);
+      if (state.view === 'studio') renderStudio();
+      else await navigate('studio');
+      scheduleStudioPreview();
+    }
     if (action === 'edit-article') {
-      window.location.assign(`/studio?edit=${encodeURIComponent(id)}`);
+      state.studioEditingId = Number(id) || null;
+      state.studioArticleForm = null;
+      state.studioTab = 'articles';
+      await navigate('studio');
     }
     if (action === 'delete-article') {
       const article = state.articles.find((item) => item.id === Number(id));
@@ -1155,12 +1656,14 @@ async function handleClick(event) {
       state.articleMode = explicitAction.dataset.mode || 'all';
       state.articleCategory = '';
       state.articleTag = '';
-      renderArticles();
+      state.articleMonth = '';
+      state.articleSeries = '';
+      await navigate('articles');
     }
     if (action === 'filter-category') {
       state.articleCategory = explicitAction.dataset.value || '';
       state.articleTag = '';
-      await loadArticles();
+      await navigate('articles');
     }
     if (action === 'filter-tag') {
       state.articleTag = explicitAction.dataset.tag || explicitAction.dataset.value || '';
@@ -1168,10 +1671,26 @@ async function handleClick(event) {
       state.articleMode = 'tags';
       await navigate('articles');
     }
+    if (action === 'filter-series') {
+      const value = explicitAction.dataset.value || '';
+      state.articleSeries = state.articleSeries === value ? '' : value;
+      await navigate('articles');
+    }
+    if (action === 'toggle-month') {
+      const value = explicitAction.dataset.value || '';
+      state.articleMonth = state.articleMonth === value ? '' : value;
+      await navigate('articles');
+    }
+    if (action === 'article-view') {
+      state.articleView = explicitAction.dataset.view === 'grid' ? 'grid' : 'list';
+      renderArticles();
+    }
     if (action === 'clear-article-filter') {
       state.articleCategory = '';
       state.articleTag = '';
-      await loadArticles();
+      state.articleMonth = '';
+      state.articleSeries = '';
+      await navigate('articles');
     }
     if (action === 'refresh') await loadCurrentView(true);
   } catch (error) {
@@ -1220,12 +1739,82 @@ function handleGlobalKeydown(event) {
   }
 }
 
+function handleInput(event) {
+  const form = event.target.closest?.('form');
+  if (!form) return;
+  if (form.id === 'studio-article-form') {
+    syncStudioArticleForm(form);
+    if (event.target.name === 'contentMd') scheduleStudioPreview();
+  }
+  if (form.id === 'studio-content-form') syncStudioContentForm(form);
+}
+
 async function handleSubmit(event) {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
   event.preventDefault();
   const data = Object.fromEntries(new FormData(form).entries());
   try {
+    if (form.id === 'studio-article-form') {
+      const editingId = state.studioEditingId;
+      const publishAt = String(data.publishAt || '').trim();
+      const payload = {
+        title: String(data.title || '').trim(),
+        slug: String(data.slug || '').trim(),
+        category: String(data.category || '').trim(),
+        tags: String(data.tags || '').trim(),
+        excerpt: String(data.excerpt || '').trim(),
+        contentMd: String(data.contentMd || ''),
+        coverImage: String(data.coverImage || '').trim(),
+        status: data.status === 'draft' ? 'draft' : 'published',
+        featured: Boolean(form.elements.namedItem('featured')?.checked),
+        publishAt: publishAt ? new Date(publishAt).toISOString() : ''
+      };
+      const saved = await api(editingId ? `/api/knowledge/${editingId}` : '/api/knowledge', {
+        method: editingId ? 'PATCH' : 'POST',
+        body: payload
+      });
+      state.studioEditingId = saved.id;
+      state.studioArticleForm = articleToStudioForm(saved);
+      state.studioPreview = saved.html || await previewMarkdown(saved.content_md);
+      showToast(editingId ? '文章已保存' : '文章已创建');
+      await loadStudio();
+      selectStudioArticle(state.articles.find((item) => item.id === saved.id) || saved, false);
+      renderStudio();
+    }
+    if (form.id === 'studio-content-form') {
+      const metadataText = String(data.metadataText || '').trim() || '{}';
+      let metadata;
+      try {
+        metadata = JSON.parse(metadataText);
+      } catch {
+        throw new Error('扩展数据不是有效的 JSON');
+      }
+      if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) throw new Error('扩展数据必须是 JSON 对象');
+      const type = state.studioContentId ? state.studioContentForm?.type : String(data.type || 'dynamic');
+      const publishAt = String(data.publishedAt || '').trim();
+      const saved = await api(state.studioContentId ? `/api/content/${encodeURIComponent(type)}/${encodeURIComponent(state.studioContentId)}` : '/api/content', {
+        method: state.studioContentId ? 'PATCH' : 'POST',
+        body: {
+          type,
+          title: String(data.title || '').trim(),
+          slug: String(data.slug || '').trim(),
+          summary: String(data.summary || '').trim(),
+          contentMd: String(data.contentMd || ''),
+          coverImage: String(data.coverImage || '').trim(),
+          metadata,
+          status: data.status === 'draft' ? 'draft' : 'published',
+          featured: Boolean(form.elements.namedItem('featured')?.checked),
+          publishedAt: publishAt ? new Date(publishAt).toISOString() : ''
+        }
+      });
+      state.studioContentId = saved.id;
+      state.studioContentForm = contentToStudioForm(saved);
+      showToast('内容模块已保存');
+      await loadStudio();
+      selectStudioContent(state.studioContent.find((item) => item.id === saved.id) || saved, false);
+      renderStudio();
+    }
     if (form.id === 'action-form') {
       await api(data.id ? `/api/actions/${data.id}` : '/api/actions', {
         method: data.id ? 'PATCH' : 'POST',
@@ -1238,6 +1827,10 @@ async function handleSubmit(event) {
     if (form.id === 'article-search-form') {
       state.articleQuery = String(data.q || '').trim();
       await loadArticles();
+    }
+    if (form.id === 'home-search-form') {
+      state.homeQuery = String(data.q || '').trim();
+      renderHome();
     }
     if (form.id === 'product-search-form') {
       state.productQuery = String(data.q || '').trim();
@@ -1253,9 +1846,16 @@ async function handleSubmit(event) {
 }
 
 async function handleChange(event) {
+  const form = event.target.closest?.('form');
+  if (form?.id === 'studio-article-form') syncStudioArticleForm(form);
+  if (form?.id === 'studio-content-form') syncStudioContentForm(form);
   const file = event.target.files?.[0];
   if (!file) return;
   try {
+    if (['studio-cover-upload', 'studio-body-upload', 'studio-content-cover-upload'].includes(event.target.id)) {
+      await uploadStudioImage(file, event.target.id);
+      return;
+    }
     if (event.target.id === 'import-file') await previewImport(file);
   } catch (error) {
     showError(error);
@@ -1438,22 +2038,33 @@ function closeModal() {
 
 async function navigate(view) {
   if (!VIEW_META[view]) return false;
-  if (view === 'article') {
-    if (!state.articleSlug) return false;
-    leaveForPage(`/articles/${encodeURIComponent(state.articleSlug)}`);
-    return true;
-  }
   if (CONTENT_ROUTES[view]) {
     leaveForPage(CONTENT_ROUTES[view]);
     return true;
   }
+  if (view === 'article' && !state.articleSlug) return false;
   const changed = state.view !== view;
+  if (changed) window.crosspilotPageTransition?.start();
   state.view = view;
-  window.history.pushState({}, '', `/${view}`);
+  window.history.pushState({}, '', routeForView(view));
   updateViewChrome();
   const loaded = await loadCurrentView();
+  if (changed) window.crosspilotPageTransition?.finish();
   if (changed && loaded && state.view === view) requestAnimationFrame(scrollToContentStart);
   return loaded;
+}
+
+function routeForView(view) {
+  if (view === 'home') return '/';
+  if (view === 'article') return `/articles/${encodeURIComponent(state.articleSlug)}`;
+  if (view !== 'articles') return `/${view}`;
+  const params = new URLSearchParams();
+  if (state.articleQuery) params.set('q', state.articleQuery);
+  if (state.articleCategory) params.set('category', state.articleCategory);
+  if (state.articleTag) params.set('tag', state.articleTag);
+  if (state.articleSeries) params.set('series', state.articleSeries);
+  if (state.articleMonth) params.set('month', state.articleMonth);
+  return `${ARTICLE_MODE_ROUTES[state.articleMode] || '/articles'}${params.size ? `?${params}` : ''}`;
 }
 
 async function handleSearchNavigation(detail) {
@@ -1504,7 +2115,10 @@ function highlightSearchTarget(selector) {
 
 async function openKnowledgeArticle(id) {
   const article = await api(`/api/knowledge/${id}`);
-  if (article?.slug) leaveForPage(`/articles/${encodeURIComponent(article.slug)}`);
+  if (article?.slug) {
+    state.articleSlug = article.slug;
+    await navigate('article');
+  }
 }
 
 function initPageTransitions() {
@@ -1854,7 +2468,21 @@ function initNavTools() {
     const trigger = tools.querySelector('.nav-tools-trigger');
     const menu = tools.querySelector('.nav-tools-menu');
     if (!trigger || !menu) return;
+    const positionMenu = () => {
+      if (window.innerWidth > 760) {
+        tools.style.removeProperty('--nav-tools-menu-left');
+        return;
+      }
+      const gutter = 12;
+      const width = menu.offsetWidth || 252;
+      const triggerRect = trigger.getBoundingClientRect();
+      const groupRect = tools.getBoundingClientRect();
+      const centeredLeft = triggerRect.left + triggerRect.width / 2 - width / 2;
+      const viewportLeft = Math.min(window.innerWidth - gutter - width, Math.max(gutter, centeredLeft));
+      tools.style.setProperty('--nav-tools-menu-left', `${Math.round(viewportLeft - groupRect.left)}px`);
+    };
     const setOpen = (open, suppress = true) => {
+      if (open) positionMenu();
       tools.classList.toggle('is-suppressed', suppress && !open);
       tools.classList.toggle('is-open', open);
       trigger.setAttribute('aria-expanded', String(open));
@@ -1874,8 +2502,10 @@ function initNavTools() {
       }, 0);
     });
     tools.addEventListener('mouseenter', () => {
+      positionMenu();
       if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) trigger.setAttribute('aria-expanded', 'true');
     });
+    window.addEventListener('resize', positionMenu);
     tools.addEventListener('mouseleave', () => {
       tools.classList.remove('is-suppressed');
       if (!tools.classList.contains('is-open')) trigger.setAttribute('aria-expanded', 'false');

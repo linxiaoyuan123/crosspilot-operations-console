@@ -168,11 +168,11 @@
   }
 
   .nav-tools-menu {
-    left: auto;
-    right: -8px;
     min-width: min(252px, calc(100vw - 24px));
+    right: auto;
+    left: var(--nav-tools-menu-left, 0px);
     transform: translateY(-8px) scale(0.98);
-    transform-origin: top right;
+    transform-origin: top center;
   }
 
   .nav-tools:is(:hover, .is-open) .nav-tools-menu {

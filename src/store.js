@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import DatabaseSync from 'better-sqlite3';
 import { actionsForStore } from './metrics.js';
+import { STARTER_ARTICLES } from './starter-articles.js';
 import {
   cleanupOrphanMedia,
   createArticleComment,
@@ -103,6 +104,7 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
   seed(db);
   seedContent(db);
   migrateContent(db);
+  refreshStarterKnowledge(db);
   db.pragma(`user_version = ${SCHEMA_VERSION}`);
   return db;
 }
@@ -502,25 +504,29 @@ function seed(db) {
     insertAfterSale.run(caseNo, type, subject, reason, detail, status, priority, owner, dateOffset(dueOffset), new Date(Date.now() - (index + 2) * 86400000).toISOString(), timestamp, sku);
   });
 
-  const knowledge = [
-    ['ACOS 是否越低越好？先看利润和流量阶段', '广告', '新品或清库存阶段，低 ACOS 可能意味着流量不足。', '把 ACOS 与 TACOS、净利率、订单量同时观察。成熟款以目标 ACOS 为线，新品设置可接受亏损区间，并按搜索词逐步收敛。', 'ACOS,TACOS,利润', 86],
-    ['FBA 可售天数如何拆解补货风险', '库存', '只看可售库存容易忽略采购交期和在途差异。', '可售天数 = (FBA 可售 + 在途) ÷ 近 30 天日均销量。低于采购交期加安全期时创建补货动作，高于 90 天时进入滞销观察。', 'FBA,补货,库存周转', 72],
-    ['Listing 六维评分与执行清单', 'Listing', '标题、五点、图片和属性各有独立质量问题。', '按标题 20%、五点 20%、图片 20%、属性 15%、关键词 15%、合规 10% 计算总分。低于 75 分自动创建优化动作。', 'Listing,关键词,图片', 64],
-    ['欧洲站退货率复盘模板', '售后', '高退货通常同时指向产品、页面和履约三个环节。', '先按原因分类，再关联 SKU、批次和承运商。页面问题改内容，产品问题改设计或包装，履约问题升级异常时间线。', '退货,欧洲站,售后', 51],
-    ['多平台字段映射的最小字段集', '数据', '不同平台报表字段命名不一致。', '统一保留 SKU、日期、销售额、广告费、广告销售、库存和退货字段。买家姓名、邮箱、电话、地址等 PII 在导入预览阶段直接跳过。', '字段映射,CSV,XLSX', 43]
-  ];
+  const knowledge = STARTER_ARTICLES;
+
   const insertKnowledge = db.prepare(`
     INSERT INTO knowledge_articles (
       title, category, symptom, solution, tags, views, created_at, slug, excerpt,
       content_md, cover_image, status, featured, updated_at
       ,publish_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'published', 0, ?, '')
+    ) VALUES (?, ?, '', '', ?, ?, ?, ?, ?, ?, ?, 'published', 0, ?, '')
   `);
-  knowledge.forEach((item, index) => {
-    const [title, category, symptom, solution, tags, views] = item;
+  knowledge.forEach((article, index) => {
     const createdAt = new Date(Date.now() - (index + 1) * 86400000).toISOString();
-    const contentMd = `## 问题现象\n\n${symptom}\n\n## 解决方案\n\n${solution}`;
-    insertKnowledge.run(title, category, symptom, solution, tags, views, createdAt, `seed-${index + 1}`, compactText(contentMd), contentMd, createdAt);
+    insertKnowledge.run(
+      article.title,
+      article.category,
+      article.tags,
+      article.views,
+      createdAt,
+      article.seedSlug || `seed-${index + 1}`,
+      article.excerpt,
+      article.contentMd,
+      article.coverImage || '',
+      createdAt
+    );
   });
 
   const activities = [
@@ -538,6 +544,40 @@ function seed(db) {
   refreshOperationalActions(db, 1);
   refreshOperationalActions(db, 2);
   refreshOperationalActions(db, 3);
+}
+
+function refreshStarterKnowledge(db) {
+  const findArticle = db.prepare(`
+    SELECT id, content_md, cover_image
+    FROM knowledge_articles
+    WHERE title = ? OR title = ? OR slug = ?
+    ORDER BY id
+    LIMIT 1
+  `);
+  const updateArticle = db.prepare(`
+    UPDATE knowledge_articles
+    SET title = ?, category = ?, symptom = '', solution = '', tags = ?, excerpt = ?,
+        content_md = ?, cover_image = ?, status = 'published', updated_at = ?
+    WHERE id = ?
+  `);
+  for (const [index, article] of STARTER_ARTICLES.entries()) {
+    const timestamp = new Date(Date.now() - index * 60000).toISOString();
+    const row = findArticle.get(article.title, article.legacyTitle, article.legacySlug);
+    if (!row) continue;
+    const isStarterDraft = String(row.content_md || '').length < 1200 || !String(row.cover_image || '').trim();
+    if (!isStarterDraft) continue;
+    updateArticle.run(
+      article.title,
+      article.category,
+      article.tags,
+      article.excerpt,
+      article.contentMd,
+      article.coverImage || '',
+      timestamp,
+      row.id
+    );
+    syncKnowledgeTaxonomy(db, row.id, { category: article.category, tags: article.tags });
+  }
 }
 
 function seedContent(db) {

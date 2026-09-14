@@ -35,7 +35,7 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
 
 <header class="app-header" transition:persist>
   <span class="app-header-progress" aria-hidden="true"><span id="app-scroll-progress"></span></span>
-  <a class="brand" href="/" aria-label="CrossPilot 主页">
+  <a class="brand" href="/" aria-label="CrossPilot 主页" data-astro-reload>
     <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt="" /></span>
     <span class="brand-copy">
       <strong>CrossPilot</strong>
@@ -44,7 +44,7 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
   </a>
 
   <nav class="main-nav" aria-label="主导航">
-    <a class:list={['nav-item', { 'is-active': active('/') }]} href="/">
+    <a class:list={['nav-item', { 'is-active': active('/') }]} href="/" data-astro-reload>
       <span data-icon="home"><Home size={18} /></span><span data-label="主页">主页</span>
     </a>
     <div class="nav-tools">
@@ -52,13 +52,8 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
         <span data-icon="book"><BookOpen size={18} /></span><span data-label="文章">文章</span><span class="nav-tools-caret" data-icon="chevronDown"><ChevronDown size={15} /></span>
       </button>
       <div class="nav-tools-menu" id="articles-menu" role="menu" aria-label="文章导航">
-        <a class="nav-item" href="/articles" role="menuitem"><span data-icon="book"><FileText size={18} /></span><span data-label="全部文章">全部文章</span></a>
-        <a class="nav-item" href="/archive" role="menuitem"><span data-icon="grid"><Grid2X2 size={18} /></span><span data-label="归档">归档</span></a>
-        <a class="nav-item" href="/categories" role="menuitem"><span data-icon="grid"><Grid2X2 size={18} /></span><span data-label="分类">分类</span></a>
-        <a class="nav-item" href="/tags" role="menuitem"><span data-icon="target"><Target size={18} /></span><span data-label="标签索引">标签索引</span></a>
-        <a class="nav-item" href="/series" role="menuitem"><span data-icon="book"><BookOpen size={18} /></span><span data-label="系列">系列</span></a>
-        <a class="nav-item" href="/search" role="menuitem"><span data-icon="target"><Search size={18} /></span><span data-label="全文搜索">全文搜索</span></a>
-        <a class="nav-item" href="/studio" role="menuitem"><span data-icon="edit"><FilePenLine size={18} /></span><span data-label="内容后台">内容后台</span></a>
+        <a class:list={['nav-item', { 'is-active': activeArticles && path !== '/studio' }]} href="/articles" role="menuitem" data-astro-reload><span data-icon="book"><BookOpen size={18} /></span><span data-label="文章中心">文章中心</span></a>
+        <a class:list={['nav-item', { 'is-active': active('/studio') }]} href="/studio" role="menuitem"><span data-icon="edit"><FilePenLine size={18} /></span><span data-label="内容后台">内容后台</span></a>
       </div>
     </div>
     <a class:list={['nav-item', { 'is-active': active('/overview') }]} href="/overview" data-astro-reload>
@@ -206,7 +201,7 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
 
     document.querySelectorAll<HTMLElement>('.main-nav > .nav-item[href], .nav-tools-menu .nav-item[href]').forEach((item) => {
       const href = (item as HTMLAnchorElement).getAttribute('href') || '';
-      const active = href === '/' ? path === '/' : href === '/overview' ? path === '/overview' : path.startsWith(href);
+      const active = href === '/' ? path === '/' : href === '/articles' ? isContent && path !== '/studio' : href === '/overview' ? path === '/overview' : path.startsWith(href);
       item.classList.toggle('is-active', active);
       if (active) item.setAttribute('aria-current', 'page');
       else item.removeAttribute('aria-current');
@@ -240,6 +235,22 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
   applyFontMode(readFontMode() === 'original' ? 'original' : 'literary');
   fontToggle?.addEventListener('click', () => applyFontMode(readFontMode() === 'literary' ? 'original' : 'literary'));
 
+  function positionGroup(group: HTMLElement) {
+    const trigger = group.querySelector<HTMLElement>('.nav-tools-trigger');
+    const menu = group.querySelector<HTMLElement>('.nav-tools-menu');
+    if (window.innerWidth > 760 || !trigger || !menu) {
+      group.style.removeProperty('--nav-tools-menu-left');
+      return;
+    }
+    const gutter = 12;
+    const width = menu.offsetWidth || 252;
+    const triggerRect = trigger.getBoundingClientRect();
+    const groupRect = group.getBoundingClientRect();
+    const centeredLeft = triggerRect.left + triggerRect.width / 2 - width / 2;
+    const viewportLeft = Math.min(window.innerWidth - gutter - width, Math.max(gutter, centeredLeft));
+    group.style.setProperty('--nav-tools-menu-left', `${Math.round(viewportLeft - groupRect.left)}px`);
+  }
+
   const closeGroups = () => groups.forEach((group) => {
     group.classList.remove('is-open');
     group.querySelector('.nav-tools-trigger')?.setAttribute('aria-expanded', 'false');
@@ -253,9 +264,13 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
       const nextOpen = !group.classList.contains('is-open');
       closeGroups();
       group.classList.toggle('is-open', nextOpen);
+      if (nextOpen) positionGroup(group);
       trigger.setAttribute('aria-expanded', String(nextOpen));
     });
-    group.addEventListener('mouseenter', () => trigger?.setAttribute('aria-expanded', 'true'));
+    group.addEventListener('mouseenter', () => {
+      positionGroup(group);
+      trigger?.setAttribute('aria-expanded', 'true');
+    });
     group.addEventListener('mouseleave', () => trigger?.setAttribute('aria-expanded', String(group.classList.contains('is-open'))));
   });
 
@@ -265,6 +280,7 @@ const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeGroups();
   });
+  window.addEventListener('resize', () => groups.forEach(positionGroup));
 
   updateNavigationState();
   document.addEventListener('astro:after-swap', () => {

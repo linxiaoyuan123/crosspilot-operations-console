@@ -363,27 +363,34 @@ test('operations reports export HTML, Markdown, CSV and a five-sheet XLSX', asyn
   assert.deepEqual(reportBook.worksheets.map((sheet) => sheet.name), ['Summary', 'SKU', 'Ads', 'Inventory', 'After-sales']);
 });
 
-test('Astro content routes and legacy operations fallback preserve their contracts', async () => {
+test('content and operations routes share the legacy application shell', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
   assert.equal(response.status, 200);
   assert.match(html, /CrossPilot · 跨境电商运营决策中台/);
-  assert.match(html, /把跨境运营经验/);
-  assert.doesNotMatch(html, /从经营状态到方法沉淀/);
-  assert.doesNotMatch(html, /cp-home-profile/);
   assert.match(html, /\/pig\.png/);
-  assert.match(html, /astro-island/);
-  assert.doesNotMatch(html, /StorePicker/);
-  assert.match(html, /astro-view-transitions-enabled/);
+  assert.match(html, /id="app"/);
+  assert.match(html, /cp-store-picker-trigger/);
+  assert.match(html, /content-shell\.css/);
+  assert.doesNotMatch(html, /astro-island/);
   assert.match(html, /page-transition\.css/);
 
   const articlePage = await request('/articles/');
   assert.equal(articlePage.response.status, 200);
-  assert.match(articlePage.body, /全部文章/);
-  assert.match(articlePage.body, /文章本身阅读/);
+  assert.match(articlePage.body, /cp-store-picker-trigger/);
+  assert.match(articlePage.body, /id="app"/);
+  assert.doesNotMatch(articlePage.body, /astro-island/);
   const detailPage = await request('/articles/crosspilot-usage-guide');
   assert.equal(detailPage.response.status, 200);
-  assert.match(detailPage.body, /ArticleDetail/);
+  assert.match(detailPage.body, /cp-store-picker-trigger/);
+  assert.match(detailPage.body, /id="app"/);
+  assert.doesNotMatch(detailPage.body, /astro-island/);
+
+  const studioPage = await request('/studio');
+  assert.equal(studioPage.response.status, 200);
+  assert.match(studioPage.body, /cp-store-picker-trigger/);
+  assert.match(studioPage.body, /id="app"/);
+  assert.doesNotMatch(studioPage.body, /astro-island/);
 
   const legacyResponse = await fetch(`${baseUrl}/overview`);
   const legacyHtml = await legacyResponse.text();
