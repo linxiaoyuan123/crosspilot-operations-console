@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+
+const series = Astro.url.searchParams.get('series') || '';
+---
+
+<BaseLayout title="全部文章 · CrossPilot" description="浏览 CrossPilot 的运营方法与项目复盘。">
+  <ContentHub client:load mode="all" initialSeries={series} />
+</BaseLayout>

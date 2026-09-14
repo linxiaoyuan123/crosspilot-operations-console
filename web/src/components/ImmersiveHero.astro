@@ -1,0 +1,118 @@
+---
+type Props = {
+  compact?: boolean;
+};
+
+const { compact = false } = Astro.props;
+---
+
+<div class:list={['wallpaper-wrapper', { 'is-compact': compact }]} id="wallpaper-wrapper">
+  <section class="hero-banner" aria-label="CrossPilot 跨境电商运营决策中台">
+    <div class="hero-slides" aria-hidden="true">
+      <div class="hero-slide hero-slide-1"></div>
+      <div class="hero-slide hero-slide-2"></div>
+      <div class="hero-slide hero-slide-3"></div>
+    </div>
+    <div class="cp-hero-video-layer" id="cp-hero-video-layer" aria-hidden="true">
+      <video id="cp-hero-video" playsinline preload="none" poster="/assets/hero-crosspilot.avif" data-src="https://bed.twoleaf.cn/file/1785658612716_firefly.mp4"></video>
+    </div>
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-copy">
+      <span class="hero-kicker">CrossPilot · marketplace operations</span>
+      <h1>跨境运营，从数据到动作</h1>
+      <p class="hero-subtitle"><span id="hero-typewriter"></span><span class="typing-caret" aria-hidden="true"></span></p>
+    </div>
+    <div class="hero-waves" aria-hidden="true">
+      <svg viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="geometricPrecision">
+        <defs>
+          <path id="crosspilot-gentle-wave" d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v48h-352z" />
+        </defs>
+        <g class="hero-wave-parallax">
+          <use href="#crosspilot-gentle-wave" x="-304" y="0" class="hero-wave-layer hero-wave-layer-1" />
+          <use href="#crosspilot-gentle-wave" x="48" y="0" class="hero-wave-layer hero-wave-layer-1" />
+          <use href="#crosspilot-gentle-wave" x="400" y="0" class="hero-wave-layer hero-wave-layer-1" />
+          <use href="#crosspilot-gentle-wave" x="-304" y="3" class="hero-wave-layer hero-wave-layer-2" />
+          <use href="#crosspilot-gentle-wave" x="48" y="3" class="hero-wave-layer hero-wave-layer-2" />
+          <use href="#crosspilot-gentle-wave" x="400" y="3" class="hero-wave-layer hero-wave-layer-2" />
+          <use href="#crosspilot-gentle-wave" x="-304" y="5" class="hero-wave-layer hero-wave-layer-3" />
+          <use href="#crosspilot-gentle-wave" x="48" y="5" class="hero-wave-layer hero-wave-layer-3" />
+          <use href="#crosspilot-gentle-wave" x="400" y="5" class="hero-wave-layer hero-wave-layer-3" />
+          <use href="#crosspilot-gentle-wave" x="-304" y="7" class="hero-wave-layer hero-wave-layer-4" />
+          <use href="#crosspilot-gentle-wave" x="48" y="7" class="hero-wave-layer hero-wave-layer-4" />
+          <use href="#crosspilot-gentle-wave" x="400" y="7" class="hero-wave-layer hero-wave-layer-4" />
+        </g>
+      </svg>
+    </div>
+  </section>
+</div>
+
+<script>
+  const target = document.querySelector<HTMLElement>('#hero-typewriter');
+  const phrases = [
+    '识别利润、广告与库存问题，不让异常停留在表格里。',
+    '把报表映射成统一字段，把指标变成可执行动作。',
+    '从 Listing 优化到补货决策，每一步都有证据可回写。',
+    '用日报、周报和月报，让跨境运营形成真正的闭环。'
+  ];
+  let timer = 0;
+  let phraseIndex = 0;
+  let characterIndex = 0;
+  let deleting = false;
+
+  function enabled() {
+    try {
+      return localStorage.getItem('crosspilot-typewriter') !== 'false';
+    } catch {
+      return true;
+    }
+  }
+
+  function render() {
+    window.clearTimeout(timer);
+    if (!target) return;
+    if (!enabled()) {
+      target.textContent = phrases[0];
+      return;
+    }
+    const phrase = phrases[phraseIndex];
+    target.textContent = phrase.slice(0, characterIndex);
+    if (!deleting && characterIndex < phrase.length) {
+      characterIndex += 1;
+      timer = window.setTimeout(render, 44);
+      return;
+    }
+    if (!deleting && characterIndex === phrase.length) {
+      deleting = true;
+      timer = window.setTimeout(render, 1900);
+      return;
+    }
+    if (deleting && characterIndex > 0) {
+      characterIndex -= 1;
+      timer = window.setTimeout(render, 22);
+      return;
+    }
+    deleting = false;
+    phraseIndex = (phraseIndex + 1) % phrases.length;
+    timer = window.setTimeout(render, 260);
+  }
+
+  function restart() {
+    phraseIndex = 0;
+    characterIndex = 0;
+    deleting = false;
+    render();
+  }
+
+  function onTypewriterChange(event: Event) {
+    const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+    if (detail?.enabled) restart();
+    else {
+      window.clearTimeout(timer);
+      if (target) target.textContent = phrases[0];
+    }
+  }
+
+  window.addEventListener('crosspilot:typewriter-change', onTypewriterChange);
+  window.addEventListener('beforeunload', () => window.clearTimeout(timer), { once: true });
+  render();
+</script>

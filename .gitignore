@@ -3,6 +3,10 @@ data/
 *.log
 *.tmp
 coverage/
+web/dist/
+web/.astro/
 .DS_Store
 Thumbs.db
 node_modules/
+.astro/
+artifacts/

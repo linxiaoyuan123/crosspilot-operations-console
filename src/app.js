@@ -1,33 +1,54 @@
 import { createServer } from 'node:http';
 import { existsSync, statSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { dirname, extname, normalize, resolve } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, extname, isAbsolute, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  cleanupOrphanMedia,
   commitImportBatch,
   createAction,
+  createArticleComment,
   createDatabase,
+  createContentEntry,
   createImportBatch,
   createKnowledge,
+  deleteArticleComment,
+  deleteContentEntry,
+  deleteKnowledge,
   getAction,
+  getArticleRelationships,
+  getContentEntry,
   getImport,
   getKnowledge,
+  getKnowledgeStats,
   getProduct,
   getStore,
+  incrementKnowledgeViews,
   listActions,
   listActivities,
   listAdTerms,
   listAfterSales,
+  listArchive,
+  listAllComments,
+  listArticleComments,
+  listContentEntries,
   listDailyMetrics,
   listImports,
   listInventory,
   listKnowledge,
+  listMedia,
   listProducts,
   listStores,
+  registerMedia,
   replaceImportRows,
   refreshOperationalActions,
   updateAction,
-  updateImportStatus
+  updateArticleCommentStatus,
+  updateContentEntry,
+  updateImportStatus,
+  updateKnowledge
 } from './store.js';
 import {
   actionsForStore,
@@ -38,11 +59,14 @@ import {
   deriveProduct,
   deriveStoreHealth
 } from './metrics.js';
+import { renderMarkdown } from './markdown.js';
+import { CONTENT_TYPES as CONTENT_ENTRY_TYPES } from './content-store.js';
 import { autoMapHeaders, parseImportFile, validateMappedRows } from './imports.js';
 import { generateOperationsReport } from './reports.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = resolve(MODULE_DIR, '..', 'public');
+const WEB_DIST_DIR = resolve(MODULE_DIR, '..', 'web', 'dist');
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
 const VERSION = '3.0.0';
 const CONTENT_TYPES = {
@@ -53,23 +77,38 @@ const CONTENT_TYPES = {
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml; charset=utf-8'
 };
 const ACTION_STATUSES = ['open', 'in_progress', 'deferred', 'done', 'closed', 'ignored'];
 const ACTION_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export function createApp({ dbPath } = {}) {
   const db = createDatabase(dbPath);
   const dataDirectory = dirname(dbPath || resolve('data/crosspilot.db'));
+  const uploadsDirectory = resolve(dataDirectory, 'uploads');
+  mkdirSync(uploadsDirectory, { recursive: true });
   const server = createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.setHeader('X-Frame-Options', 'DENY');
     response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    response.setHeader('Content-Security-Policy', contentSecurityPolicy());
+    if (process.env.NODE_ENV === 'production') {
+      response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
     try {
       const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
-      if (requestUrl.pathname.startsWith('/api/')) await handleApi({ db, request, response, requestUrl });
-      else await serveStatic({ request, response, pathname: requestUrl.pathname });
+      if (WRITE_METHODS.has(request.method || 'GET')) assertSameOriginWrite(request, requestUrl);
+      if (requestUrl.pathname.startsWith('/api/')) await handleApi({ db, request, response, requestUrl, uploadsDirectory });
+      else if (requestUrl.pathname.startsWith('/uploads/')) await serveUpload({ request, response, pathname: requestUrl.pathname, uploadsDirectory });
+      else await serveWebOrStatic({ request, response, pathname: requestUrl.pathname });
     } catch (error) {
       const status = error.statusCode || 500;
       if (status >= 500) console.error(error);
@@ -80,9 +119,12 @@ export function createApp({ dbPath } = {}) {
   return { server, db, dataDirectory };
 }
 
-async function handleApi({ db, request, response, requestUrl }) {
+async function handleApi({ db, request, response, requestUrl, uploadsDirectory }) {
   const { pathname } = requestUrl;
   const method = request.method || 'GET';
+  const articlePath = pathname.startsWith('/api/articles')
+    ? pathname.replace(/^\/api\/articles/, '/api/knowledge')
+    : pathname;
 
   if (method === 'GET' && pathname === '/api/health') {
     return sendJson(response, 200, {
@@ -280,9 +322,75 @@ async function handleApi({ db, request, response, requestUrl }) {
     return batch ? sendJson(response, 200, batch) : sendJson(response, 404, { error: '导入批次不存在' });
   }
 
-  if (method === 'GET' && pathname === '/api/knowledge') {
-    const query = String(requestUrl.searchParams.get('q') || '').trim();
-    return sendJson(response, 200, { items: listKnowledge(db, query), query });
+  if (method === 'POST' && pathname === '/api/uploads') {
+    const body = await readJsonBody(request);
+    const articleId = optionalPositiveInteger(body.articleId);
+    if (articleId && !getKnowledge(db, articleId)) {
+      return sendJson(response, 404, { error: '关联文章不存在' });
+    }
+    const uploaded = await saveUpload(uploadsDirectory, body);
+    registerMedia(db, { ...uploaded, articleId });
+    return sendJson(response, 201, uploaded);
+  }
+
+  if (method === 'GET' && pathname === '/api/media') {
+    return sendJson(response, 200, { items: listMedia(db, requestUrl.searchParams.get('limit')) });
+  }
+
+  if (method === 'POST' && pathname === '/api/media/cleanup') {
+    return sendJson(response, 200, { removed: cleanupOrphanMedia(db, uploadsDirectory) });
+  }
+
+  if (method === 'GET' && pathname === '/api/comments') {
+    return sendJson(response, 200, {
+      items: listAllComments(db, {
+        status: requestUrl.searchParams.get('status') || 'all',
+        limit: requestUrl.searchParams.get('limit') || 100
+      })
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/content') {
+    const type = optionalText(requestUrl.searchParams.get('type'), 30);
+    if (type && !CONTENT_ENTRY_TYPES.includes(type)) throw clientError('内容类型无效');
+    return sendJson(response, 200, {
+      items: listContentEntries(db, {
+        type,
+        status: requestUrl.searchParams.get('status') || 'published',
+        query: requestUrl.searchParams.get('q') || '',
+        limit: requestUrl.searchParams.get('limit') || 50
+      })
+    });
+  }
+
+  if (method === 'POST' && pathname === '/api/content') {
+    const body = await readJsonBody(request);
+    return sendJson(response, 201, createContentEntry(db, normalizeContentInput(body, true)));
+  }
+
+  const contentMatch = pathname.match(/^\/api\/content\/([^/]+)\/([^/]+)$/);
+  if (contentMatch) {
+    const type = decodeURIComponent(contentMatch[1]);
+    const slugOrId = decodeURIComponent(contentMatch[2]);
+    if (!CONTENT_ENTRY_TYPES.includes(type)) throw clientError('内容类型无效', 404);
+    if (method === 'GET') {
+      const item = getContentEntry(db, type, slugOrId);
+      return item
+        ? sendJson(response, 200, { ...item, html: renderMarkdown(item.content_md) })
+        : sendJson(response, 404, { error: '内容不存在' });
+    }
+    if (method === 'PATCH') {
+      const existing = getContentEntry(db, type, slugOrId);
+      if (!existing) return sendJson(response, 404, { error: '内容不存在' });
+      const body = await readJsonBody(request);
+      return sendJson(response, 200, updateContentEntry(db, type, existing.id, normalizeContentInput(body, false)));
+    }
+    if (method === 'DELETE') {
+      const existing = getContentEntry(db, type, slugOrId);
+      if (!existing) return sendJson(response, 404, { error: '内容不存在' });
+      deleteContentEntry(db, type, existing.id);
+      return sendJson(response, 200, { ok: true, id: existing.id });
+    }
   }
 
   if (method === 'GET' && pathname === '/api/knowledge/field-map') {
@@ -294,21 +402,151 @@ async function handleApi({ db, request, response, requestUrl }) {
     });
   }
 
-  const knowledgeMatch = pathname.match(/^\/api\/knowledge\/(\d+)$/);
-  if (method === 'GET' && knowledgeMatch) {
-    const item = getKnowledge(db, Number(knowledgeMatch[1]));
-    return item ? sendJson(response, 200, item) : sendJson(response, 404, { error: '知识文章不存在' });
+  if (method === 'GET' && articlePath === '/api/knowledge/stats') {
+    return sendJson(response, 200, getKnowledgeStats(db));
   }
 
-  if (method === 'POST' && pathname === '/api/knowledge') {
+  if (method === 'GET' && articlePath === '/api/knowledge/archive') {
+    return sendJson(response, 200, { items: listArchive(db) });
+  }
+
+  if (method === 'GET' && articlePath === '/api/knowledge/categories') {
+    return sendJson(response, 200, { items: getKnowledgeStats(db).categories });
+  }
+
+  if (method === 'GET' && articlePath === '/api/knowledge/tags') {
+    return sendJson(response, 200, { items: getKnowledgeStats(db).tags });
+  }
+
+  if (method === 'GET' && articlePath === '/api/knowledge/series') {
+    return sendJson(response, 200, { items: getKnowledgeStats(db).series });
+  }
+
+  if (method === 'GET' && articlePath === '/api/knowledge') {
+    const status = String(requestUrl.searchParams.get('status') || 'published');
+    const options = {
+      query: String(requestUrl.searchParams.get('q') || '').trim(),
+      category: String(requestUrl.searchParams.get('category') || '').trim(),
+      tag: String(requestUrl.searchParams.get('tag') || '').trim(),
+      series: String(requestUrl.searchParams.get('series') || '').trim(),
+      month: String(requestUrl.searchParams.get('month') || '').trim(),
+      status: status === 'all' || status === 'draft' ? status : 'published',
+      limit: Number(requestUrl.searchParams.get('limit') || 50),
+      offset: Number(requestUrl.searchParams.get('offset') || 0)
+    };
+    return sendJson(response, 200, { items: listKnowledge(db, options), query: options.query, stats: getKnowledgeStats(db) });
+  }
+
+  if (method === 'POST' && articlePath === '/api/knowledge/preview') {
     const body = await readJsonBody(request);
+    return sendJson(response, 200, { html: renderMarkdown(optionalText(body.markdown, 60000)) });
+  }
+
+  const commentsMatch = articlePath.match(/^\/api\/knowledge\/(\d+)\/comments$/);
+  if (commentsMatch) {
+    const article = getKnowledge(db, Number(commentsMatch[1]));
+    if (!article) return sendJson(response, 404, { error: '文章不存在' });
+    if (method === 'GET') {
+      return sendJson(response, 200, { items: listArticleComments(db, article.id, { status: 'approved' }) });
+    }
+    if (method === 'POST') {
+      const body = await readJsonBody(request);
+      const comment = createArticleComment(db, article.id, {
+        parentId: optionalPositiveInteger(body.parentId),
+        nickname: requireText(body.nickname || '匿名访客', '昵称', 40),
+        content: requireText(body.content, '留言内容', 2000),
+        status: 'pending'
+      });
+      return sendJson(response, 201, comment);
+    }
+  }
+
+  const commentMatch = pathname.match(/^\/api\/comments\/(\d+)$/);
+  if (commentMatch && method === 'PATCH') {
+    const body = await readJsonBody(request);
+    const item = updateArticleCommentStatus(
+      db,
+      Number(commentMatch[1]),
+      enumValue(body.status, ['pending', 'approved', 'rejected'])
+    );
+    return item ? sendJson(response, 200, item) : sendJson(response, 404, { error: '评论不存在' });
+  }
+  if (commentMatch && method === 'DELETE') {
+    return deleteArticleComment(db, Number(commentMatch[1]))
+      ? sendJson(response, 200, { ok: true })
+      : sendJson(response, 404, { error: '评论不存在' });
+  }
+
+  const knowledgeMatch = articlePath.match(/^\/api\/knowledge\/([^/]+)$/);
+  if (method === 'GET' && knowledgeMatch) {
+    const item = getKnowledge(db, decodeURIComponent(knowledgeMatch[1]));
+    if (!item) return sendJson(response, 404, { error: '文章不存在' });
+    if (
+      !requestUrl.searchParams.has('preview')
+      && (item.status !== 'published' || (item.publish_at && new Date(item.publish_at).getTime() > Date.now()))
+    ) {
+      return sendJson(response, 404, { error: '文章不存在' });
+    }
+    if (!requestUrl.searchParams.has('preview')) incrementKnowledgeViews(db, item.id);
+    const approvedComments = listArticleComments(db, item.id, { status: 'approved' });
+    const commentCount = countComments(approvedComments);
+    return sendJson(response, 200, {
+      ...item,
+      html: renderMarkdown(item.content_md),
+      comment_count: commentCount,
+      relationships: getArticleRelationships(db, item.id)
+    });
+  }
+
+  if (method === 'POST' && articlePath === '/api/knowledge') {
+    const body = await readJsonBody(request);
+    const contentMd = optionalText(body.contentMd || body.content_markdown, 60000);
+    const legacySolution = optionalText(body.solution, 60000);
+    if (!contentMd && !legacySolution) throw clientError('文章正文不能为空');
     return sendJson(response, 201, createKnowledge(db, {
       title: requireText(body.title, '标题', 160),
+      slug: optionalText(body.slug, 80),
       category: optionalText(body.category, 50) || '运营复盘',
-      symptom: optionalText(body.symptom, 1200),
-      solution: requireText(body.solution, '解决方案', 8000),
-      tags: optionalText(body.tags, 300)
+      symptom: optionalText(body.symptom, 4000),
+      solution: legacySolution,
+      contentMd,
+      excerpt: optionalText(body.excerpt, 320),
+      coverImage: validImagePath(body.coverImage),
+      tags: optionalText(body.tags, 300),
+      status: enumValue(body.status, ['draft', 'published'], 'published'),
+      featured: Boolean(body.featured),
+      publishAt: optionalText(body.publishAt, 40)
     }));
+  }
+
+  if (knowledgeMatch && method === 'PATCH') {
+    const body = await readJsonBody(request);
+    const existing = getKnowledge(db, decodeURIComponent(knowledgeMatch[1]));
+    if (!existing) return sendJson(response, 404, { error: '文章不存在' });
+    const contentMd = body.contentMd === undefined && body.content_markdown === undefined
+      ? undefined
+      : optionalText(body.contentMd || body.content_markdown, 60000);
+    if (contentMd !== undefined && !contentMd) throw clientError('文章正文不能为空');
+    const item = updateKnowledge(db, existing.id, {
+      ...(body.title !== undefined ? { title: requireText(body.title, '标题', 160) } : {}),
+      ...(body.slug !== undefined ? { slug: optionalText(body.slug, 80) } : {}),
+      ...(body.category !== undefined ? { category: optionalText(body.category, 50) || '运营复盘' } : {}),
+      ...(body.excerpt !== undefined ? { excerpt: optionalText(body.excerpt, 320) } : {}),
+      ...(contentMd !== undefined ? { contentMd } : {}),
+      ...(body.coverImage !== undefined ? { coverImage: validImagePath(body.coverImage) } : {}),
+      ...(body.tags !== undefined ? { tags: optionalText(body.tags, 300) } : {}),
+      ...(body.status !== undefined ? { status: enumValue(body.status, ['draft', 'published']) } : {}),
+      ...(body.featured !== undefined ? { featured: Boolean(body.featured) } : {}),
+      ...(body.publishAt !== undefined ? { publishAt: optionalText(body.publishAt, 40) } : {})
+    });
+    return sendJson(response, 200, item);
+  }
+
+  if (knowledgeMatch && method === 'DELETE') {
+    const existing = getKnowledge(db, decodeURIComponent(knowledgeMatch[1]));
+    if (!existing) return sendJson(response, 404, { error: '文章不存在' });
+    deleteKnowledge(db, existing.id);
+    return sendJson(response, 200, { ok: true, id: existing.id });
   }
 
   const reportMatch = pathname.match(/^\/api\/reports\/operations\/(\d+)$/);
@@ -390,19 +628,178 @@ function buildListingPackage(product) {
   };
 }
 
-async function serveStatic({ request, response, pathname }) {
+async function serveUpload({ request, response, pathname, uploadsDirectory }) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return sendJson(response, 405, { error: '方法不支持' });
-  const relativePath = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, '');
-  const filePath = normalize(resolve(PUBLIC_DIR, relativePath));
-  if (!filePath.startsWith(PUBLIC_DIR) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
-    return sendJson(response, 404, { error: '页面不存在' });
+  let relativePath;
+  try {
+    relativePath = decodeURIComponent(pathname.replace(/^\/uploads\//, ''));
+  } catch {
+    return sendJson(response, 400, { error: '图片地址无效' });
+  }
+  const filePath = resolveWithin(uploadsDirectory, relativePath);
+  if (!filePath || !existsSync(filePath) || statSync(filePath).isDirectory()) {
+    return sendJson(response, 404, { error: '图片不存在' });
   }
   const content = await readFile(filePath);
   response.statusCode = 200;
   response.setHeader('Content-Type', CONTENT_TYPES[extname(filePath).toLowerCase()] || 'application/octet-stream');
-  response.setHeader('Cache-Control', extname(filePath) === '.html' ? 'no-cache' : 'public, max-age=3600');
+  response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   if (request.method === 'HEAD') return response.end();
   return response.end(content);
+}
+
+async function serveWebOrStatic({ request, response, pathname }) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return sendJson(response, 405, { error: '方法不支持' });
+  const decodedPath = decodeURIComponent(pathname);
+  const webRelative = mapWebRoute(decodedPath);
+  if (webRelative && existsSync(WEB_DIST_DIR)) {
+    const webFile = resolveWithin(WEB_DIST_DIR, webRelative);
+    if (webFile && existsSync(webFile) && statSync(webFile).isFile()) {
+      return serveFile({ request, response, filePath: webFile, cacheControl: 'public, max-age=300' });
+    }
+  }
+
+  const legacyRelative = isLegacyRoute(decodedPath)
+    ? 'index.html'
+    : decodedPath === '/'
+      ? 'index.html'
+      : decodedPath.replace(/^\/+/, '');
+  const legacyFile = resolveWithin(PUBLIC_DIR, legacyRelative);
+  if (!legacyFile || !existsSync(legacyFile) || statSync(legacyFile).isDirectory()) {
+    return sendJson(response, 404, { error: '页面不存在' });
+  }
+  return serveFile({
+    request,
+    response,
+    filePath: legacyFile,
+    cacheControl: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+  });
+}
+
+async function serveFile({ request, response, filePath, cacheControl }) {
+  const content = await readFile(filePath);
+  response.statusCode = 200;
+  response.setHeader('Content-Type', CONTENT_TYPES[extname(filePath).toLowerCase()] || 'application/octet-stream');
+  response.setHeader('Cache-Control', cacheControl);
+  if (cacheControl.startsWith('no-store')) {
+    response.setHeader('Pragma', 'no-cache');
+    response.setHeader('Expires', '0');
+  }
+  if (request.method === 'HEAD') return response.end();
+  return response.end(content);
+}
+
+function mapWebRoute(pathname) {
+  const value = pathname.replace(/\/+$/, '') || '/';
+  const staticRoutes = {
+    '/': 'index.html',
+    '/index.html': 'index.html',
+    '/articles': 'articles/index.html',
+    '/archive': 'archive/index.html',
+    '/categories': 'categories/index.html',
+    '/tags': 'tags/index.html',
+    '/series': 'series/index.html',
+    '/search': 'search/index.html',
+    '/dynamic': 'dynamic/index.html',
+    '/projects': 'projects/index.html',
+    '/gallery': 'gallery/index.html',
+    '/resources': 'resources/index.html',
+    '/guestbook': 'guestbook/index.html',
+    '/about': 'about/index.html',
+    '/studio': 'studio/index.html'
+  };
+  if (staticRoutes[value]) return staticRoutes[value];
+  if (/^\/articles\/[^/]+$/.test(value)) return 'articles/detail/index.html';
+  const detailMatch = value.match(/^\/(projects|gallery|resources)\/[^/]+\/?$/);
+  if (detailMatch) return `${detailMatch[1]}/detail/index.html`;
+  if (value.startsWith('/_astro/')) return value.slice(1);
+  if (value.startsWith('/assets/') || value === '/favicon.svg') return value.slice(1);
+  return null;
+}
+
+function isLegacyRoute(pathname) {
+  return new Set([
+    '/overview',
+    '/imports',
+    '/listings',
+    '/ads',
+    '/inventory',
+    '/aftersales',
+    '/reviews'
+  ]).has(pathname);
+}
+
+function resolveWithin(baseDirectory, relativePath) {
+  const filePath = resolve(baseDirectory, relativePath);
+  const pathFromBase = relative(baseDirectory, filePath);
+  if (!pathFromBase || (!pathFromBase.startsWith('..') && !isAbsolute(pathFromBase))) return filePath;
+  return null;
+}
+
+async function saveUpload(uploadsDirectory, body = {}) {
+  const dataUrl = String(body.dataUrl || body.contentBase64 || '');
+  const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp|gif|avif));base64,(.+)$/i);
+  const mimeType = String(body.mimeType || match?.[1] || '').toLowerCase();
+  const base64 = match?.[2] || dataUrl.replace(/^data:[^;]+;base64,/, '');
+  const extensions = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' };
+  const extension = extensions[mimeType];
+  if (!extension || !base64 || !/^[a-z0-9+/=\r\n]+$/i.test(base64)) {
+    throw clientError('仅支持 PNG、JPG、WebP、GIF 或 AVIF 图片');
+  }
+  let buffer;
+  try {
+    buffer = Buffer.from(base64, 'base64');
+  } catch {
+    throw clientError('图片内容解析失败');
+  }
+  if (!buffer.length || buffer.length > 5 * 1024 * 1024) throw clientError('图片不能超过 5 MB');
+  const signatures = {
+    'image/png': (value) => value.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+    'image/jpeg': (value) => value[0] === 0xff && value[1] === 0xd8 && value[2] === 0xff,
+    'image/gif': (value) => ['GIF87a', 'GIF89a'].includes(value.subarray(0, 6).toString('ascii')),
+    'image/webp': (value) => value.subarray(0, 4).toString('ascii') === 'RIFF' && value.subarray(8, 12).toString('ascii') === 'WEBP',
+    'image/avif': (value) => {
+      if (value.length < 16 || value.subarray(4, 8).toString('ascii') !== 'ftyp') return false;
+      const brands = value.subarray(8, Math.min(value.length, 64)).toString('ascii');
+      return brands.includes('avif') || brands.includes('avis');
+    }
+  };
+  if (!signatures[mimeType](buffer)) throw clientError('图片格式与文件内容不匹配');
+  await mkdir(uploadsDirectory, { recursive: true });
+  const filename = `${Date.now()}-${randomUUID()}.${extension}`;
+  await writeFile(resolve(uploadsDirectory, filename), buffer, { flag: 'wx' });
+  return { url: `/uploads/${filename}`, filename, size: buffer.length, mimeType };
+}
+
+function validImagePath(value) {
+  const path = optionalText(value, 600);
+  if (!path) return '';
+  if (/^(\/uploads\/|\/assets\/)/.test(path) || /^https:\/\//i.test(path)) return path;
+  throw clientError('封面图片地址无效');
+}
+
+function normalizeContentInput(body, requireType) {
+  const result = {};
+  if (requireType || body.type !== undefined) {
+    result.type = enumValue(body.type, CONTENT_ENTRY_TYPES);
+  }
+  if (requireType || body.title !== undefined) result.title = requireText(body.title, '标题', 160);
+  if (requireType || body.slug !== undefined) result.slug = optionalText(body.slug, 80);
+  if (requireType || body.summary !== undefined) result.summary = optionalText(body.summary, 500);
+  if (requireType || body.contentMd !== undefined) result.contentMd = optionalText(body.contentMd, 60000);
+  if (requireType || body.coverImage !== undefined) result.coverImage = validImagePath(body.coverImage);
+  if (requireType || body.metadata !== undefined) {
+    if (body.metadata !== undefined && (body.metadata === null || typeof body.metadata !== 'object' || Array.isArray(body.metadata))) {
+      throw clientError('扩展数据必须是 JSON 对象');
+    }
+    result.metadata = body.metadata || {};
+  }
+  if (requireType || body.status !== undefined) {
+    result.status = enumValue(body.status, ['draft', 'published'], requireType ? 'published' : undefined);
+  }
+  if (requireType || body.featured !== undefined) result.featured = Boolean(body.featured);
+  if (requireType || body.publishedAt !== undefined) result.publishedAt = optionalText(body.publishedAt, 40);
+  return result;
 }
 
 async function readJsonBody(request) {
@@ -477,6 +874,45 @@ function clientError(message, statusCode = 400) {
   error.statusCode = statusCode;
   error.publicMessage = message;
   return error;
+}
+
+function assertSameOriginWrite(request, requestUrl) {
+  const origin = request.headers.origin;
+  if (!origin) return;
+  try {
+    const originUrl = new URL(origin);
+    if (originUrl.host !== requestUrl.host) throw new Error('origin mismatch');
+  } catch {
+    throw clientError('拒绝跨站写操作', 403);
+  }
+}
+
+function contentSecurityPolicy() {
+  const mediaOrigins = String(process.env.CSP_MEDIA_ORIGINS || 'https://bed.twoleaf.cn')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .join(' ');
+  const directives = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    `media-src 'self' blob: ${mediaOrigins}`,
+    "font-src 'self' data:",
+    "connect-src 'self' https:",
+    "worker-src 'self' blob:"
+  ];
+  if (process.env.NODE_ENV === 'production') directives.push('upgrade-insecure-requests');
+  return directives.join('; ');
+}
+
+function countComments(items) {
+  return items.reduce((sum, item) => sum + 1 + countComments(item.replies || []), 0);
 }
 
 function isActionClosed(status) {

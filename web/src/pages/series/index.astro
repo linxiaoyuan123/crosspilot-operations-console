@@ -1,0 +1,8 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+---
+
+<BaseLayout title="内容系列 · CrossPilot" description="按顺序阅读 CrossPilot 主题系列。">
+  <ContentHub client:load mode="series" />
+</BaseLayout>

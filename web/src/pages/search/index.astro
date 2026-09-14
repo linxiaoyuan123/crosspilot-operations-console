@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+
+const query = Astro.url.searchParams.get('q') || '';
+---
+
+<BaseLayout title="全文搜索 · CrossPilot" description="搜索 CrossPilot 文章与运营内容。">
+  <ContentHub client:load mode="search" initialQuery={query} />
+</BaseLayout>

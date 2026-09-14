@@ -1,10 +1,91 @@
-import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import DatabaseSync from 'better-sqlite3';
 import { actionsForStore } from './metrics.js';
+import {
+  cleanupOrphanMedia,
+  createArticleComment,
+  createContentEntry,
+  deleteArticleComment,
+  deleteContentEntry,
+  getArticleRelationships,
+  getContentEntry,
+  getContentStats,
+  listArchive,
+  listArticleComments,
+  listAllComments,
+  listContentEntries,
+  listMedia,
+  migrateContent,
+  registerMedia,
+  syncKnowledgeTaxonomy,
+  toFtsQuery,
+  updateArticleCommentStatus,
+  updateContentEntry
+} from './content-store.js';
 
 export const DEFAULT_DB_PATH = resolve(process.env.DB_PATH || 'data/crosspilot.db');
+const SCHEMA_VERSION = 2;
 const nowIso = () => new Date().toISOString();
+const slugify = (value) => String(value || '')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 72);
+
+const compactText = (value, maxLength = 180) => String(value || '')
+  .replace(/```[\s\S]*?```/g, ' ')
+  .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+  .replace(/[#>*_`~\[\]()!-]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, maxLength);
+
+const contentFromLegacy = (row = {}) => {
+  const symptom = String(row.symptom || '').trim();
+  const solution = String(row.solution || '').trim();
+  if (!symptom && !solution) return '';
+  return [symptom ? `## 问题现象\n\n${symptom}` : '', solution ? `## 解决方案\n\n${solution}` : '']
+    .filter(Boolean)
+    .join('\n\n');
+};
+
+const normalizeKnowledgeRow = (row) => {
+  if (!row) return row;
+  const contentMd = String(row.content_md || '').trim() || contentFromLegacy(row);
+  const excerpt = String(row.excerpt || '').trim() || compactText(contentMd || row.symptom);
+  return {
+    ...row,
+    slug: row.slug || `article-${row.id}`,
+    excerpt,
+    content_md: contentMd,
+    status: row.status || 'published',
+    featured: Boolean(row.featured),
+    publish_at: row.publish_at || '',
+    updated_at: row.updated_at || row.created_at,
+    reading_minutes: Math.max(1, Math.ceil(contentMd.length / 500))
+  };
+};
+
+const uniqueSlug = (db, title, requested = '', currentId = null) => {
+  const base = slugify(requested) || slugify(title) || `article-${Date.now()}`;
+  let candidate = base;
+  let suffix = 2;
+  const find = db.prepare('SELECT id FROM knowledge_articles WHERE slug = ?');
+  while (true) {
+    const existing = find.get(candidate);
+    if (!existing || Number(existing.id) === Number(currentId)) return candidate;
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+};
+
+function ensureColumn(db, table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
 const dateOffset = (offset) => {
   const date = new Date();
   date.setDate(date.getDate() + offset);
@@ -17,9 +98,34 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA busy_timeout = 5000;');
+  backupBeforeMigration(db, dbPath);
   migrate(db);
   seed(db);
+  seedContent(db);
+  migrateContent(db);
+  db.pragma(`user_version = ${SCHEMA_VERSION}`);
   return db;
+}
+
+function backupBeforeMigration(db, dbPath) {
+  if (!existsSync(dbPath) || statSync(dbPath).size === 0) return;
+  const currentVersion = Number(db.pragma('user_version', { simple: true })) || 0;
+  if (currentVersion >= SCHEMA_VERSION) return;
+  const hasSchema = db.prepare(`
+    SELECT 1 AS ok FROM sqlite_master
+    WHERE type = 'table' AND name IN ('stores', 'knowledge_articles')
+    LIMIT 1
+  `).get();
+  if (!hasSchema) return;
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    const backupDirectory = join(dirname(dbPath), 'backups');
+    mkdirSync(backupDirectory, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    copyFileSync(dbPath, join(backupDirectory, `crosspilot-before-v${SCHEMA_VERSION}-${stamp}.db`));
+  } catch (error) {
+    console.warn(`[CrossPilot] Database backup skipped: ${error.message}`);
+  }
 }
 
 function migrate(db) {
@@ -206,6 +312,14 @@ function migrate(db) {
       tags TEXT NOT NULL DEFAULT '',
       views INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
+      ,slug TEXT NOT NULL DEFAULT ''
+      ,excerpt TEXT NOT NULL DEFAULT ''
+      ,content_md TEXT NOT NULL DEFAULT ''
+      ,cover_image TEXT NOT NULL DEFAULT ''
+      ,status TEXT NOT NULL DEFAULT 'published'
+      ,featured INTEGER NOT NULL DEFAULT 0
+      ,publish_at TEXT NOT NULL DEFAULT ''
+      ,updated_at TEXT NOT NULL DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS activities (
@@ -227,6 +341,28 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_action_events_action ON action_events(action_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_imports_store ON import_batches(store_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_import_rows_batch ON import_rows(batch_id, row_index);
+  `);
+
+  ensureColumn(db, 'knowledge_articles', 'slug', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'excerpt', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'content_md', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'cover_image', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'status', "TEXT NOT NULL DEFAULT 'published'");
+  ensureColumn(db, 'knowledge_articles', 'featured', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'knowledge_articles', 'publish_at', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'updated_at', "TEXT NOT NULL DEFAULT ''");
+  db.exec(`
+    UPDATE knowledge_articles SET slug = 'article-' || id WHERE slug = '';
+    UPDATE knowledge_articles SET status = 'published' WHERE status = '';
+    UPDATE knowledge_articles SET updated_at = created_at WHERE updated_at = '';
+    UPDATE knowledge_articles
+      SET content_md = trim(
+        CASE WHEN trim(symptom) = '' THEN '' ELSE '## 问题现象' || char(10) || char(10) || trim(symptom) END ||
+        CASE WHEN trim(solution) = '' THEN '' ELSE char(10) || char(10) || '## 解决方案' || char(10) || char(10) || trim(solution) END
+      )
+      WHERE content_md = '';
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_slug ON knowledge_articles(slug);
+    CREATE INDEX IF NOT EXISTS idx_knowledge_status ON knowledge_articles(status, featured, updated_at DESC);
   `);
 }
 
@@ -374,10 +510,18 @@ function seed(db) {
     ['多平台字段映射的最小字段集', '数据', '不同平台报表字段命名不一致。', '统一保留 SKU、日期、销售额、广告费、广告销售、库存和退货字段。买家姓名、邮箱、电话、地址等 PII 在导入预览阶段直接跳过。', '字段映射,CSV,XLSX', 43]
   ];
   const insertKnowledge = db.prepare(`
-    INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO knowledge_articles (
+      title, category, symptom, solution, tags, views, created_at, slug, excerpt,
+      content_md, cover_image, status, featured, updated_at
+      ,publish_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 'published', 0, ?, '')
   `);
-  knowledge.forEach((item, index) => insertKnowledge.run(...item, new Date(Date.now() - (index + 1) * 86400000).toISOString()));
+  knowledge.forEach((item, index) => {
+    const [title, category, symptom, solution, tags, views] = item;
+    const createdAt = new Date(Date.now() - (index + 1) * 86400000).toISOString();
+    const contentMd = `## 问题现象\n\n${symptom}\n\n## 解决方案\n\n${solution}`;
+    insertKnowledge.run(title, category, symptom, solution, tags, views, createdAt, `seed-${index + 1}`, compactText(contentMd), contentMd, createdAt);
+  });
 
   const activities = [
     ['import', 'import', 0, '完成 Amazon 商品表现、搜索词和库存 3 份模拟报表校验'],
@@ -394,6 +538,80 @@ function seed(db) {
   refreshOperationalActions(db, 1);
   refreshOperationalActions(db, 2);
   refreshOperationalActions(db, 3);
+}
+
+function seedContent(db) {
+  const slug = 'crosspilot-usage-guide';
+  const existing = db.prepare('SELECT id FROM knowledge_articles WHERE slug = ?').get(slug);
+  if (existing) return;
+  const contentMd = `# CrossPilot 运营工具使用指南
+
+CrossPilot 把报表导入、利润诊断、动作执行和复盘写作放在同一套工作流里。第一次使用时，建议从当前店铺开始，先导入数据，再处理动作，最后把有效方法沉淀成文章。
+
+![CrossPilot 首页](/assets/articles/crosspilot-home.png)
+
+## 1. 确认当前店铺
+
+顶部“当前店铺”会自动同步到运营总览、商品、广告、库存和售后模块。切换店铺后，页面数据、规则动作与报告都会一起切换。
+
+## 2. 导入平台报表
+
+进入“运营工具 → 数据导入”，拖入 CSV 或 XLSX 文件。系统会识别商品表现、搜索词、库存和退货/评论报表，并在入库前跳过买家姓名、邮箱、电话和地址等隐私字段。
+
+1. 上传文件并检查识别类型。
+2. 在字段映射中确认 SKU、日期、销售额、广告费和库存等字段。
+3. 检查错误行与 PII 跳过项。
+4. 点击“确认入库”，规则引擎会重新计算运营动作。
+
+![数据导入与运营导航](/assets/articles/operations-navigation.png)
+
+## 3. 从指标进入动作
+
+运营总览只保留需要关注的利润、ACOS、库存、退货和待处理事项。点击指标卡、SKU 异常榜或动作中心，可以继续进入对应模块。
+
+- 商品：检查 Listing 六维评分、售价和利润空间。
+- 广告：按搜索词判断否词、降价、暂停或放量。
+- 库存：按采购交期和安全库存计算补货量。
+- 售后：关联退货原因、店铺健康阈值和超时事项。
+
+## 4. 维护文章与复盘
+
+进入“文章 → 内容后台”，可以新建、编辑、保存草稿或发布文章。编辑器支持标题、粗体、列表、引用、链接、代码块和 Markdown 表格，也可以直接上传正文截图或封面。
+
+文章保存后会自动提取摘要与阅读时长；旧知识库内容会继续保留，并转换为统一正文格式。
+
+![全屏壁纸内容区](/assets/articles/content-transition.png)
+
+## 5. 常用 Markdown 语法
+
+\`\`\`markdown
+## 二级标题
+**重点内容**
+- 列表项
+> 引用说明
+![图片说明](/uploads/example.png)
+\`\`\`
+
+完成后点击“预览”检查排版，再保存为草稿或直接发布。
+`;
+  const timestamp = nowIso();
+  db.prepare(`
+    INSERT INTO knowledge_articles (
+      title, category, symptom, solution, tags, views, created_at, slug, excerpt,
+      content_md, cover_image, status, featured, publish_at, updated_at
+    ) VALUES (?, ?, '', ?, ?, 0, ?, ?, ?, ?, ?, 'published', 1, '', ?)
+  `).run(
+    'CrossPilot 运营工具使用指南',
+    '使用指南',
+    '从报表导入、动作处理到文章沉淀，完整走一遍 CrossPilot 的日常使用流程。',
+    'CrossPilot,使用指南,运营流程,Markdown,内容后台',
+    timestamp,
+    slug,
+    '从报表导入、动作处理到文章沉淀，完整走一遍 CrossPilot 的日常使用流程。',
+    contentMd,
+    '/assets/articles/crosspilot-home.png',
+    timestamp
+  );
 }
 
 export function listStores(db) {
@@ -714,25 +932,181 @@ function applyImportRow(db, batch, row) {
   }
 }
 
-export function listKnowledge(db, query = '') {
+export function listKnowledge(db, options = {}) {
+  const normalized = typeof options === 'string' ? { query: options } : (options || {});
+  const clauses = [];
+  const params = [];
+  const query = String(normalized.query || '').trim();
+  const category = String(normalized.category || '').trim();
+  const tag = String(normalized.tag || '').trim();
+  const series = String(normalized.series || '').trim();
+  const month = String(normalized.month || '').trim();
+  const status = String(normalized.status || 'published').trim();
   if (query) {
-    const like = `%${query}%`;
-    return db.prepare('SELECT * FROM knowledge_articles WHERE title LIKE ? OR symptom LIKE ? OR solution LIKE ? OR tags LIKE ? ORDER BY id DESC').all(like, like, like, like);
+    clauses.push('k.id IN (SELECT rowid FROM knowledge_fts WHERE knowledge_fts MATCH ?)');
+    params.push(toFtsQuery(query) || query);
   }
-  return db.prepare('SELECT * FROM knowledge_articles ORDER BY id DESC').all();
+  if (category) {
+    clauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM article_category_links cl
+        JOIN content_categories c ON c.id = cl.category_id
+        WHERE cl.article_id = k.id AND c.name = ?
+      )
+    `);
+    params.push(category);
+  }
+  if (tag) {
+    clauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM article_tag_links tl
+        JOIN content_tags t ON t.id = tl.tag_id
+        WHERE tl.article_id = k.id AND t.name = ?
+      )
+    `);
+    params.push(tag);
+  }
+  if (series) {
+    clauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM article_series_items si
+        JOIN content_series s ON s.id = si.series_id
+        WHERE si.article_id = k.id AND s.slug = ?
+      )
+    `);
+    params.push(series);
+  }
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    clauses.push("substr(COALESCE(NULLIF(k.updated_at, ''), k.created_at), 1, 7) = ?");
+    params.push(month);
+  }
+  if (status !== 'all') {
+    clauses.push('k.status = ?');
+    params.push(status || 'published');
+    if (status === 'published') {
+      clauses.push("(k.publish_at = '' OR k.publish_at <= ?)");
+      params.push(nowIso());
+    }
+  }
+  const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
+  const limit = Math.min(500, Math.max(1, Number(normalized.limit) || 50));
+  const offset = Math.max(0, Number(normalized.offset) || 0);
+  const order = status === 'all'
+    ? 'k.updated_at DESC, k.id DESC'
+    : 'k.featured DESC, k.updated_at DESC, k.id DESC';
+  return db.prepare(`
+    SELECT k.* FROM knowledge_articles k
+    ${where}
+    ORDER BY ${order}
+    LIMIT ? OFFSET ?
+  `).all(...params, limit, offset).map(normalizeKnowledgeRow);
 }
 
-export function getKnowledge(db, articleId) {
-  return db.prepare('SELECT * FROM knowledge_articles WHERE id = ?').get(Number(articleId));
+export function getKnowledge(db, articleIdOrSlug) {
+  const value = String(articleIdOrSlug ?? '').trim();
+  const row = /^\d+$/.test(value)
+    ? db.prepare('SELECT * FROM knowledge_articles WHERE id = ?').get(Number(value))
+    : db.prepare('SELECT * FROM knowledge_articles WHERE slug = ?').get(value);
+  return normalizeKnowledgeRow(row);
 }
 
 export function createKnowledge(db, input) {
+  const timestamp = nowIso();
+  const contentMd = String(input.contentMd || '').trim();
+  const fallbackContent = contentFromLegacy(input);
+  const body = contentMd || fallbackContent;
+  const slug = uniqueSlug(db, input.title, input.slug);
+  const status = input.status === 'draft' ? 'draft' : 'published';
   const result = db.prepare(`
-    INSERT INTO knowledge_articles (title, category, symptom, solution, tags, views, created_at)
-    VALUES (?, ?, ?, ?, ?, 0, ?)
-  `).run(input.title, input.category || '运营复盘', input.symptom || '', input.solution, input.tags || '', nowIso());
+    INSERT INTO knowledge_articles (
+      title, category, symptom, solution, tags, views, created_at, slug, excerpt,
+      content_md, cover_image, status, featured, publish_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    input.title,
+    input.category || '运营复盘',
+    input.symptom || '',
+    input.solution || body || input.title,
+    input.tags || '',
+    timestamp,
+    slug,
+    input.excerpt || compactText(body || input.symptom),
+    body,
+    input.coverImage || '',
+    status,
+    input.featured ? 1 : 0,
+    input.publishAt || '',
+    timestamp
+  );
+  syncKnowledgeTaxonomy(db, Number(result.lastInsertRowid), input);
   return getKnowledge(db, Number(result.lastInsertRowid));
 }
+
+export function updateKnowledge(db, articleId, input) {
+  const current = getKnowledge(db, articleId);
+  if (!current) return null;
+  const title = input.title ?? current.title;
+  const contentMd = input.contentMd ?? current.content_md;
+  const status = input.status === 'draft' ? 'draft' : input.status === 'published' ? 'published' : current.status;
+  const slug = uniqueSlug(db, title, input.slug || current.slug, current.id);
+  db.prepare(`
+    UPDATE knowledge_articles SET
+      title = ?, category = ?, slug = ?, excerpt = ?, content_md = ?, cover_image = ?,
+      tags = ?, status = ?, featured = ?, publish_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(
+    title,
+    input.category ?? current.category,
+    slug,
+    input.excerpt ?? current.excerpt,
+    contentMd,
+    input.coverImage ?? current.cover_image,
+    input.tags ?? current.tags,
+    status,
+    input.featured === undefined ? (current.featured ? 1 : 0) : (input.featured ? 1 : 0),
+    input.publishAt ?? current.publish_at,
+    nowIso(),
+    current.id
+  );
+  syncKnowledgeTaxonomy(db, current.id, {
+    category: input.category ?? current.category,
+    tags: input.tags ?? current.tags
+  });
+  return getKnowledge(db, current.id);
+}
+
+export function deleteKnowledge(db, articleId) {
+  return db.prepare('DELETE FROM knowledge_articles WHERE id = ?').run(Number(articleId)).changes > 0;
+}
+
+export function incrementKnowledgeViews(db, articleId) {
+  db.prepare('UPDATE knowledge_articles SET views = views + 1 WHERE id = ?').run(Number(articleId));
+}
+
+export function getKnowledgeStats(db) {
+  return getContentStats(db);
+}
+
+export {
+  cleanupOrphanMedia,
+  createArticleComment,
+  createContentEntry,
+  deleteArticleComment,
+  deleteContentEntry,
+  getArticleRelationships,
+  getContentEntry,
+  listArchive,
+  listArticleComments,
+  listAllComments,
+  listContentEntries,
+  listMedia,
+  registerMedia,
+  updateArticleCommentStatus,
+  updateContentEntry
+};
 
 export function listActivities(db, storeId, limit = 20) {
   return db.prepare('SELECT * FROM activities WHERE store_id = ? ORDER BY created_at DESC, id DESC LIMIT ?').all(Number(storeId), Number(limit));

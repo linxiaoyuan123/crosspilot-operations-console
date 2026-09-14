@@ -1,5 +1,19 @@
 const ICON_PATHS = {
   overview: '<path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-4H4v4Zm10-11h6V4h-6v5Z"/>',
+  home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/>',
+  heading: '<path d="M5 5v14M19 5v14M5 12h14"/>',
+  bold: '<path d="M7 5h6a4 4 0 0 1 0 8H7zM7 13h7a3 3 0 0 1 0 6H7z"/>',
+  italic: '<path d="M10 5h8M6 19h8M14 5 10 19"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+  orderedList: '<path d="M10 6h10M10 12h10M10 18h10M4 5h1v3M4 11h2l-2 3h2M4 17h2v3H4"/>',
+  quote: '<path d="M7 17H4v-5a5 5 0 0 1 5-5v3a2 2 0 0 0-2 2h0v5Zm10 0h-3v-5a5 5 0 0 1 5-5v3a2 2 0 0 0-2 2h0v5Z"/>',
+  code: '<path d="m8 9-3 3 3 3M16 9l3 3-3 3M14 5l-4 14"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 17 5-5 3 3 2-2 4 4"/>',
+  eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/>',
+  save: '<path d="M4 4h13l3 3v13H4zM8 4v6h8V4M8 20v-6h8v6"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/>',
+  chevronLeft: '<path d="m15 18-6-6 6-6"/>',
   tools: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
   music: '<path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/>',
@@ -73,6 +87,10 @@ const ICON_PATHS = {
 const FILLED_ICONS = new Set(['music', 'play', 'pause', 'palette', 'sun', 'moon', 'monitor', 'wallpaper', 'imageOutline', 'overlay', 'hideImage', 'viewDay', 'desktopLandscape', 'titlecase', 'carousel', 'airwave', 'gradient', 'flower', 'search', 'borderOuter']);
 
 const VIEW_META = {
+  home: { title: '主页', eyebrow: 'CrossPilot 内容与运营总览' },
+  articles: { title: '文章', eyebrow: '运营方法与项目记录' },
+  article: { title: '文章详情', eyebrow: 'CrossPilot 阅读' },
+  studio: { title: '内容后台', eyebrow: '文章维护与发布' },
   overview: { title: '运营总览', eyebrow: '经营驾驶舱' },
   imports: { title: '数据导入', eyebrow: '报表清洗与字段映射' },
   listings: { title: 'Listing与商品', eyebrow: '商品与内容优化' },
@@ -80,6 +98,25 @@ const VIEW_META = {
   inventory: { title: '库存与履约', eyebrow: '补货与风险控制' },
   aftersales: { title: '售后与账号', eyebrow: '问题闭环与健康预警' },
   reviews: { title: '运营复盘', eyebrow: '周期总结与报告导出' }
+};
+
+const CONTENT_ROUTES = {
+  home: '/',
+  articles: '/articles',
+  studio: '/studio'
+};
+
+const LEGACY_HASH_ROUTES = {
+  home: '/',
+  articles: '/articles',
+  studio: '/studio',
+  overview: '/overview',
+  imports: '/imports',
+  listings: '/listings',
+  ads: '/ads',
+  inventory: '/inventory',
+  aftersales: '/aftersales',
+  reviews: '/reviews'
 };
 
 const HERO_PHRASES = [
@@ -132,9 +169,18 @@ const IMPORT_TARGET_FIELDS = {
 };
 
 const state = {
-  view: 'overview',
+  viewRequest: 0,
+  view: 'home',
   storeId: null,
   stores: [],
+  articles: [],
+  articleStats: { total: 0, published: 0, drafts: 0, categories: [], tags: [] },
+  articleQuery: '',
+  articleMode: 'all',
+  articleCategory: '',
+  articleTag: '',
+  articleSlug: '',
+  currentArticle: null,
   overview: null,
   actions: [],
   imports: [],
@@ -153,13 +199,14 @@ const state = {
 const app = document.querySelector('#app');
 const pageTitle = document.querySelector('#page-title');
 const pageEyebrow = document.querySelector('#page-eyebrow');
-const storeSelect = document.querySelector('#global-store');
 const modalRoot = document.querySelector('#modal-root');
 const toastRoot = document.querySelector('#toast-root');
 const fontToggle = document.querySelector('#font-toggle');
 const appHeader = document.querySelector('.app-header');
 const navProgress = document.querySelector('#nav-progress');
 const heroTypewriter = document.querySelector('#hero-typewriter');
+let heroTypewriterTimer = 0;
+let heroTypewriterEnabled = null;
 const shellLeft = document.querySelector('#shell-left');
 const shellRight = document.querySelector('#shell-right');
 
@@ -175,31 +222,55 @@ function init() {
   initHeroTypewriter();
   initAppHeader();
   initNavTools();
-  document.querySelectorAll('[data-nav]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.nav)));
+  initStorePicker();
   window.addEventListener('crosspilot:navigate', (event) => {
     const view = event.detail?.view;
     if (VIEW_META[view]) navigate(view);
   });
   window.addEventListener('crosspilot:search-navigate', (event) => handleSearchNavigation(event.detail || {}));
-  storeSelect.addEventListener('change', async () => {
-    state.storeId = Number(storeSelect.value) || null;
-    state.selectedProductId = null;
-    state.pendingImport = null;
-    await loadCurrentView(true);
-  });
   document.addEventListener('click', handleClick);
   document.addEventListener('submit', handleSubmit);
   document.addEventListener('change', handleChange);
   document.addEventListener('dragover', handleDragOver);
   document.addEventListener('drop', handleDrop);
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeModal();
-  });
-  const hashView = window.location.hash.replace('#', '');
-  if (VIEW_META[hashView]) state.view = hashView;
+  window.addEventListener('keydown', handleGlobalKeydown);
+  window.addEventListener('popstate', restoreViewFromLocation);
+  const hashValue = window.location.hash.replace('#', '');
+  if (hashValue.startsWith('article/')) {
+    window.location.replace(`/articles/${encodeURIComponent(decodeURIComponent(hashValue.slice('article/'.length)))}`);
+    return;
+  }
+  if (LEGACY_HASH_ROUTES[hashValue]) {
+    const target = LEGACY_HASH_ROUTES[hashValue];
+    if (target.startsWith('/') && !['/overview', '/imports', '/listings', '/ads', '/inventory', '/aftersales', '/reviews'].includes(target)) {
+      window.location.replace(target);
+      return;
+    }
+    window.history.replaceState({}, '', target);
+  }
+  restoreViewFromLocation();
   updateViewChrome();
   checkHealth();
   bootstrap();
+}
+
+function restoreViewFromLocation() {
+  const hashValue = window.location.hash.replace('#', '');
+  if (hashValue.startsWith('article/')) {
+    window.location.replace(`/articles/${encodeURIComponent(decodeURIComponent(hashValue.slice('article/'.length)))}`);
+    return;
+  }
+  if (LEGACY_HASH_ROUTES[hashValue]) {
+    window.history.replaceState({}, '', LEGACY_HASH_ROUTES[hashValue]);
+  }
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/article') return;
+  const operationView = Object.entries(LEGACY_HASH_ROUTES).find(([, route]) => route === path)?.[0];
+  if (operationView && VIEW_META[operationView]) {
+    state.view = operationView;
+    updateViewChrome();
+    if (state.stores.length) loadCurrentView(true);
+  }
 }
 
 async function bootstrap() {
@@ -216,6 +287,7 @@ async function bootstrap() {
 }
 
 async function loadCurrentView(force = false) {
+  const request = ++state.viewRequest;
   if (!state.stores.length || force) {
     const { items } = await api('/api/stores');
     state.stores = items;
@@ -225,66 +297,260 @@ async function loadCurrentView(force = false) {
   if (!state.storeId) return renderEmptyPage('还没有店铺数据', '请先准备 CrossPilot 演示数据库。');
   app.innerHTML = loadingTemplate('正在整理运营数据');
   try {
-    if (state.view === 'overview') await loadOverview();
-    if (state.view === 'imports') await loadImports();
-    if (state.view === 'listings') await loadListings();
-    if (state.view === 'ads') await loadAds();
-    if (state.view === 'inventory') await loadInventory();
-    if (state.view === 'aftersales') await loadAfterSales();
-    if (state.view === 'reviews') await loadReviews();
+    if (state.view === 'overview') await loadOverview(request);
+    if (state.view === 'home') await loadHome(request);
+    if (state.view === 'articles') await loadArticles(request);
+    if (state.view === 'article') await loadArticle(request);
+    if (state.view === 'studio') await loadStudio(request);
+    if (state.view === 'imports') await loadImports(request);
+    if (state.view === 'listings') await loadListings(request);
+    if (state.view === 'ads') await loadAds(request);
+    if (state.view === 'inventory') await loadInventory(request);
+    if (state.view === 'aftersales') await loadAfterSales(request);
+    if (state.view === 'reviews') await loadReviews(request);
   } catch (error) {
-    app.innerHTML = errorTemplate(error.message);
+    if (isCurrentViewRequest(request, state.view)) app.innerHTML = errorTemplate(error.message);
   }
+  if (!isCurrentViewRequest(request, state.view)) return false;
   renderShellSidebars();
+  return true;
 }
 
-async function loadOverview() {
+function isCurrentViewRequest(request, view) {
+  return request === state.viewRequest && view === state.view;
+}
+
+async function loadHome(request = state.viewRequest) {
+  const view = state.view;
+  const [overview, actions, articles] = await Promise.all([
+    api(`/api/overview?storeId=${state.storeId}`),
+    api(`/api/actions?storeId=${state.storeId}&status=all`),
+    api('/api/knowledge?status=published&limit=6')
+  ]);
+  if (!isCurrentViewRequest(request, view) || view !== 'home') return;
+  state.overview = overview;
+  state.actions = actions.items;
+  state.articles = articles.items;
+  state.articleStats = articles.stats;
+  renderHome();
+}
+
+async function loadArticles(request = state.viewRequest) {
+  const view = state.view;
+  const params = new URLSearchParams({ status: 'published', limit: '60' });
+  if (state.articleQuery) params.set('q', state.articleQuery);
+  if (state.articleCategory) params.set('category', state.articleCategory);
+  if (state.articleTag) params.set('tag', state.articleTag);
+  const data = await api(`/api/knowledge?${params}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'articles') return;
+  state.articles = data.items;
+  state.articleStats = data.stats;
+  renderArticles();
+}
+
+async function loadArticle(request = state.viewRequest) {
+  const view = state.view;
+  if (!state.articleSlug) {
+    state.currentArticle = null;
+    app.innerHTML = errorTemplate('文章地址无效');
+    return;
+  }
+  const article = await api(`/api/knowledge/${encodeURIComponent(state.articleSlug)}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'article') return;
+  state.currentArticle = article;
+  updateViewChrome();
+  renderArticleDetail();
+}
+
+async function loadStudio(request = state.viewRequest) {
+  const view = state.view;
+  const data = await api('/api/knowledge?status=all&limit=100');
+  if (!isCurrentViewRequest(request, view) || view !== 'studio') return;
+  state.articles = data.items;
+  state.articleStats = data.stats;
+  renderStudio();
+}
+
+async function loadOverview(request = state.viewRequest) {
+  const view = state.view;
   const [overview, actions] = await Promise.all([
     api(`/api/overview?storeId=${state.storeId}`),
     api(`/api/actions?storeId=${state.storeId}&status=all`)
   ]);
+  if (!isCurrentViewRequest(request, view) || view !== 'overview') return;
   state.overview = overview;
   state.actions = actions.items;
   renderOverview();
 }
 
-async function loadImports() {
+async function loadImports(request = state.viewRequest) {
+  const view = state.view;
   const { items } = await api(`/api/imports?storeId=${state.storeId}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'imports') return;
   state.imports = items;
   if (state.pendingImport && !items.some((item) => item.id === state.pendingImport.id && item.status === 'preview')) state.pendingImport = null;
   renderImports();
 }
 
-async function loadListings() {
+async function loadListings(request = state.viewRequest) {
+  const view = state.view;
   const { items } = await api(`/api/products?storeId=${state.storeId}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'listings') return;
   state.products = items;
   if (!state.selectedProductId || !items.some((item) => item.id === state.selectedProductId)) state.selectedProductId = items[0]?.id || null;
   renderListings();
 }
 
-async function loadAds() {
-  state.ads = await api(`/api/ads?storeId=${state.storeId}`);
+async function loadAds(request = state.viewRequest) {
+  const view = state.view;
+  const ads = await api(`/api/ads?storeId=${state.storeId}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'ads') return;
+  state.ads = ads;
   renderAds();
 }
 
-async function loadInventory() {
-  state.inventory = await api(`/api/inventory?storeId=${state.storeId}`);
+async function loadInventory(request = state.viewRequest) {
+  const view = state.view;
+  const inventory = await api(`/api/inventory?storeId=${state.storeId}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'inventory') return;
+  state.inventory = inventory;
   renderInventory();
 }
 
-async function loadAfterSales() {
-  state.afterSales = await api(`/api/after-sales?storeId=${state.storeId}`);
+async function loadAfterSales(request = state.viewRequest) {
+  const view = state.view;
+  const afterSales = await api(`/api/after-sales?storeId=${state.storeId}`);
+  if (!isCurrentViewRequest(request, view) || view !== 'aftersales') return;
+  state.afterSales = afterSales;
   renderAfterSales();
 }
 
-async function loadReviews() {
+async function loadReviews(request = state.viewRequest) {
+  const view = state.view;
   const [knowledge, overview] = await Promise.all([
     api(`/api/knowledge${state.knowledgeQuery ? `?q=${encodeURIComponent(state.knowledgeQuery)}` : ''}`),
     api(`/api/overview?storeId=${state.storeId}`)
   ]);
+  if (!isCurrentViewRequest(request, view) || view !== 'reviews') return;
   state.knowledge = knowledge.items;
   state.overview = overview;
   renderReviews();
+}
+
+function renderHome() {
+  const data = state.overview;
+  const k = data.kpis;
+  const store = state.stores.find((item) => item.id === state.storeId);
+  const openActions = state.actions.filter((item) => !isClosedAction(item.status));
+  const featured = state.articles.find((item) => item.featured) || state.articles[0];
+  const latest = state.articles.filter((item) => item.id !== featured?.id).slice(0, 3);
+  app.innerHTML = `
+    ${viewHead('从经营状态到方法沉淀', '主页汇集当前店铺、待办动作、关键指标和最新文章，日常从这里进入各模块。', `
+      <button class="button secondary" data-nav="articles">${icon('book')}浏览文章</button>
+      <button class="button primary" data-action="new-article">${icon('plus')}写新文章</button>`)}
+    <section class="cp-home-lead-grid">
+      ${featured ? renderFeaturedArticle(featured) : `<section class="panel">${emptyBlock('还没有文章', '进入内容后台写下第一篇运营方法。')}</section>`}
+      <aside class="panel cp-home-profile">
+        <div class="cp-home-profile-head"><span class="cp-home-avatar">${icon('target', 24)}</span><div><span class="panel-kicker">active workspace</span><h3>${h(store?.name || 'CrossPilot')}</h3><p>${h(store ? `${store.platform} · ${store.market}` : '跨境运营工作区')}</p></div></div>
+        <div class="cp-home-profile-stats">
+          <div><span>待办动作</span><strong>${openActions.length}</strong></div>
+          <div><span>已发布文章</span><strong>${state.articleStats.published || 0}</strong></div>
+          <div><span>库存风险</span><strong>${k.inventoryRiskCount}</strong></div>
+          <div><span>售后事项</span><strong>${k.pendingAfterSales}</strong></div>
+        </div>
+        <div class="cp-home-profile-note"><span>${icon('sparkles')}</span><p>规则引擎会持续复核利润、广告、库存和售后异常。</p></div>
+        <div class="cp-home-profile-actions"><button class="button secondary" data-nav="overview">进入总览</button><button class="button secondary" data-nav="studio">维护内容</button></div>
+      </aside>
+    </section>
+    <section class="cp-home-section">
+      <header class="cp-home-section-head"><div><span class="panel-kicker">latest notes</span><h3>最新文章</h3></div><button class="text-button" data-nav="articles">查看全部 ${icon('arrow')}</button></header>
+      <div class="cp-article-grid compact">${latest.length ? latest.map(renderArticleCard).join('') : emptyBlock('暂无更多文章', '内容后台发布的文章会显示在这里。')}</div>
+    </section>
+    <section class="cp-home-section">
+      <header class="cp-home-section-head"><div><span class="panel-kicker">operations pulse</span><h3>运营脉冲</h3></div><span class="muted">近 30 天</span></header>
+      <div class="metric-grid cp-metric-grid">
+        ${metricCard('chart', '净销售额', money(k.netSales, data.store.currency), `净利润 ${money(k.profit, data.store.currency)}`, 'overview', 'accent')}
+        ${metricCard('ads', 'ACOS', `${k.acos}%`, `目标 ${data.store.target_acos}%`, 'ads', k.acos > data.store.target_acos ? 'amber' : 'green')}
+        ${metricCard('inventory', '库存风险', `${k.inventoryRiskCount} 个 SKU`, '缺货与滞销', 'inventory', k.inventoryRiskCount ? 'amber' : 'green')}
+        ${metricCard('check', '待执行动作', `${openActions.length} 项`, `P0 ${openActions.filter((item) => item.priority === 'critical').length}`, 'overview', openActions.length ? 'amber' : 'green')}
+      </div>
+    </section>`;
+}
+
+function renderFeaturedArticle(article) {
+  return `<article class="panel cp-featured-article" data-action="open-article" data-slug="${escapeAttr(article.slug)}" tabindex="0" role="link">
+    <div class="cp-featured-media">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : `<span>${icon('book', 36)}</span>`}</div>
+    <div class="cp-featured-copy"><span class="project-kicker">${h(article.category)} · featured</span><h2>${h(article.title)}</h2><p>${h(article.excerpt)}</p><div class="cp-article-meta"><span>${formatDate(article.updated_at)}</span><span>${article.reading_minutes} 分钟阅读</span><span>${number(article.views)} 次查看</span></div><span class="text-button">继续阅读 ${icon('arrow')}</span></div>
+  </article>`;
+}
+
+function renderArticleCard(article) {
+  const tags = String(article.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 3);
+  return `<article class="panel cp-article-card">
+    <button type="button" class="cp-article-cover" data-action="open-article" data-slug="${escapeAttr(article.slug)}" aria-label="阅读 ${escapeAttr(article.title)}">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : `<span>${icon('book', 30)}</span>`}</button>
+    <div class="cp-article-card-body"><div class="cp-article-card-top"><span class="project-kicker">${h(article.category)}</span><time>${formatDate(article.updated_at)}</time></div><h3><button type="button" data-action="open-article" data-slug="${escapeAttr(article.slug)}">${h(article.title)}</button></h3><p>${h(article.excerpt)}</p><div class="cp-article-tags">${tags.map((tag) => `<button type="button" data-action="filter-tag" data-tag="${escapeAttr(tag)}"># ${h(tag)}</button>`).join('')}</div><div class="cp-article-meta"><span>${article.reading_minutes} 分钟</span><span>${number(article.views)} 次查看</span></div></div>
+  </article>`;
+}
+
+function renderArticles() {
+  const stats = state.articleStats || {};
+  const modes = { all: '全部文章', categories: '分类', tags: '标签' };
+  const filters = state.articleMode === 'categories' ? stats.categories : state.articleMode === 'tags' ? stats.tags : [];
+  app.innerHTML = `
+    ${viewHead('CrossPilot 文章', '记录项目使用方法、运营流程和复盘方法。支持 Markdown、分类、标签与图片。', `
+      <button class="button secondary" data-nav="studio">${icon('edit')}内容后台</button>
+      <button class="button primary" data-action="new-article">${icon('plus')}写新文章</button>`)}
+    <section class="panel cp-article-index">
+      <div class="cp-article-index-toolbar">
+        <div class="cp-article-mode-tabs">${Object.entries(modes).map(([value, label]) => `<button type="button" class="${state.articleMode === value ? 'is-active' : ''}" data-action="article-mode" data-mode="${value}">${label}</button>`).join('')}</div>
+        <form id="article-search-form" class="cp-search-form compact"><input name="q" value="${escapeAttr(state.articleQuery)}" placeholder="搜索文章标题、正文或标签"><button class="icon-button" type="submit">${icon('search')}</button></form>
+      </div>
+      ${filters.length ? `<div class="cp-filter-cloud"><button type="button" class="${!state.articleCategory && !state.articleTag ? 'is-active' : ''}" data-action="clear-article-filter">全部</button>${filters.map((item) => `<button type="button" class="${(state.articleMode === 'categories' ? state.articleCategory : state.articleTag) === item.name ? 'is-active' : ''}" data-action="filter-${state.articleMode === 'categories' ? 'category' : 'tag'}" data-value="${escapeAttr(item.name)}">${h(item.name)}<span>${item.count}</span></button>`).join('')}</div>` : ''}
+      <div class="cp-article-grid">${state.articles.length ? state.articles.map(renderArticleCard).join('') : emptyBlock('没有匹配文章', '调整搜索或筛选条件后再试。')}</div>
+    </section>`;
+}
+
+function renderArticleDetail() {
+  const article = state.currentArticle;
+  if (!article) {
+    app.innerHTML = errorTemplate('文章不存在');
+    return;
+  }
+  app.innerHTML = `
+    <div class="cp-article-detail-actions"><button class="button secondary" data-action="back-articles">${icon('chevronLeft')}返回文章</button><button class="button secondary" data-action="edit-article" data-id="${article.id}">${icon('edit')}编辑本文</button></div>
+    <article class="panel cp-reading-shell">
+      ${article.cover_image ? `<div class="cp-reading-cover"><img src="${escapeAttr(article.cover_image)}" alt=""></div>` : ''}
+      <header class="cp-reading-head"><span class="project-kicker">${h(article.category)}</span><h1>${h(article.title)}</h1><p>${h(article.excerpt)}</p><div class="cp-article-meta"><span>${formatDate(article.updated_at)}</span><span>${article.reading_minutes} 分钟阅读</span><span>${number(article.views)} 次查看</span></div></header>
+      <div class="article-markdown">${article.html || ''}</div>
+      <footer class="cp-reading-footer"><div class="cp-article-tags">${String(article.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).map((tag) => `<button type="button" data-action="filter-tag" data-tag="${escapeAttr(tag)}"># ${h(tag)}</button>`).join('')}</div><button class="button secondary" data-action="back-articles">${icon('book')}继续浏览文章</button></footer>
+    </article>`;
+}
+
+function renderStudio() {
+  const stats = state.articleStats || {};
+  app.innerHTML = `
+    ${viewHead('内容后台', '文章以 Markdown 保存，可上传封面和正文截图，并随时切换草稿或发布状态。', `
+      <button class="button secondary" data-nav="articles">${icon('eye')}查看文章页</button>
+      <button class="button primary" data-action="new-article">${icon('plus')}新建文章</button>`)}
+    <div class="metric-grid cp-metric-grid cp-studio-stats">
+      ${metricCard('book', '文章总数', String(stats.total || 0), '全部内容', null, 'accent')}
+      ${metricCard('check', '已发布', String(stats.published || 0), '文章页可见', null, 'green')}
+      ${metricCard('edit', '草稿', String(stats.drafts || 0), '仅后台可见', null, 'amber')}
+      ${metricCard('grid', '分类数量', String(stats.categories?.length || 0), `${stats.tags?.length || 0} 个标签`, null, 'accent')}
+    </div>
+    <section class="panel cp-studio-table-panel">
+      <div class="panel-head"><div><span class="panel-kicker">content inventory</span><h3>全部文章</h3></div><span class="muted">Markdown 正文 · 草稿与发布状态</span></div>
+      ${state.articles.length ? `<div class="cp-studio-list">${state.articles.map(renderStudioRow).join('')}</div>` : emptyBlock('还没有文章', '点击“新建文章”开始写作。')}
+    </section>`;
+}
+
+function renderStudioRow(article) {
+  return `<article class="cp-studio-row">
+    <span class="cp-studio-cover">${article.cover_image ? `<img src="${escapeAttr(article.cover_image)}" alt="">` : icon('book', 22)}</span>
+    <div class="cp-studio-main"><div><span class="badge status-${article.status === 'published' ? 'healthy' : 'warning'}">${article.status === 'published' ? '已发布' : '草稿'}</span>${article.featured ? '<span class="badge status-accent">置顶</span>' : ''}</div><strong>${h(article.title)}</strong><small>${h(article.excerpt)}</small></div>
+    <div class="cp-studio-meta"><span>${h(article.category)}</span><small>${formatDate(article.updated_at)} · ${article.reading_minutes} 分钟</small></div>
+    <div class="cp-studio-actions"><button class="icon-button small" data-action="preview-article" data-slug="${escapeAttr(article.slug)}" title="预览">${icon('eye', 15)}</button><button class="icon-button small" data-action="edit-article" data-id="${article.id}" title="编辑">${icon('edit', 15)}</button><button class="icon-button small cp-danger-button" data-action="delete-article" data-id="${article.id}" title="删除">${icon('trash', 15)}</button></div>
+  </article>`;
 }
 
 function renderOverview() {
@@ -380,7 +646,7 @@ function renderImportPreview(batch) {
     const selected = batch.mapping[source] || '';
     return `<tr class="${pii ? 'cp-pii-row' : ''}">
       <td><strong>${h(source)}</strong>${pii ? '<span class="badge status-warning">PII 跳过</span>' : ''}</td>
-      <td><select data-mapping-source="${escapeAttr(source)}" ${pii ? 'disabled' : ''}><option value="">不导入</option>${fields.map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${h(label)}</option>`).join('')}</select></td>
+      <td>${customSelect('', Object.fromEntries([['', '不导入'], ...fields]), selected, { disabled: pii, mappingSource: source })}</td>
     </tr>`;
   }).join('');
   const previewRows = batch.rows.slice(0, 8);
@@ -567,7 +833,7 @@ function renderReviews() {
   const k = data.kpis;
   app.innerHTML = `
     ${viewHead('运营复盘', '按周期汇总指标、异常、动作结果和未关闭事项，并导出 HTML、Markdown、CSV 或 XLSX 复盘报告。', `
-      <button class="button secondary" data-action="new-knowledge">${icon('plus')}沉淀复盘文章</button>`)}
+      <button class="button secondary" data-nav="studio">${icon('edit')}维护内容</button>`)}
     <div class="cp-tabs">
       <button class="${state.reviewTab === 'reports' ? 'is-active' : ''}" data-action="set-review-tab" data-tab="reports">${icon('file')}周期报告</button>
       <button class="${state.reviewTab === 'knowledge' ? 'is-active' : ''}" data-action="set-review-tab" data-tab="knowledge">${icon('book')}运营知识库</button>
@@ -611,7 +877,7 @@ function renderKnowledgeTab() {
 }
 
 function viewHead(title, description, actions = '') {
-  return `<div class="view-head"><div><span class="project-kicker">CrossPilot operations</span><h2>${h(title)}</h2><p>${h(description)}</p></div><div class="head-actions">${actions}</div></div>`;
+  return `<section class="panel view-head cp-view-head-card"><div><span class="project-kicker">CrossPilot operations</span><h2>${h(title)}</h2><p>${h(description)}</p></div><div class="head-actions">${actions}</div></section>`;
 }
 
 function metricCard(iconName, label, value, note, nav, color = 'accent') {
@@ -678,7 +944,46 @@ function statusBadge(status) {
 }
 
 function renderStoreSwitcher() {
-  storeSelect.innerHTML = state.stores.map((store) => `<option value="${store.id}" ${store.id === state.storeId ? 'selected' : ''}>${h(store.platform)} · ${h(store.name)}</option>`).join('') || '<option value="">暂无店铺</option>';
+  const trigger = document.querySelector('#global-store-toggle');
+  const menu = document.querySelector('#global-store-menu');
+  if (!trigger || !menu) return;
+  const selected = state.stores.find((store) => store.id === state.storeId) || state.stores[0];
+  document.documentElement.dataset.activeStore = selected?.id ? String(selected.id) : '';
+  const value = trigger.querySelector('.cp-store-picker-value');
+  if (value) value.textContent = selected ? `${selected.platform} · ${selected.name}` : '暂无店铺';
+  menu.innerHTML = state.stores.map((store) => `<button type="button" role="option" aria-selected="${store.id === state.storeId}" data-store-id="${store.id}"><span><small>${h(store.platform)}</small><strong>${h(store.name)}</strong></span><em>${h(store.market)}</em></button>`).join('');
+}
+
+function initStorePicker() {
+  const picker = document.querySelector('.cp-store-picker');
+  const trigger = document.querySelector('#global-store-toggle');
+  const menu = document.querySelector('#global-store-menu');
+  if (!picker || !trigger || !menu) return;
+  const setOpen = (open) => {
+    picker.classList.toggle('is-open', open);
+    trigger.setAttribute('aria-expanded', String(open));
+    menu.hidden = !open;
+  };
+  trigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setOpen(!picker.classList.contains('is-open'));
+  });
+  menu.addEventListener('click', async (event) => {
+    const option = event.target.closest('[data-store-id]');
+    if (!option) return;
+    state.storeId = Number(option.dataset.storeId) || null;
+    state.selectedProductId = null;
+    state.pendingImport = null;
+    renderStoreSwitcher();
+    setOpen(false);
+    await loadCurrentView(true);
+  });
+  document.addEventListener('click', (event) => {
+    if (!picker.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
 }
 
 function renderShellSidebars() {
@@ -732,13 +1037,24 @@ function renderShellSidebars() {
 }
 
 async function handleClick(event) {
+  if (handleCustomSelectClick(event.target)) return;
   const nav = event.target.closest('[data-nav]');
   const explicitAction = event.target.closest('[data-action]');
-  if (nav) return navigate(nav.dataset.nav);
+  if (nav) {
+    const filter = nav.dataset.articleFilter;
+    if (filter === 'all') {
+      state.articleMode = 'all';
+      state.articleCategory = '';
+      state.articleTag = '';
+      state.articleQuery = '';
+    }
+    if (filter === 'categories' || filter === 'tags') state.articleMode = filter;
+    return navigate(nav.dataset.nav);
+  }
   if (!explicitAction) return;
   const { action, id, tab } = explicitAction.dataset;
   try {
-    if (action === 'close-modal') closeModal();
+    if (action === 'close-modal' && (event.target === explicitAction || !explicitAction.classList.contains('modal-backdrop'))) closeModal();
     if (action === 'set-review-tab') {
       state.reviewTab = tab;
       renderReviews();
@@ -752,7 +1068,10 @@ async function handleClick(event) {
       await navigate('listings');
     }
     if (action === 'listing-package') {
+      const view = state.view;
+      const request = state.viewRequest;
       const data = await api(`/api/products/${id}/listing-package`);
+      if (!isCurrentViewRequest(request, view) || view !== 'listings') return;
       openModal({ title: `${data.product.sku} · 上新资料包`, wide: true, content: renderListingPackage(data) });
     }
     if (action === 'create-listing-action') {
@@ -776,7 +1095,10 @@ async function handleClick(event) {
     if (action === 'refresh-actions') await refreshActions();
     if (action === 'new-action') openActionModal();
     if (action === 'manage-action' || action === 'open-action') {
+      const view = state.view;
+      const request = state.viewRequest;
       const item = await api(`/api/actions/${id}`);
+      if (!isCurrentViewRequest(request, view)) return;
       openActionModal(item);
     }
     if (action === 'complete-action') {
@@ -802,16 +1124,98 @@ async function handleClick(event) {
       renderImports();
     }
     if (action === 'open-import') {
-      state.pendingImport = await api(`/api/imports/${id}`);
+      const view = state.view;
+      const request = state.viewRequest;
+      const pendingImport = await api(`/api/imports/${id}`);
+      if (!isCurrentViewRequest(request, view) || view !== 'imports') return;
+      state.pendingImport = pendingImport;
       renderImports();
     }
     if (action === 'open-knowledge') {
       await openKnowledgeArticle(id);
     }
-    if (action === 'new-knowledge') openKnowledgeModal();
+    if (action === 'open-article' || action === 'preview-article') {
+      state.articleSlug = explicitAction.dataset.slug || '';
+      await navigate('article');
+    }
+    if (action === 'back-articles') await navigate('articles');
+    if (action === 'new-article') window.location.assign('/studio');
+    if (action === 'edit-article') {
+      window.location.assign(`/studio?edit=${encodeURIComponent(id)}`);
+    }
+    if (action === 'delete-article') {
+      const article = state.articles.find((item) => item.id === Number(id));
+      if (!window.confirm(`确定删除“${article?.title || '这篇文章'}”吗？`)) return;
+      await api(`/api/knowledge/${id}`, { method: 'DELETE' });
+      showToast('文章已删除');
+      await loadCurrentView(true);
+    }
+    if (action === 'article-mode') {
+      state.articleMode = explicitAction.dataset.mode || 'all';
+      state.articleCategory = '';
+      state.articleTag = '';
+      renderArticles();
+    }
+    if (action === 'filter-category') {
+      state.articleCategory = explicitAction.dataset.value || '';
+      state.articleTag = '';
+      await loadArticles();
+    }
+    if (action === 'filter-tag') {
+      state.articleTag = explicitAction.dataset.tag || explicitAction.dataset.value || '';
+      state.articleCategory = '';
+      state.articleMode = 'tags';
+      await navigate('articles');
+    }
+    if (action === 'clear-article-filter') {
+      state.articleCategory = '';
+      state.articleTag = '';
+      await loadArticles();
+    }
     if (action === 'refresh') await loadCurrentView(true);
   } catch (error) {
     showError(error);
+  }
+}
+
+function handleGlobalKeydown(event) {
+  const trigger = event.target.closest?.('[data-cp-select-trigger]');
+  const option = event.target.closest?.('[data-cp-select-option]');
+  if (event.key === 'Escape') {
+    const openSelect = event.target.closest?.('[data-cp-select].is-open');
+    if (openSelect) {
+      closeCustomSelect(openSelect);
+      openSelect.querySelector('[data-cp-select-trigger]')?.focus();
+      return;
+    }
+    closeModal();
+    return;
+  }
+  if (trigger && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+    event.preventDefault();
+    const select = trigger.closest('[data-cp-select]');
+    closeCustomSelects(select);
+    select.classList.add('is-open');
+    trigger.setAttribute('aria-expanded', 'true');
+    const menu = select.querySelector('[data-cp-select-menu]');
+    menu.hidden = false;
+    const options = [...menu.querySelectorAll('[data-cp-select-option]')];
+    const target = event.key === 'ArrowUp' ? options.at(-1) : options.find((item) => item.getAttribute('aria-selected') === 'true') || options[0];
+    target?.focus();
+    return;
+  }
+  if (option && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    event.preventDefault();
+    const options = [...option.closest('[data-cp-select-menu]').querySelectorAll('[data-cp-select-option]')];
+    const index = options.indexOf(option);
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? options.length - 1
+        : event.key === 'ArrowDown'
+          ? (index + 1) % options.length
+          : (index - 1 + options.length) % options.length;
+    options[nextIndex]?.focus();
   }
 }
 
@@ -830,12 +1234,9 @@ async function handleSubmit(event) {
       showToast(data.id ? '动作已更新并记录时间线' : '运营动作已创建');
       await loadCurrentView(true);
     }
-    if (form.id === 'knowledge-form') {
-      await api('/api/knowledge', { method: 'POST', body: data });
-      closeModal();
-      showToast('复盘方法已沉淀到知识库');
-      state.reviewTab = 'knowledge';
-      await loadReviews();
+    if (form.id === 'article-search-form') {
+      state.articleQuery = String(data.q || '').trim();
+      await loadArticles();
     }
     if (form.id === 'product-search-form') {
       state.productQuery = String(data.q || '').trim();
@@ -851,11 +1252,10 @@ async function handleSubmit(event) {
 }
 
 async function handleChange(event) {
-  if (event.target.id !== 'import-file') return;
   const file = event.target.files?.[0];
   if (!file) return;
   try {
-    await previewImport(file);
+    if (event.target.id === 'import-file') await previewImport(file);
   } catch (error) {
     showError(error);
   } finally {
@@ -884,23 +1284,31 @@ async function handleDrop(event) {
 
 async function previewImport(file) {
   if (file.size > 10 * 1024 * 1024) throw new Error('文件不能超过 10 MB');
+  const view = state.view;
+  const request = state.viewRequest;
   app.querySelector('.cp-import-preview')?.classList.add('is-loading');
   showToast('正在识别报表和字段映射', 'warning');
   const contentBase64 = await fileToBase64(file);
-  state.pendingImport = await api('/api/imports/preview', {
+  const pendingImport = await api('/api/imports/preview', {
     method: 'POST',
     body: { storeId: state.storeId, filename: file.name, contentBase64, reportType: 'auto' }
   });
+  if (!isCurrentViewRequest(request, view) || view !== 'imports') return;
+  state.pendingImport = pendingImport;
   showToast(`识别为${reportTypeLabel(state.pendingImport.report_type)}，已跳过 ${state.pendingImport.pii_columns.length} 个 PII 字段`);
   renderImports();
 }
 
 async function applyImportMapping(batchId) {
+  const view = state.view;
+  const request = state.viewRequest;
   const mapping = {};
   document.querySelectorAll('[data-mapping-source]').forEach((select) => {
     if (select.value) mapping[select.dataset.mappingSource] = select.value;
   });
-  state.pendingImport = await api(`/api/imports/${batchId}/mapping`, { method: 'PATCH', body: { mapping } });
+  const pendingImport = await api(`/api/imports/${batchId}/mapping`, { method: 'PATCH', body: { mapping } });
+  if (!isCurrentViewRequest(request, view) || view !== 'imports') return;
+  state.pendingImport = pendingImport;
   showToast('字段映射已重新校验');
   renderImports();
 }
@@ -920,9 +1328,9 @@ function openActionModal(item = null) {
     content: `<form id="action-form" class="form-grid">
       <input type="hidden" name="id" value="${item?.id || ''}">
       ${field('动作标题 *', `<input name="title" required value="${escapeAttr(item?.title || '')}" ${item ? 'readonly' : ''} placeholder="例如：暂停无效搜索词">`)}
-      ${field('模块', `<select name="category">${options({ 广告: '广告', 库存: '库存', Listing: 'Listing', 利润: '利润', 售后: '售后', 运营: '运营' }, item?.category || '运营')}</select>`)}
-      ${field('优先级', `<select name="priority">${options({ critical: 'P0 紧急', high: 'P1 高', medium: 'P2 中', low: 'P3 低' }, item?.priority || 'medium')}</select>`)}
-      ${field('状态', `<select name="status">${options({ open: '待处理', in_progress: '处理中', deferred: '已延期', done: '已完成', closed: '已关闭', ignored: '已忽略' }, item?.status || 'open')}</select>`)}
+      ${field('模块', customSelect('category', { 广告: '广告', 库存: '库存', Listing: 'Listing', 利润: '利润', 售后: '售后', 运营: '运营' }, item?.category || '运营'))}
+      ${field('优先级', customSelect('priority', { critical: 'P0 紧急', high: 'P1 高', medium: 'P2 中', low: 'P3 低' }, item?.priority || 'medium'))}
+      ${field('状态', customSelect('status', { open: '待处理', in_progress: '处理中', deferred: '已延期', done: '已完成', closed: '已关闭', ignored: '已忽略' }, item?.status || 'open'))}
       ${field('负责人', `<input name="owner" value="${escapeAttr(item?.owner || '')}" placeholder="例如：运营-林">`)}
       ${field('截止日期', `<input type="date" name="dueDate" value="${escapeAttr(item?.due_date || today())}">`)}
       ${field('执行结果', `<textarea name="result" rows="3" placeholder="记录处理结果和指标变化">${h(item?.result || '')}</textarea>`, true)}
@@ -933,19 +1341,74 @@ function openActionModal(item = null) {
   });
 }
 
-function openKnowledgeModal() {
-  openModal({
-    title: '沉淀运营方法',
-    wide: true,
-    content: `<form id="knowledge-form" class="form-grid">
-      ${field('标题 *', '<input name="title" required placeholder="例如：欧洲站高退货产品的三步复盘法">')}
-      ${field('分类', `<select name="category">${options({ 运营复盘: '运营复盘', 广告: '广告', 库存: '库存', Listing: 'Listing', 售后: '售后', 数据: '数据' }, '运营复盘')}</select>`)}
-      ${field('问题现象 *', '<textarea name="symptom" rows="3" required placeholder="说明在什么情况下触发该方法"></textarea>', true)}
-      ${field('解决方案 *', '<textarea name="solution" rows="7" required placeholder="按判断标准、执行步骤、结果验证的顺序记录"></textarea>', true)}
-      ${field('标签', '<input name="tags" placeholder="用逗号分隔，例如：ACOS,否词,利润">', true)}
-      <div class="form-actions span-2"><button class="button secondary" type="button" data-action="close-modal">取消</button><button class="button primary" type="submit">保存文章</button></div>
-    </form>`
+function customSelect(name, items, selected, { disabled = false, mappingSource = '' } = {}) {
+  const entries = Object.entries(items);
+  const currentValue = String(selected ?? '');
+  const current = entries.find(([value]) => String(value) === currentValue) || entries[0] || ['', '请选择'];
+  const hiddenName = name ? ` name="${escapeAttr(name)}"` : '';
+  const mapping = mappingSource ? ` data-mapping-source="${escapeAttr(mappingSource)}"` : '';
+  return `<div class="cp-select${disabled ? ' is-disabled' : ''}" data-cp-select>
+    <input type="hidden"${hiddenName}${mapping} value="${escapeAttr(current[0])}" data-cp-select-input>
+    <button class="cp-select-trigger" type="button" data-cp-select-trigger aria-haspopup="listbox" aria-expanded="false"${disabled ? ' disabled' : ''}>
+      <span data-cp-select-label>${h(current[1])}</span>
+      <span class="cp-select-caret">${icon('chevronDown', 14)}</span>
+    </button>
+    <div class="cp-select-menu" role="listbox" data-cp-select-menu hidden>
+      ${entries.map(([value, label]) => `<button type="button" role="option" data-cp-select-option data-cp-select-value="${escapeAttr(value)}" aria-selected="${String(value) === currentValue}">${h(label)}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function setCustomSelectValue(select, value, label) {
+  const input = select.querySelector('[data-cp-select-input]');
+  const output = select.querySelector('[data-cp-select-label]');
+  const trigger = select.querySelector('[data-cp-select-trigger]');
+  if (input) input.value = value;
+  if (output) output.textContent = label;
+  select.querySelectorAll('[data-cp-select-option]').forEach((option) => {
+    option.setAttribute('aria-selected', String(option.dataset.cpSelectValue === value));
   });
+  closeCustomSelect(select);
+  trigger?.focus();
+}
+
+function closeCustomSelect(select) {
+  select.classList.remove('is-open');
+  select.querySelector('[data-cp-select-trigger]')?.setAttribute('aria-expanded', 'false');
+  const menu = select.querySelector('[data-cp-select-menu]');
+  if (menu) menu.hidden = true;
+}
+
+function closeCustomSelects(except = null) {
+  document.querySelectorAll('[data-cp-select].is-open').forEach((select) => {
+    if (select !== except) closeCustomSelect(select);
+  });
+}
+
+function handleCustomSelectClick(target) {
+  const option = target.closest('[data-cp-select-option]');
+  if (option) {
+    const select = option.closest('[data-cp-select]');
+    if (select) setCustomSelectValue(select, option.dataset.cpSelectValue || '', option.textContent || '');
+    return true;
+  }
+  const trigger = target.closest('[data-cp-select-trigger]');
+  if (trigger) {
+    const select = trigger.closest('[data-cp-select]');
+    if (!select) return true;
+    const opening = !select.classList.contains('is-open');
+    closeCustomSelects(select);
+    select.classList.toggle('is-open', opening);
+    trigger.setAttribute('aria-expanded', String(opening));
+    const menu = select.querySelector('[data-cp-select-menu]');
+    if (menu) {
+      menu.hidden = !opening;
+      if (opening) menu.querySelector('[aria-selected="true"]')?.focus();
+    }
+    return true;
+  }
+  if (!target.closest('[data-cp-select]')) closeCustomSelects();
+  return false;
 }
 
 function renderListingPackage(data) {
@@ -959,9 +1422,9 @@ function renderListingPackage(data) {
   </div>`;
 }
 
-function openModal({ title, content, wide = false }) {
+function openModal({ title, content, wide = false, className = '' }) {
   modalRoot.innerHTML = `<div class="modal-backdrop" data-action="close-modal">
-    <section class="modal-card ${wide ? 'is-wide' : ''}" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}" data-modal-content>
+    <section class="modal-card ${wide ? 'is-wide' : ''} ${escapeAttr(className)}" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}" data-modal-content>
       <header><div><span>CrossPilot</span><h2>${h(title)}</h2></div><button class="icon-button" data-action="close-modal" aria-label="关闭">${icon('x')}</button></header>
       <div class="modal-body">${content}</div>
     </section>
@@ -973,13 +1436,23 @@ function closeModal() {
 }
 
 async function navigate(view) {
-  if (!VIEW_META[view]) return;
+  if (!VIEW_META[view]) return false;
+  if (view === 'article') {
+    if (!state.articleSlug) return false;
+    window.location.assign(`/articles/${encodeURIComponent(state.articleSlug)}`);
+    return true;
+  }
+  if (CONTENT_ROUTES[view]) {
+    window.location.assign(CONTENT_ROUTES[view]);
+    return true;
+  }
   const changed = state.view !== view;
   state.view = view;
-  window.location.hash = view;
+  window.history.pushState({}, '', `/${view}`);
   updateViewChrome();
-  await loadCurrentView();
-  if (changed) requestAnimationFrame(scrollToContentStart);
+  const loaded = await loadCurrentView();
+  if (changed && loaded && state.view === view) requestAnimationFrame(scrollToContentStart);
+  return loaded;
 }
 
 async function handleSearchNavigation(detail) {
@@ -990,23 +1463,22 @@ async function handleSearchNavigation(detail) {
   if (productId) {
     state.selectedProductId = productId;
     state.productQuery = '';
-    await navigate('listings');
-    highlightSearchTarget('[data-product-id="' + productId + '"]');
+    if (await navigate('listings')) highlightSearchTarget('[data-product-id="' + productId + '"]');
     return;
   }
 
   if (actionId) {
+    const request = state.viewRequest;
     const item = await api(`/api/actions/${actionId}`);
+    if (request !== state.viewRequest) return;
     const targetView = actionViewForCategory(item.category);
-    if (VIEW_META[targetView]) await navigate(targetView);
-    openActionModal(item);
+    if (VIEW_META[targetView] && await navigate(targetView)) openActionModal(item);
     return;
   }
 
   if (knowledgeId) {
     state.reviewTab = 'knowledge';
-    await navigate('reviews');
-    await openKnowledgeArticle(knowledgeId);
+    if (await navigate('reviews')) await openKnowledgeArticle(knowledgeId);
     return;
   }
 
@@ -1031,7 +1503,7 @@ function highlightSearchTarget(selector) {
 
 async function openKnowledgeArticle(id) {
   const article = await api(`/api/knowledge/${id}`);
-  openModal({ title: article.title, wide: true, content: `<div class="article-detail"><div class="article-meta"><span>${h(article.category)}</span><small>${number(article.views)} 次查看 · ${formatDateTime(article.created_at)}</small></div><section><h4>问题现象</h4><p>${h(article.symptom)}</p></section><section><h4>解决方案</h4><p class="pre-line">${h(article.solution)}</p></section><div class="tag-row">${String(article.tags || '').split(',').filter(Boolean).map((tag) => `<span>${h(tag.trim())}</span>`).join('')}</div></div>` });
+  if (article?.slug) window.location.assign(`/articles/${encodeURIComponent(article.slug)}`);
 }
 
 function updateViewChrome() {
@@ -1039,17 +1511,47 @@ function updateViewChrome() {
   pageTitle.textContent = meta.title;
   pageEyebrow.textContent = meta.eyebrow;
   document.querySelectorAll('[data-nav]').forEach((button) => {
-    const active = button.dataset.nav === state.view;
+    const navView = state.view === 'article' ? 'articles' : state.view;
+    const active = button.dataset.nav === navView;
     button.classList.toggle('is-active', active);
     if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
-  const toolsTrigger = document.querySelector('.nav-tools-trigger');
-  toolsTrigger?.classList.toggle('is-active', state.view !== 'overview');
+  document.querySelectorAll('.nav-tools-trigger').forEach((trigger) => {
+    const articleMenu = trigger.getAttribute('aria-controls') === 'articles-menu';
+    const contentViews = ['articles', 'article', 'studio'];
+    trigger.classList.toggle('is-active', articleMenu ? contentViews.includes(state.view) : !['home', 'overview', ...contentViews].includes(state.view));
+  });
 }
 
 function initHeroTypewriter() {
   if (!heroTypewriter) return;
+  heroTypewriterEnabled = readHeroTypewriterEnabled();
+  if (heroTypewriterEnabled) startHeroTypewriter();
+  else stopHeroTypewriter();
+  window.addEventListener('crosspilot:typewriter-change', (event) => {
+    setHeroTypewriterEnabled(event.detail?.enabled);
+  });
+}
+
+function readHeroTypewriterEnabled() {
+  try {
+    return localStorage.getItem('crosspilot-typewriter') !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function stopHeroTypewriter() {
+  window.clearTimeout(heroTypewriterTimer);
+  heroTypewriterTimer = 0;
+  if (heroTypewriter) heroTypewriter.textContent = HERO_PHRASES[0];
+}
+
+function startHeroTypewriter() {
+  if (!heroTypewriter) return;
+  stopHeroTypewriter();
+  heroTypewriter.textContent = '';
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     heroTypewriter.textContent = HERO_PHRASES[0];
     return;
@@ -1057,15 +1559,19 @@ function initHeroTypewriter() {
   let phraseIndex = 0;
   let characterIndex = 0;
   let deleting = false;
+  const schedule = (delay) => {
+    heroTypewriterTimer = window.setTimeout(step, delay);
+  };
   const step = () => {
+    if (!heroTypewriterEnabled) return;
     const phrase = HERO_PHRASES[phraseIndex];
     if (!deleting) {
       characterIndex += 1;
       heroTypewriter.textContent = phrase.slice(0, characterIndex);
       if (characterIndex === phrase.length) {
         deleting = true;
-        window.setTimeout(step, 1800);
-      } else window.setTimeout(step, 72);
+        schedule(1800);
+      } else schedule(72);
       return;
     }
     characterIndex -= 1;
@@ -1073,10 +1579,18 @@ function initHeroTypewriter() {
     if (characterIndex === 0) {
       deleting = false;
       phraseIndex = (phraseIndex + 1) % HERO_PHRASES.length;
-      window.setTimeout(step, 420);
-    } else window.setTimeout(step, 28);
+      schedule(420);
+    } else schedule(28);
   };
-  window.setTimeout(step, 500);
+  schedule(500);
+}
+
+function setHeroTypewriterEnabled(enabled) {
+  const nextEnabled = Boolean(enabled);
+  if (heroTypewriterEnabled === nextEnabled) return;
+  heroTypewriterEnabled = nextEnabled;
+  if (nextEnabled) startHeroTypewriter();
+  else stopHeroTypewriter();
 }
 
 async function checkHealth() {
@@ -1103,10 +1617,6 @@ async function api(path, options = {}) {
 
 function field(label, control, span = false) {
   return `<label class="field ${span ? 'span-2' : ''}"><span>${label}</span>${control}</label>`;
-}
-
-function options(items, selected) {
-  return Object.entries(items).map(([value, label]) => `<option value="${escapeAttr(value)}" ${String(value) === String(selected) ? 'selected' : ''}>${h(label)}</option>`).join('');
 }
 
 function emptyBlock(title, message) {
@@ -1168,6 +1678,12 @@ function shortDateTime(value) {
   if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 function formatDateTime(value) {
@@ -1279,48 +1795,46 @@ function initNavTools() {
     document.head.append(styleLink);
   }
 
-  const tools = document.querySelector('.nav-tools');
-  const trigger = tools?.querySelector('.nav-tools-trigger');
-  const menu = tools?.querySelector('.nav-tools-menu');
-  if (!tools || !trigger || !menu) return;
-
-  const setOpen = (open) => {
-    tools.classList.toggle('is-suppressed', !open);
-    tools.classList.toggle('is-open', open);
-    trigger.setAttribute('aria-expanded', String(open));
-  };
-
-  trigger.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen(!tools.classList.contains('is-open'));
+  const toolGroups = Array.from(document.querySelectorAll('.nav-tools'));
+  const setters = new Map();
+  toolGroups.forEach((tools) => {
+    const trigger = tools.querySelector('.nav-tools-trigger');
+    const menu = tools.querySelector('.nav-tools-menu');
+    if (!trigger || !menu) return;
+    const setOpen = (open, suppress = true) => {
+      tools.classList.toggle('is-suppressed', suppress && !open);
+      tools.classList.toggle('is-open', open);
+      trigger.setAttribute('aria-expanded', String(open));
+    };
+    setters.set(tools, setOpen);
+    trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const next = !tools.classList.contains('is-open');
+      toolGroups.forEach((group) => setters.get(group)?.(false));
+      setOpen(next);
+    });
+    menu.querySelectorAll('[data-nav]').forEach((item) => item.addEventListener('click', () => setOpen(false)));
+    tools.addEventListener('focusout', () => {
+      window.setTimeout(() => {
+        if (!tools.contains(document.activeElement)) setOpen(false);
+      }, 0);
+    });
+    tools.addEventListener('mouseenter', () => {
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) trigger.setAttribute('aria-expanded', 'true');
+    });
+    tools.addEventListener('mouseleave', () => {
+      tools.classList.remove('is-suppressed');
+      if (!tools.classList.contains('is-open')) trigger.setAttribute('aria-expanded', 'false');
+    });
   });
-
-  menu.querySelectorAll('[data-nav]').forEach((item) => {
-    item.addEventListener('click', () => setOpen(false));
-  });
-
   document.addEventListener('click', (event) => {
-    if (!tools.contains(event.target)) setOpen(false);
+    toolGroups.forEach((tools) => {
+      if (!tools.contains(event.target)) setters.get(tools)?.(false);
+    });
   });
-
-  tools.addEventListener('focusout', () => {
-    window.setTimeout(() => {
-      if (!tools.contains(document.activeElement)) setOpen(false);
-    }, 0);
-  });
-
-  tools.addEventListener('mouseenter', () => {
-    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) trigger.setAttribute('aria-expanded', 'true');
-  });
-
-  tools.addEventListener('mouseleave', () => {
-    tools.classList.remove('is-suppressed');
-    if (!tools.classList.contains('is-open')) trigger.setAttribute('aria-expanded', 'false');
-  });
-
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setOpen(false);
+    if (event.key === 'Escape') setters.forEach((setOpen) => setOpen(false));
   });
 }
 function scrollToContentStart() {

@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="页面未找到 · CrossPilot">
+  <section class="not-found cp-card">
+    <span class="cp-kicker">404</span>
+    <h1>页面未找到</h1>
+    <p>目标地址不存在，或内容已被移除。</p>
+    <a class="cp-button" href="/">返回主页</a>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: grid;
+    gap: 12px;
+    margin: 8vh auto;
+    max-width: 680px;
+    padding: clamp(28px, 6vw, 64px);
+  }
+
+  .not-found h1,
+  .not-found p {
+    margin: 0;
+  }
+
+  .not-found p {
+    color: var(--cp-text-soft);
+  }
+
+  .not-found a {
+    justify-self: start;
+  }
+</style>

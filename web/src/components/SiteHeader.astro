@@ -1,0 +1,249 @@
+---
+import {
+  BookOpen,
+  ChevronDown,
+  FilePenLine,
+  FileText,
+  Grid2X2,
+  Home,
+  Image,
+  LayoutDashboard,
+  ListChecks,
+  MessageSquare,
+  Moon,
+  Music2,
+  Palette,
+  Pause,
+  Play,
+  RotateCcw,
+  Search,
+  Sparkles,
+  Sun,
+  Target,
+  Volume2,
+  Wrench,
+  X
+} from 'lucide-svelte';
+import StorePicker from './StorePicker.svelte';
+
+const path = Astro.url.pathname;
+const active = (prefix: string) => prefix === '/' ? path === '/' : path.startsWith(prefix);
+const activeArticles = ['/articles', '/archive', '/categories', '/tags', '/series', '/search', '/studio'].some((item) => path.startsWith(item));
+const activeTools = ['/imports', '/listings', '/ads', '/inventory', '/aftersales', '/reviews'].some((item) => path.startsWith(item));
+---
+
+<header class="app-header">
+  <span class="app-header-progress" aria-hidden="true"><span id="nav-progress"></span></span>
+  <a class="brand" href="/" aria-label="CrossPilot 主页">
+    <span class="brand-mark" aria-hidden="true"><img src="/pig.png" alt="" /></span>
+    <span class="brand-copy">
+      <strong>CrossPilot</strong>
+      <small>跨境电商运营决策中台</small>
+    </span>
+  </a>
+
+  <nav class="main-nav" aria-label="主导航">
+    <a class:list={['nav-item', { 'is-active': active('/') }]} href="/">
+      <span data-icon="home"><Home size={18} /></span><span data-label="主页">主页</span>
+    </a>
+    <div class="nav-tools">
+      <button class:list={['nav-item', 'nav-tools-trigger', { 'is-active': activeArticles }]} type="button" aria-haspopup="true" aria-expanded="false" aria-controls="articles-menu">
+        <span data-icon="book"><BookOpen size={18} /></span><span data-label="文章">文章</span><span class="nav-tools-caret" data-icon="chevronDown"><ChevronDown size={15} /></span>
+      </button>
+      <div class="nav-tools-menu" id="articles-menu" role="menu" aria-label="文章导航">
+        <a class="nav-item" href="/articles" role="menuitem"><span data-icon="book"><FileText size={18} /></span><span data-label="全部文章">全部文章</span></a>
+        <a class="nav-item" href="/archive" role="menuitem"><span data-icon="grid"><Grid2X2 size={18} /></span><span data-label="归档">归档</span></a>
+        <a class="nav-item" href="/categories" role="menuitem"><span data-icon="grid"><Grid2X2 size={18} /></span><span data-label="分类">分类</span></a>
+        <a class="nav-item" href="/tags" role="menuitem"><span data-icon="target"><Target size={18} /></span><span data-label="标签索引">标签索引</span></a>
+        <a class="nav-item" href="/series" role="menuitem"><span data-icon="book"><BookOpen size={18} /></span><span data-label="系列">系列</span></a>
+        <a class="nav-item" href="/search" role="menuitem"><span data-icon="target"><Search size={18} /></span><span data-label="全文搜索">全文搜索</span></a>
+        <a class="nav-item" href="/studio" role="menuitem"><span data-icon="edit"><FilePenLine size={18} /></span><span data-label="内容后台">内容后台</span></a>
+      </div>
+    </div>
+    <a class:list={['nav-item', { 'is-active': active('/overview') }]} href="/overview">
+      <span data-icon="overview"><LayoutDashboard size={18} /></span><span data-label="运营总览">运营总览</span>
+    </a>
+    <div class="nav-tools">
+      <button class:list={['nav-item', 'nav-tools-trigger', { 'is-active': activeTools }]} type="button" aria-haspopup="true" aria-expanded="false" aria-controls="operations-tools-menu">
+        <span data-icon="tools"><Wrench size={18} /></span><span data-label="运营工具">运营工具</span><span class="nav-tools-caret" data-icon="chevronDown"><ChevronDown size={15} /></span>
+      </button>
+      <div class="nav-tools-menu" id="operations-tools-menu" role="menu" aria-label="运营流程工具">
+        <a class="nav-item" href="/imports" role="menuitem"><span data-icon="imports"><FileText size={18} /></span><span data-label="数据导入">数据导入</span></a>
+        <a class="nav-item" href="/listings" role="menuitem"><span data-icon="listings"><ListChecks size={18} /></span><span data-label="Listing与商品">Listing与商品</span></a>
+        <a class="nav-item" href="/ads" role="menuitem"><span data-icon="ads"><Target size={18} /></span><span data-label="广告与流量">广告与流量</span></a>
+        <a class="nav-item" href="/inventory" role="menuitem"><span data-icon="inventory"><Grid2X2 size={18} /></span><span data-label="库存与履约">库存与履约</span></a>
+        <a class="nav-item" href="/aftersales" role="menuitem"><span data-icon="aftersales"><MessageSquare size={18} /></span><span data-label="售后与账号">售后与账号</span></a>
+        <a class="nav-item" href="/reviews" role="menuitem"><span data-icon="reviews"><BookOpen size={18} /></span><span data-label="运营复盘">运营复盘</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-header-actions">
+    <div class="cp-utility-cluster" aria-label="全局工具">
+      <div class="cp-global-search">
+        <span data-icon="search" aria-hidden="true"><Search size={16} /></span>
+        <input id="cp-global-search-input" type="search" autocomplete="off" placeholder="搜索" aria-label="全局搜索" aria-controls="cp-search-panel" aria-expanded="false" />
+        <button class="cp-search-clear" id="cp-global-search-clear" type="button" aria-label="清空搜索" hidden><X size={14} /></button>
+        <div class="cp-float-panel cp-search-panel" id="cp-search-panel" role="listbox" aria-label="搜索结果" hidden></div>
+      </div>
+
+      <div class="cp-popover">
+        <button class="cp-tool-button" id="cp-music-toggle" type="button" aria-label="打开音乐播放器" aria-controls="cp-music-panel" aria-expanded="false" title="音乐播放器">
+          <Music2 size={17} aria-hidden="true" />
+          <span class="cp-equalizer" aria-hidden="true"><i></i><i></i><i></i></span>
+        </button>
+        <section class="cp-float-panel cp-music-panel" id="cp-music-panel" aria-label="音乐播放器" hidden>
+          <div class="cp-music-summary">
+            <span class="cp-music-cover"><img src="/assets/media/music-cover.webp" alt="唱片封面" /></span>
+            <span><small>正在播放</small><strong id="cp-music-title">使一颗心免于哀伤</strong><em id="cp-music-artist">知更鸟 / HOYO-MiX / Chevy</em></span>
+          </div>
+          <div class="cp-music-progress">
+            <input id="cp-music-progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="播放进度" />
+            <span><time id="cp-music-current">0:00</time><time id="cp-music-duration">0:00</time></span>
+          </div>
+          <div class="cp-music-controls">
+            <button type="button" id="cp-music-replay" aria-label="回到开头" title="回到开头"><RotateCcw size={16} /></button>
+            <button type="button" id="cp-music-play" aria-label="播放或暂停" title="播放或暂停"><span data-icon="play"><Play size={16} /></span><span data-cp-music-pause-icon hidden><Pause size={16} /></span></button>
+            <div class="cp-music-volume">
+              <span><Volume2 size={14} /></span>
+              <input id="cp-music-volume" type="range" min="0" max="1" value="0.7" step="0.05" aria-label="音量" />
+            </div>
+          </div>
+          <audio id="cp-audio" preload="metadata" loop><source src="/assets/media/music-sample.mp3" type="audio/mpeg" /></audio>
+        </section>
+      </div>
+
+      <button class="cp-tool-button" id="cp-video-toggle" type="button" aria-label="播放主页背景视频" aria-pressed="false" title="播放主页背景视频">
+        <span class="cp-icon-play"><Play size={16} aria-hidden="true" /></span>
+        <span class="cp-icon-pause" hidden><Pause size={16} aria-hidden="true" /></span>
+      </button>
+
+      <div class="cp-popover">
+        <button class="cp-tool-button" id="cp-theme-toggle" type="button" aria-label="打开主题定制" aria-controls="cp-theme-panel" aria-expanded="false" title="主题定制">
+          <Palette size={17} aria-hidden="true" />
+        </button>
+        <section class="cp-float-panel cp-theme-panel" id="cp-theme-panel" aria-label="主题定制" hidden>
+          <div class="cp-theme-tabs" role="tablist" aria-label="主题设置分类">
+            <button type="button" role="tab" aria-selected="true" data-cp-theme-tab="appearance"><Palette size={14} /><span>外观</span></button>
+            <button type="button" role="tab" aria-selected="false" data-cp-theme-tab="wallpaper"><Image size={14} /><span>壁纸</span></button>
+            <button type="button" role="tab" aria-selected="false" data-cp-theme-tab="effects"><Sparkles size={14} /><span>特效</span></button>
+          </div>
+
+          <div class="cp-theme-tab-panel" data-cp-theme-panel="appearance">
+            <div class="cp-setting-heading"><strong>主题色相</strong><button type="button" id="cp-hue-reset" aria-label="恢复默认主题色"><RotateCcw size={14} /></button><output id="cp-hue-value">191</output></div>
+            <div class="cp-hue-track"><input id="cp-hue-slider" type="range" min="0" max="360" value="191" step="1" aria-label="主题色相" /></div>
+            <div class="cp-setting-heading"><strong>内容布局</strong><button type="button" data-cp-reset-group="density" aria-label="恢复内容布局默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <div class="cp-segment" role="group" aria-label="内容布局">
+              <button type="button" data-cp-density="comfortable" aria-pressed="true"><ListChecks size={14} />舒展开阔</button>
+              <button type="button" data-cp-density="compact" aria-pressed="false"><Grid2X2 size={14} />紧凑高效</button>
+            </div>
+            <div class="cp-setting-heading"><strong>卡片样式</strong><button type="button" data-cp-reset-group="cardStyle" aria-label="恢复卡片样式默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="cardBorder" aria-pressed="false"><Grid2X2 size={15} /><span>卡片边框与阴影</span><i></i></button>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="followTheme" aria-pressed="true"><Palette size={15} /><span>卡片跟随主题色</span><i></i></button>
+          </div>
+
+          <div class="cp-theme-tab-panel" data-cp-theme-panel="wallpaper" hidden>
+            <div class="cp-setting-heading"><strong>壁纸模式</strong><button type="button" data-cp-reset-group="wallpaper" aria-label="恢复壁纸模式默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <div class="cp-choice-grid" role="group" aria-label="壁纸模式">
+              <button type="button" data-cp-wallpaper="banner" aria-pressed="false"><Image size={14} />横幅壁纸</button>
+              <button type="button" data-cp-wallpaper="fullscreen" aria-pressed="true"><Image size={14} />全屏壁纸</button>
+              <button type="button" data-cp-wallpaper="overlay" aria-pressed="false"><Image size={14} />覆盖透明</button>
+              <button type="button" data-cp-wallpaper="none" aria-pressed="false"><X size={14} />纯色背景</button>
+            </div>
+            <div class="cp-setting-heading" data-cp-layout-heading><strong>全屏布局</strong><button type="button" data-cp-reset-group="layout" aria-label="恢复全屏布局默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <div class="cp-segment" role="group" aria-label="全屏布局" data-cp-layout-group>
+              <button type="button" data-cp-layout="classic" aria-pressed="true"><ListChecks size={14} />经典模式</button>
+              <button type="button" data-cp-layout="hero" aria-pressed="false"><LayoutDashboard size={14} />Hero 模式</button>
+            </div>
+            <div class="cp-setting-heading" data-cp-transparency-heading><strong>透明设置</strong><button type="button" data-cp-reset-group="transparency" aria-label="恢复透明设置默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <div class="cp-range-setting" data-cp-transparency-group>
+              <div class="cp-range-heading"><span>背景模糊度</span><output id="cp-overlay-blur-value">0.0px</output></div>
+              <input id="cp-overlay-blur" type="range" min="0" max="20" value="0" step="0.5" aria-label="背景模糊度" />
+              <div class="cp-range-heading"><span>卡片透明度</span><output id="cp-card-opacity-value">60%</output></div>
+              <input id="cp-card-opacity" type="range" min="20" max="100" value="60" step="1" aria-label="卡片透明度" />
+            </div>
+            <div class="cp-setting-heading" data-cp-banner-heading><strong>壁纸设置</strong><button type="button" data-cp-reset-group="wallpaperSettings" aria-label="恢复壁纸设置默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="bannerTitle" aria-pressed="true"><BookOpen size={15} /><span>首页壁纸标题</span><i></i></button>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="carousel" aria-pressed="true"><Image size={15} /><span>壁纸轮播</span><i></i></button>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="waves" aria-pressed="true"><Target size={15} /><span>水波纹动画</span><i></i></button>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="gradient" aria-pressed="true"><Palette size={15} /><span>渐变过渡</span><i></i></button>
+          </div>
+
+          <div class="cp-theme-tab-panel" data-cp-theme-panel="effects" hidden>
+            <div class="cp-setting-heading"><strong>特效设置</strong><button type="button" data-cp-reset-group="effects" aria-label="恢复特效设置默认值" title="恢复默认值"><RotateCcw size={14} /></button></div>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="sakura" aria-pressed="true"><Sparkles size={15} /><span>樱花特效</span><i></i></button>
+            <button class="cp-setting-toggle" type="button" data-cp-setting="typewriter" aria-pressed="true"><BookOpen size={15} /><span>首页打字机</span><i></i></button>
+          </div>
+        </section>
+      </div>
+
+      <div class="cp-popover cp-color-mode">
+        <button class="cp-tool-button" id="cp-color-mode-toggle" type="button" aria-label="切换日夜主题" aria-controls="cp-color-mode-panel" aria-expanded="false" title="日夜主题">
+          <Moon size={17} class="cp-mode-dark" aria-hidden="true" />
+          <Sun size={17} class="cp-mode-light" aria-hidden="true" hidden />
+        </button>
+        <div class="cp-float-panel cp-color-mode-panel" id="cp-color-mode-panel" role="menu" aria-label="日夜主题" hidden>
+          <button type="button" role="menuitemradio" data-cp-color-mode="light" aria-checked="false"><Sun size={14} />亮色</button>
+          <button type="button" role="menuitemradio" data-cp-color-mode="dark" aria-checked="true"><Moon size={14} />暗色</button>
+          <button type="button" role="menuitemradio" data-cp-color-mode="system" aria-checked="false"><LayoutDashboard size={14} />跟随系统</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
+    <StorePicker client:load />
+  </div>
+</header>
+
+<script>
+  const fontToggle = document.querySelector<HTMLButtonElement>('#font-toggle');
+  const groups = [...document.querySelectorAll<HTMLElement>('.nav-tools')];
+
+  function readFontMode() {
+    try {
+      return localStorage.getItem('crosspilot-font-mode') || 'literary';
+    } catch {
+      return 'literary';
+    }
+  }
+
+  function applyFontMode(mode: 'literary' | 'original') {
+    document.documentElement.dataset.fontMode = mode;
+    try {
+      localStorage.setItem('crosspilot-font-mode', mode);
+    } catch {}
+    if (fontToggle) {
+      fontToggle.title = mode === 'literary' ? '当前：文艺字体，点击切换原版字体' : '当前：原版字体，点击切换文艺字体';
+      fontToggle.setAttribute('aria-pressed', String(mode === 'original'));
+    }
+  }
+
+  applyFontMode(readFontMode() === 'original' ? 'original' : 'literary');
+  fontToggle?.addEventListener('click', () => applyFontMode(readFontMode() === 'literary' ? 'original' : 'literary'));
+
+  const closeGroups = () => groups.forEach((group) => {
+    group.classList.remove('is-open');
+    group.querySelector('.nav-tools-trigger')?.setAttribute('aria-expanded', 'false');
+  });
+
+  groups.forEach((group) => {
+    const trigger = group.querySelector<HTMLButtonElement>('.nav-tools-trigger');
+    trigger?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const nextOpen = !group.classList.contains('is-open');
+      closeGroups();
+      group.classList.toggle('is-open', nextOpen);
+      trigger.setAttribute('aria-expanded', String(nextOpen));
+    });
+    group.addEventListener('mouseenter', () => trigger?.setAttribute('aria-expanded', 'true'));
+    group.addEventListener('mouseleave', () => trigger?.setAttribute('aria-expanded', String(group.classList.contains('is-open'))));
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target as Element).closest('.nav-tools')) closeGroups();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeGroups();
+  });
+</script>

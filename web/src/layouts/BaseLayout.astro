@@ -1,0 +1,166 @@
+---
+import '../styles/global.css';
+import 'katex/dist/katex.min.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import ImmersiveHero from '../components/ImmersiveHero.astro';
+import WorkspaceAside from '../components/WorkspaceAside.svelte';
+
+type Props = {
+  title?: string;
+  description?: string;
+  eyebrow?: string;
+  pageTitle?: string;
+  hero?: boolean;
+  compactHero?: boolean;
+};
+
+const {
+  title = 'CrossPilot · 跨境电商运营决策中台',
+  description = 'CrossPilot 把报表导入、利润诊断、动作执行和内容复盘放在同一套工作流里。',
+  eyebrow = 'CrossPilot 内容与运营总览',
+  pageTitle = '运营工作区',
+  hero = true,
+  compactHero = false
+} = Astro.props;
+---
+
+<!doctype html>
+<html
+  lang="zh-CN"
+  data-font-mode="literary"
+  data-theme-mode="dark"
+  data-theme="dark"
+  data-wallpaper-mode="fullscreen"
+  data-fullscreen-layout="classic"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#123b3a" />
+    <link rel="icon" type="image/png" href="/pig.png" />
+    <title>{title}</title>
+    <script is:inline>
+      (() => {
+        try {
+          const stored = localStorage.getItem('crosspilot-color-mode') || 'dark';
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const resolved = stored === 'system' ? (systemDark ? 'dark' : 'light') : stored === 'light' ? 'light' : 'dark';
+          document.documentElement.dataset.themeMode = stored;
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.classList.toggle('dark', resolved === 'dark');
+          document.documentElement.dataset.fontMode = localStorage.getItem('crosspilot-font-mode') || 'literary';
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/final-shell.css" />
+    <link rel="stylesheet" href="/crosspilot.css" />
+    <link rel="stylesheet" href="/enhancements.css" />
+    <link rel="stylesheet" href="/theme-controls.css" />
+    <link rel="stylesheet" href="/nav-shell.css" />
+  </head>
+  <body>
+    <div id="sakura-layer" aria-hidden="true"></div>
+    <div class="app-shell">
+      <SiteHeader />
+      <div class="workspace">
+        {hero && <ImmersiveHero compact={compactHero} />}
+        <div class="page-frame">
+          <WorkspaceAside side="left" client:load />
+          <div class="page-main">
+            <header class="topbar">
+              <div class="topbar-title">
+                <span class="eyebrow">{eyebrow}</span>
+                <h1>{pageTitle}</h1>
+              </div>
+            </header>
+            <main class="content">
+              <slot />
+            </main>
+          </div>
+          <WorkspaceAside side="right" client:load />
+        </div>
+        <footer class="site-footer">
+          <span>CrossPilot · 本地优先的跨境运营工作区</span>
+          <span>Astro + Svelte + Node + SQLite</span>
+        </footer>
+      </div>
+    </div>
+
+    <div id="modal-root"></div>
+    <div class="toast-stack" id="toast-root" aria-live="polite"></div>
+
+    <script is:inline>
+      (() => {
+        const layer = document.querySelector('#sakura-layer');
+        if (layer && !layer.childElementCount) {
+          layer.innerHTML = Array.from({ length: 28 }, (_, index) => {
+            const left = (index * 37 + 9) % 100;
+            const size = 7 + ((index * 5) % 7);
+            const drift = 24 + ((index * 29) % 72);
+            const duration = 13 + ((index * 7) % 12);
+            const delay = -((index * 11) % 19);
+            return `<span class="sakura-petal" style="--left:${left}%;--size:${size}px;--drift:${drift}px;--duration:${duration}s;--delay:${delay}s"></span>`;
+          }).join('');
+        }
+
+        const header = document.querySelector('.app-header');
+        const progress = document.querySelector('#nav-progress');
+        const update = () => {
+          const root = document.scrollingElement || document.documentElement;
+          const maxScroll = Math.max(0, root.scrollHeight - window.innerHeight);
+          if (progress) progress.style.transform = `scaleX(${maxScroll ? Math.min(1, window.scrollY / maxScroll) : 0})`;
+          header?.classList.toggle('is-scrolled', window.scrollY > 8);
+        };
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+      })();
+    </script>
+    <script is:inline src="/enhancements.js"></script>
+  </body>
+</html>
+
+<style>
+  :global(.page-frame.single) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :global(.wallpaper-wrapper.is-compact .hero-banner) {
+    height: min(68vh, 680px);
+    min-height: 500px;
+  }
+
+  :global(html[data-wallpaper-mode="banner"] .wallpaper-wrapper.is-compact .hero-banner) {
+    height: min(58vh, 590px);
+    min-height: 430px;
+  }
+
+  :global(.content) {
+    min-width: 0;
+  }
+
+  .site-footer {
+    align-items: center;
+    color: #71899d;
+    display: flex;
+    font-size: 12px;
+    justify-content: space-between;
+    margin: 0 auto;
+    max-width: 1400px;
+    padding: 22px 0 8px;
+  }
+
+  :global(html[data-theme="light"] .site-footer) {
+    color: #60798a;
+  }
+
+  @media (max-width: 680px) {
+    .site-footer {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+</style>

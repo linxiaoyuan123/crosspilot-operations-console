@@ -54,11 +54,150 @@ function csvCell(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
+test('knowledge articles support Markdown, publishing state and image uploads', async () => {
+  const seeded = await request('/api/knowledge/crosspilot-usage-guide?preview=1');
+  assert.equal(seeded.response.status, 200);
+  assert.equal(seeded.body.status, 'published');
+  assert.equal(seeded.body.featured, true);
+  assert.match(seeded.body.html, /CrossPilot 运营工具使用指南/);
+  assert.match(seeded.body.html, /\/assets\/articles\/crosspilot-home\.png/);
+
+  const preview = await jsonRequest('/api/knowledge/preview', 'POST', {
+    markdown: '## 标题\n\n**正文** <script>alert(1)</script>\n\n![图](javascript:alert(1))'
+  });
+  assert.equal(preview.response.status, 200);
+  assert.match(preview.body.html, /<strong>正文<\/strong>/);
+  assert.doesNotMatch(preview.body.html, /<script|javascript:/i);
+
+  const created = await jsonRequest('/api/knowledge', 'POST', {
+    title: '测试 Markdown 草稿',
+    slug: 'test-markdown-draft',
+    category: '测试分类',
+    contentMd: '## 第一阶段\n\n- 检查数据\n- 执行动作',
+    tags: '测试,Markdown',
+    status: 'draft'
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.body.status, 'draft');
+  assert.equal(created.body.slug, 'test-markdown-draft');
+
+  const publicList = await request('/api/knowledge');
+  assert.equal(publicList.response.status, 200);
+  assert.equal(publicList.body.items.some((item) => item.id === created.body.id), false);
+  const draftList = await request('/api/knowledge?status=draft&q=Markdown');
+  assert.equal(draftList.body.items.some((item) => item.id === created.body.id), true);
+
+  const updated = await jsonRequest(`/api/knowledge/${created.body.id}`, 'PATCH', {
+    title: '测试 Markdown 已发布',
+    status: 'published',
+    featured: true,
+    contentMd: '## 已发布\n\n正文保留 **Markdown**。'
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.body.status, 'published');
+  assert.equal(updated.body.featured, true);
+  const detail = await request(`/api/knowledge/${updated.body.slug}?preview=1`);
+  assert.match(detail.body.html, /<strong>Markdown<\/strong>/);
+
+  const invalidUpload = await jsonRequest('/api/uploads', 'POST', {
+    mimeType: 'image/png',
+    contentBase64: Buffer.from('not an image').toString('base64')
+  });
+  assert.equal(invalidUpload.response.status, 400);
+  const upload = await jsonRequest('/api/uploads', 'POST', {
+    mimeType: 'image/png',
+    contentBase64: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString('base64')
+  });
+  assert.equal(upload.response.status, 201);
+  assert.match(upload.body.url, /^\/uploads\//);
+  const uploadResponse = await request(upload.body.url);
+  assert.equal(uploadResponse.response.status, 200);
+
+  db.prepare("UPDATE media_library SET created_at = datetime('now', '-2 days') WHERE filename = ?").run(upload.body.filename);
+  const cleanup = await jsonRequest('/api/media/cleanup', 'POST');
+  assert.equal(cleanup.response.status, 200);
+  assert.equal(cleanup.body.removed, 1);
+  assert.equal((await request(upload.body.url)).response.status, 404);
+
+  const articleList = await request('/api/articles?status=published&limit=10');
+  const otherArticle = articleList.body.items.find((item) => item.slug !== 'crosspilot-usage-guide');
+  const otherComment = await jsonRequest(`/api/articles/${otherArticle.id}/comments`, 'POST', {
+    nickname: '测试访客',
+    content: '用于验证回复归属。'
+  });
+  assert.equal(otherComment.response.status, 201);
+  const mismatchedReply = await jsonRequest(`/api/articles/${seeded.body.id}/comments`, 'POST', {
+    parentId: otherComment.body.id,
+    nickname: '测试访客',
+    content: '不应写入。'
+  });
+  assert.equal(mismatchedReply.response.status, 400);
+
+  const forgedApproval = await jsonRequest(`/api/articles/${seeded.body.id}/comments`, 'POST', {
+    nickname: '测试访客',
+    content: '这条留言不能由客户端直接审核通过。',
+    admin: true
+  });
+  assert.equal(forgedApproval.response.status, 201);
+  assert.equal(forgedApproval.body.status, 'pending');
+  const publicPending = await request(`/api/articles/${seeded.body.id}/comments?status=pending`);
+  assert.equal(publicPending.response.status, 200);
+  assert.equal(publicPending.body.items.some((item) => item.id === forgedApproval.body.id), false);
+
+  const invalidArticleUpload = await jsonRequest('/api/uploads', 'POST', {
+    articleId: 999999,
+    mimeType: 'image/png',
+    contentBase64: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString('base64')
+  });
+  assert.equal(invalidArticleUpload.response.status, 404);
+
+  const removed = await request(`/api/knowledge/${created.body.id}`, { method: 'DELETE' });
+  assert.equal(removed.response.status, 200);
+  assert.equal(removed.body.ok, true);
+});
+
+test('structured content modules support create, edit, publish and delete', async () => {
+  const created = await jsonRequest('/api/content', 'POST', {
+    type: 'dynamic',
+    slug: 'api-structured-test',
+    title: '结构化内容测试',
+    summary: '验证内容模块完整闭环。',
+    contentMd: '## 测试正文\n\n内容模块支持 Markdown。',
+    metadata: { location: '测试环境' },
+    status: 'published',
+    featured: true
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.body.slug, 'api-structured-test');
+  assert.equal(created.body.featured, true);
+
+  const updated = await jsonRequest('/api/content/dynamic/api-structured-test', 'PATCH', {
+    slug: 'api-structured-test-updated',
+    summary: '已更新的摘要。',
+    status: 'draft'
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.body.slug, 'api-structured-test-updated');
+  assert.equal(updated.body.status, 'draft');
+
+  const detail = await request('/api/content/dynamic/api-structured-test-updated');
+  assert.equal(detail.response.status, 200);
+  assert.match(detail.body.html, /测试正文/);
+  assert.equal(detail.body.metadata.location, '测试环境');
+
+  const removed = await request('/api/content/dynamic/api-structured-test-updated', { method: 'DELETE' });
+  assert.equal(removed.response.status, 200);
+  assert.equal((await request('/api/content/dynamic/api-structured-test-updated')).response.status, 404);
+});
+
 test('health and stores expose the CrossPilot Amazon-first model', async () => {
   const health = await request('/api/health');
   assert.equal(health.response.status, 200);
   assert.equal(health.body.service, 'crosspilot');
   assert.equal(health.body.version, '3.0.0');
+  assert.match(health.response.headers.get('content-security-policy') || '', /default-src 'self'/);
+  const traversal = await request('/uploads/%2e%2e/crosspilot-test.db');
+  assert.notEqual(traversal.response.status, 200);
 
   const stores = await request('/api/stores');
   assert.equal(stores.response.status, 200);
@@ -224,58 +363,60 @@ test('operations reports export HTML, Markdown, CSV and a five-sheet XLSX', asyn
   assert.deepEqual(reportBook.worksheets.map((sheet) => sheet.name), ['Summary', 'SKU', 'Ads', 'Inventory', 'After-sales']);
 });
 
-test('static shell is branded as CrossPilot and preserves the visual baseline', async () => {
+test('Astro content routes and legacy operations fallback preserve their contracts', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
   assert.equal(response.status, 200);
   assert.match(html, /CrossPilot · 跨境电商运营决策中台/);
+  assert.match(html, /运营工作区/);
+  assert.match(html, /从经营状态到方法沉淀/);
   assert.match(html, /跨境运营，从数据到动作/);
-  assert.match(html, /运营总览/);
-  assert.match(html, /Listing与商品/);
   assert.match(html, /\/pig\.png/);
-  assert.match(html, /nav-tools-trigger/);
-  assert.match(html, /operations-tools-menu/);
+  assert.match(html, /astro-island/);
+  assert.match(html, /StorePicker/);
+
+  const articlePage = await request('/articles/');
+  assert.equal(articlePage.response.status, 200);
+  assert.match(articlePage.body, /全部文章/);
+  const detailPage = await request('/articles/crosspilot-usage-guide');
+  assert.equal(detailPage.response.status, 200);
+  assert.match(detailPage.body, /ArticleDetail/);
+
+  const legacyResponse = await fetch(`${baseUrl}/overview`);
+  const legacyHtml = await legacyResponse.text();
+  assert.equal(legacyResponse.status, 200);
+  assert.match(legacyHtml, /data-wallpaper-mode="fullscreen" data-fullscreen-layout="classic"/);
+  assert.match(legacyHtml, /Listing与商品/);
+  assert.match(legacyHtml, /nav-tools-trigger/);
+  assert.match(legacyHtml, /articles-menu/);
+  assert.match(legacyHtml, /cp-store-picker-trigger/);
+  assert.match(legacyHtml, /page-frame/);
+  assert.match(legacyHtml, /cp-global-search-input/);
+  assert.match(legacyHtml, /cp-theme-panel/);
+  assert.doesNotMatch(legacyHtml, /cp-theme-reset-all/);
+  assert.match(legacyHtml, /cp-overlay-blur/);
+  assert.match(legacyHtml, /cp-card-opacity/);
+
   const shellCss = await request('/final-shell.css');
   assert.match(shellCss.body, /hero-crosspilot\.avif/);
   const navCss = await request('/nav-shell.css');
   assert.match(navCss.body, /\.nav-tools-menu/);
   assert.match(navCss.body, /filter:\s*blur/);
-  assert.match(html, /page-frame/);
-  assert.match(html, /sakura-layer/);
-  assert.match(html, /hero-waves/);
-  assert.match(html, /cp-global-search-input/);
-  assert.match(html, /cp-music-panel/);
-  assert.match(html, /cp-hero-video/);
-  assert.match(html, /cp-theme-panel/);
-  assert.match(html, /data-cp-color-mode="light"/);
-  assert.match(html, /data-cp-wallpaper="banner"/);
-  assert.match(html, /data-cp-wallpaper="fullscreen"/);
-  assert.match(html, /data-cp-wallpaper="overlay"/);
-  assert.match(html, /data-cp-wallpaper="none"/);
-  assert.match(html, /覆盖透明/);
-  assert.match(html, /id="wallpaper-wrapper"/);
-  assert.match(html, /data-cp-layout="classic"/);
-  assert.match(html, /data-cp-layout="hero"/);
-  assert.match(html, /cp-overlay-blur/);
-  assert.match(html, /cp-card-opacity/);
+  const contentCss = await request('/content-shell.css');
+  assert.match(contentCss.body, /\.cp-store-picker/);
+  assert.match(contentCss.body, /\.cp-article-grid/);
+  assert.match(contentCss.body, /\.markdown-workbench/);
   const themeCss = await request('/theme-controls.css');
-  assert.match(themeCss.body, /data-wallpaper-mode="overlay"\] \.wallpaper-wrapper/);
-  assert.match(themeCss.body, /data-fullscreen-layout="hero"\] \.wallpaper-wrapper/);
-  assert.match(themeCss.body, /html\.cp-video-playing \.hero-slides/);
-  assert.match(themeCss.body, /data-fullscreen-layout="hero"\] \.workspace::before/);
   assert.match(themeCss.body, /--cp-fullscreen-blur/);
   assert.match(themeCss.body, /cp-card-opacity-custom/);
-  assert.match(html, /theme-controls\.css/);
-  assert.doesNotMatch(html, /id="api-status"/);
-  assert.doesNotMatch(html, /id="refresh-button"/);
-  assert.doesNotMatch(html, /Ctrl\+K|Ctrl K/);
-
   const enhancementCss = await request('/enhancements.css');
   assert.match(enhancementCss.body, /html\[data-theme="light"\] \.cp-global-search/);
-  assert.match(enhancementCss.body, /\.cp-hero-video-layer/);
+  assert.doesNotMatch(legacyHtml, /cp-theme-reset-footer/);
 
   const enhancementScript = await request('/enhancements.js');
   assert.match(enhancementScript.body, /initSearch/);
+  assert.match(enhancementScript.body, /settings\.overlayBlur = DEFAULT_SETTINGS\.overlayBlur/);
+  assert.match(enhancementScript.body, /settings\.cardOpacity = DEFAULT_SETTINGS\.cardOpacity/);
   assert.match(enhancementScript.body, /initMusicPlayer/);
   assert.match(enhancementScript.body, /initThemeCustomizer/);
 });

@@ -4,10 +4,10 @@
 
 ```mermaid
 flowchart LR
-  Browser[响应式单页前端] -->|REST / JSON| HTTP[Node.js 原生 HTTP 服务]
+  Browser[Astro + Svelte 内容层] -->|REST / JSON| HTTP[Node.js 原生 HTTP 服务]
   Browser -->|CSV / XLSX| Import[导入解析与字段映射]
   HTTP --> API[CrossPilot 业务 API]
-  HTTP --> Static[静态资源服务]
+  HTTP --> Static[Astro 静态资源与旧版运营回退]
   API --> Store[Store 数据访问层]
   Store --> SQLite[(SQLite · crosspilot.db)]
   Import --> Metrics[指标与规则引擎]
@@ -18,19 +18,24 @@ flowchart LR
 
 CrossPilot 是本地单用户应用。`src/server.js` 启动原生 HTTP 服务，`src/app.js` 提供 REST API 和静态资源服务，业务数据保存在 `data/crosspilot.db`。运行时不依赖外部云服务或平台凭证。
 
+`web/` 是独立 Astro + Svelte 前端，负责主页、文章、结构化内容和内容后台。尚未迁移完成的运营管理页暂时回退到 `public/` 中的原 SPA，避免一次性重写业务逻辑。生产构建完成后，同一个 Node 进程同时提供 API、上传文件和 `web/dist/` 页面。
+
 ## 模块职责
 
 | 模块 | 职责 |
 | --- | --- |
 | `src/app.js` | 路由、参数校验、响应头、静态资源、动作闭环和报告下载 |
 | `src/store.js` | SQLite 表结构、索引、模拟种子数据、导入和业务查询 |
+| `src/content-store.js` | 内容迁移、分类标签、系列、评论、媒体、FTS5 和结构化内容 |
 | `src/imports.js` | CSV/XLSX 解析、多语言字段映射、校验、错误行和 PII 排除 |
+| `src/markdown.js` | GFM 渲染、HTML 白名单净化、标题锚点和安全输出 |
 | `src/metrics.js` | 利润、ACOS/TACOS、ROAS、CVR、库存、Listing 和账号健康规则 |
 | `src/reports.js` | HTML、Markdown、CSV 和五工作表 XLSX 报告生成 |
 | `src/server.js` | 进程启动、端口配置和优雅关闭 |
-| `public/app.js` | 七模块单页交互、状态同步、动作弹窗和报告操作 |
-| `public/crosspilot.css` | 业务模块样式，不替换原有视觉与动画基线 |
-| `public/final-shell.css` | Hero、导航、樱花、波浪、卡片和响应式外壳 |
+| `web/src/pages` | 主页、文章、归档、分类、标签、系列、搜索、内容模块和后台路由 |
+| `web/src/components` | Svelte 交互组件与通用控件 |
+| `public/app.js` | 尚未迁移的运营模块与兼容回退页面 |
+| `public/final-shell.css` | 旧版 Hero、导航、动画和运营模块视觉基线 |
 
 
 ## 数据模型
@@ -53,6 +58,11 @@ CrossPilot 是本地单用户应用。`src/server.js` 启动原生 HTTP 服务�
 - `import_rows`：脱敏后的标准行、校验状态和错误信息。
 - `actions`、`action_events`：统一动作中心及负责人、优先级、截止时间、证据、结果和事件时间线。
 - `knowledge_articles`：运营复盘方法、问题原因和解决方案。
+- `content_categories`、`content_tags`、`content_series`：文章分类、标签和系列关系。
+- `article_comments`：匿名留言、父子回复与审核状态。
+- `media_library`：上传图片元数据和引用关系。
+- `content_entries`：运营动态、案例、相册、资源和关于内容。
+- `knowledge_fts`：SQLite FTS5 全文索引，覆盖标题、摘要、正文和标签。
 - `activities`：关键操作记录。
 
 SQLite 启用外键、WAL 和忙等待。店铺、商品 SKU 和导入行之间均有明确的归属或外键约束。
@@ -136,8 +146,10 @@ ROAS = 广告销售 / 广告花费
 本地：
 
 ```bash
-npm install
-npm run dev
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run dev
 ```
 
 Docker：
@@ -151,8 +163,10 @@ docker compose up --build
 ## 测试策略
 
 - Node 内置测试运行器启动临时 SQLite HTTP 服务。
+- 覆盖文章迁移、发布状态、分页与统计、FTS 搜索、分类标签筛选、评论回复和媒体清理。
+- 覆盖上传签名、路径逃逸、CSP、旧 API 兼容与新 Astro 路由回退。
 - 固定种子数据验证利润、ACOS、TACOS、ROAS、转化率、退货率、可售天数和 Listing 分数。
 - 覆盖 CSV/XLSX 导入、字段映射、错误行、重复数据和 PII 排除。
 - 覆盖动作创建、执行、证据回写和规则刷新。
 - 覆盖 HTML、Markdown、CSV 和 XLSX 报告内容及工作表名称。
-- Playwright 用于 1920、1440、980 和 390 像素视口回归。
+- Playwright 用于 1920、1440、768 和 390 像素视口回归，并检查控制台错误与横向溢出。

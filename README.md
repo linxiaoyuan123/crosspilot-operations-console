@@ -4,7 +4,7 @@
 
 > 仓库内置脱敏样例数据，可复现完整运营流程；项目不包含真实平台账号凭证。
 
-![CrossPilot 运营总览](./docs/screenshots/crosspilot-1920-top.png)
+![CrossPilot 当前主页](./public/assets/articles/crosspilot-home.png)
 
 ## 项目定位
 
@@ -131,17 +131,9 @@ CrossPilot 不是单纯的数据看板，而是围绕运营人员每天实际要
 
 ## 界面预览
 
-| 运营总览 | 数据导入 |
-| --- | --- |
-| ![运营总览](./docs/screenshots/crosspilot-1920-content.png) | ![数据导入](./docs/screenshots/crosspilot-imports-body-1440.png) |
-
-| Listing 与商品 | 广告与流量 |
-| --- | --- |
-| ![Listing 与商品](./docs/screenshots/crosspilot-listings-body-1440.png) | ![广告与流量](./docs/screenshots/crosspilot-ads-body-1440.png) |
-
-| 库存与履约 | 售后与账号 |
-| --- | --- |
-| ![库存与履约](./docs/screenshots/crosspilot-inventory-body-1440.png) | ![售后与账号](./docs/screenshots/crosspilot-aftersales-body-1440.png) |
+| 主页 | 文章工作区 | 内容后台 |
+| --- | --- | --- |
+| ![主页](./public/assets/articles/crosspilot-home.png) | ![文章工作区](./public/assets/articles/operations-navigation.png) | ![内容后台](./public/assets/articles/content-transition.png) |
 
 ## 快速启动
 
@@ -151,12 +143,16 @@ CrossPilot 不是单纯的数据看板，而是围绕运营人员每天实际要
 
 ### 手动启动
 
-环境要求：Node.js 22.5 或更高版本。
+环境要求：Node.js 24、pnpm 11。
 
 ```bash
-npm install
-npm run dev
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run dev
 ```
+
+`web/` 使用 Astro + Svelte，根服务的 `/api`、`/uploads` 和 SQLite 业务层保持不变。修改内容页后需要重新执行 `pnpm run build`。
 
 浏览器打开 `http://127.0.0.1:3100`。首次启动会自动创建 `data/crosspilot.db` 和模拟演示数据。
 
@@ -193,7 +189,12 @@ docker compose up --build
 | `PATCH` | `/api/imports/:id/mapping` | 调整字段映射并重新校验 |
 | `POST` | `/api/imports/:id/commit` | 确认入库 |
 | `GET` | `/api/reports/operations/:storeId?format=html\|md\|csv\|xlsx` | 生成运营复盘报告 |
-| `GET/POST` | `/api/knowledge` | 查询或新增运营知识 |
+| `GET/POST` | `/api/articles` | 文章列表、分页、搜索和新建；兼容 `/api/knowledge` |
+| `GET/PATCH/DELETE` | `/api/articles/:idOrSlug` | 文章详情、更新和删除 |
+| `GET/POST` | `/api/articles/:id/comments` | 已审核评论与匿名留言提交 |
+| `GET/PATCH/DELETE` | `/api/comments/:id` | 后台评论审核与删除 |
+| `GET/POST/DELETE` | `/api/content` | 运营动态、案例、相册、资源和关于内容 |
+| `POST` | `/api/uploads` | 安全校验并保存图片 |
 
 ## 数据与安全
 
@@ -201,7 +202,8 @@ docker compose up --build
 - 单次导入最多 10 MB、20,000 行。
 - 敏感字段按字段名识别并在入库前移除。
 - 报告下载使用 `Content-Disposition: attachment` 和 `Cache-Control: no-store`。
-- 服务设置 CSP、`X-Content-Type-Options`、`Referrer-Policy` 和 `X-Frame-Options`。
+- 所有响应设置 CSP、`X-Content-Type-Options`、`Referrer-Policy`、`X-Frame-Options` 和同源写操作校验。
+- 上传会校验 MIME、文件头和 5 MB 上限；路径解析会阻止目录逃逸。
 - 项目没有登录、云同步和官方平台 API 直连，真实使用前需要补充权限、审计和密钥管理。
 
 核心数据对象包括店铺、SKU/Listing、每日指标、广告搜索词、库存快照、退货评论、售后问题、导入批次、运营动作、动作时间线、周期报告和知识文章。
@@ -209,8 +211,9 @@ docker compose up --build
 ## 测试与工程化
 
 ```bash
-npm run check
-npm test
+pnpm run check:all
+pnpm test
+pnpm run build
 ```
 
 自动化测试覆盖利润与广告指标、Listing 评分、广告和库存规则、账号健康、CSV/XLSX 导入、PII 排除、动作闭环、HTML/Markdown/CSV/XLSX 报告及五工作表结构。
@@ -224,8 +227,12 @@ npm test
 .
 ├── docs/
 │   ├── architecture.md
-│   ├── usage-guide.md
-│   └── screenshots/
+│   └── usage-guide.md
+├── web/
+│   ├── src/pages/
+│   ├── src/components/
+│   ├── astro.config.mjs
+│   └── package.json
 ├── public/
 │   ├── app.js
 │   ├── enhancements.css
@@ -238,7 +245,9 @@ npm test
 │   └── styles.css
 ├── src/
 │   ├── app.js
+│   ├── content-store.js
 │   ├── imports.js
+│   ├── markdown.js
 │   ├── metrics.js
 │   ├── reports.js
 │   ├── server.js
@@ -246,6 +255,8 @@ npm test
 ├── scripts/
 │   └── launch.mjs
 ├── tests/api.test.js
+├── pnpm-workspace.yaml
+├── pnpm-lock.yaml
 ├── Dockerfile
 ├── docker-compose.yml
 ├── render.yaml
@@ -260,3 +271,5 @@ CrossPilot 将指标口径、规则引擎、动作追踪和报告输出放在同
 ## License
 
 [MIT](./LICENSE)
+
+Firefly 等第三方来源的许可说明见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。

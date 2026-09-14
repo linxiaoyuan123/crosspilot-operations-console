@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="/crosspilot.css">
     <link rel="stylesheet" href="/enhancements.css">
     <link rel="stylesheet" href="/theme-controls.css">
+    <link rel="stylesheet" href="/nav-shell.css">
+    <link rel="stylesheet" href="/content-shell.css">
   </head>
   <body>
     <div id="sakura-layer" aria-hidden="true"></div>
@@ -41,7 +43,29 @@
         </div>
 
         <nav class="main-nav" aria-label="主导航">
-          <button class="nav-item is-active" type="button" data-nav="overview">
+          <button class="nav-item" type="button" data-nav="home">
+            <span data-icon="home"></span><span data-label="主页">主页</span>
+          </button>
+          <div class="nav-tools">
+            <button class="nav-item nav-tools-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="articles-menu">
+              <span data-icon="book"></span><span data-label="文章">文章</span><span class="nav-tools-caret" data-icon="chevronDown"></span>
+            </button>
+            <div class="nav-tools-menu" id="articles-menu" role="menu" aria-label="文章导航">
+              <button class="nav-item" type="button" role="menuitem" data-nav="articles" data-article-filter="all">
+                <span data-icon="book"></span><span data-label="全部文章">全部文章</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="articles" data-article-filter="categories">
+                <span data-icon="grid"></span><span data-label="文章分类">文章分类</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="articles" data-article-filter="tags">
+                <span data-icon="target"></span><span data-label="标签索引">标签索引</span>
+              </button>
+              <button class="nav-item" type="button" role="menuitem" data-nav="studio">
+                <span data-icon="edit"></span><span data-label="内容后台">内容后台</span>
+              </button>
+            </div>
+          </div>
+          <button class="nav-item" type="button" data-nav="overview">
             <span data-icon="overview"></span><span data-label="运营总览">运营总览</span>
           </button>
           <div class="nav-tools">
@@ -125,37 +149,37 @@
                 <div class="cp-theme-tab-panel" data-cp-theme-panel="appearance">
                   <div class="cp-setting-heading"><strong>主题色相</strong><button type="button" id="cp-hue-reset" aria-label="恢复默认主题色"><span data-icon="replay"></span></button><output id="cp-hue-value">191</output></div>
                   <div class="cp-hue-track"><input id="cp-hue-slider" type="range" min="0" max="360" value="191" step="1" aria-label="主题色相"></div>
-                  <div class="cp-setting-heading"><strong>内容布局</strong></div>
+                  <div class="cp-setting-heading"><strong>内容布局</strong><button type="button" data-cp-reset-group="density" aria-label="恢复内容布局默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <div class="cp-segment" role="group" aria-label="内容布局">
                     <button type="button" data-cp-density="comfortable" aria-pressed="true"><span data-icon="rows"></span>舒展开阔</button>
                     <button type="button" data-cp-density="compact" aria-pressed="false"><span data-icon="grid"></span>紧凑高效</button>
                   </div>
-                  <div class="cp-setting-heading"><strong>卡片样式</strong></div>
+                  <div class="cp-setting-heading"><strong>卡片样式</strong><button type="button" data-cp-reset-group="cardStyle" aria-label="恢复卡片样式默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="cardBorder" aria-pressed="false"><span data-icon="borderOuter"></span><span>卡片边框与阴影</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="followTheme" aria-pressed="true"><span data-icon="palette"></span><span>卡片跟随主题色</span><i></i></button>
                 </div>
 
                 <div class="cp-theme-tab-panel" data-cp-theme-panel="wallpaper" hidden>
-                  <div class="cp-setting-heading"><strong>壁纸模式</strong></div>
+                  <div class="cp-setting-heading"><strong>壁纸模式</strong><button type="button" data-cp-reset-group="wallpaper" aria-label="恢复壁纸模式默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <div class="cp-choice-grid" role="group" aria-label="壁纸模式">
                     <button type="button" data-cp-wallpaper="banner" aria-pressed="false"><span data-icon="imageOutline"></span>横幅壁纸</button>
                     <button type="button" data-cp-wallpaper="fullscreen" aria-pressed="true"><span data-icon="wallpaper"></span>全屏壁纸</button>
                     <button type="button" data-cp-wallpaper="overlay" aria-pressed="false"><span data-icon="overlay"></span>覆盖透明</button>
                     <button type="button" data-cp-wallpaper="none" aria-pressed="false"><span data-icon="hideImage"></span>纯色背景</button>
                   </div>
-                  <div class="cp-setting-heading" data-cp-layout-heading><strong>全屏布局</strong></div>
+                  <div class="cp-setting-heading" data-cp-layout-heading><strong>全屏布局</strong><button type="button" data-cp-reset-group="layout" aria-label="恢复全屏布局默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <div class="cp-segment" role="group" aria-label="全屏布局" data-cp-layout-group>
                     <button type="button" data-cp-layout="classic" aria-pressed="true"><span data-icon="viewDay"></span>经典模式</button>
                     <button type="button" data-cp-layout="hero" aria-pressed="false"><span data-icon="desktopLandscape"></span>Hero 模式</button>
                   </div>
-                  <div class="cp-setting-heading" data-cp-transparency-heading><strong>透明设置</strong></div>
+                  <div class="cp-setting-heading" data-cp-transparency-heading><strong>透明设置</strong><button type="button" data-cp-reset-group="transparency" aria-label="恢复透明设置默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <div class="cp-range-setting" data-cp-transparency-group>
-                    <div class="cp-range-heading"><span>背景模糊度</span><output id="cp-overlay-blur-value">10.0px</output></div>
-                    <input id="cp-overlay-blur" type="range" min="0" max="20" value="10" step="0.5" aria-label="背景模糊度">
+                    <div class="cp-range-heading"><span>背景模糊度</span><output id="cp-overlay-blur-value">0.0px</output></div>
+                    <input id="cp-overlay-blur" type="range" min="0" max="20" value="0" step="0.5" aria-label="背景模糊度">
                     <div class="cp-range-heading"><span>卡片透明度</span><output id="cp-card-opacity-value">60%</output></div>
                     <input id="cp-card-opacity" type="range" min="20" max="100" value="60" step="1" aria-label="卡片透明度">
                   </div>
-                  <div class="cp-setting-heading" data-cp-banner-heading><strong>壁纸设置</strong></div>
+                  <div class="cp-setting-heading" data-cp-banner-heading><strong>壁纸设置</strong><button type="button" data-cp-reset-group="wallpaperSettings" aria-label="恢复壁纸设置默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="bannerTitle" aria-pressed="true"><span data-icon="titlecase"></span><span>首页壁纸标题</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="carousel" aria-pressed="true"><span data-icon="carousel"></span><span>壁纸轮播</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="waves" aria-pressed="true"><span data-icon="airwave"></span><span>水波纹动画</span><i></i></button>
@@ -163,10 +187,11 @@
                 </div>
 
                 <div class="cp-theme-tab-panel" data-cp-theme-panel="effects" hidden>
-                  <div class="cp-setting-heading"><strong>特效设置</strong></div>
+                  <div class="cp-setting-heading"><strong>特效设置</strong><button type="button" data-cp-reset-group="effects" aria-label="恢复特效设置默认值" title="恢复默认值"><span data-icon="replay"></span></button></div>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="sakura" aria-pressed="true"><span data-icon="flower"></span><span>樱花特效</span><i></i></button>
                   <button class="cp-setting-toggle" type="button" data-cp-setting="typewriter" aria-pressed="true"><span data-icon="type"></span><span>首页打字机</span><i></i></button>
                 </div>
+
               </section>
             </div>
 
@@ -184,10 +209,14 @@
           </div>
 
           <button class="font-toggle" id="font-toggle" type="button" aria-label="切换全局字体" title="当前：文艺字体，点击切换原版字体"><span>文</span></button>
-          <label class="project-switcher" for="global-store">
-            <span>当前店铺</span>
-            <select id="global-store" aria-label="切换当前店铺"></select>
-          </label>
+          <div class="project-switcher cp-store-picker">
+            <span class="cp-store-picker-label">当前店铺</span>
+            <button class="cp-store-picker-trigger" id="global-store-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="global-store-menu">
+              <span class="cp-store-picker-value">加载中</span>
+              <span class="nav-tools-caret" data-icon="chevronDown" aria-hidden="true"></span>
+            </button>
+            <div class="cp-store-picker-menu" id="global-store-menu" role="listbox" aria-label="切换当前店铺" hidden></div>
+          </div>
         </div>
       </header>
 
@@ -214,10 +243,18 @@
                 <path id="crosspilot-gentle-wave" d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v48h-352z" />
               </defs>
               <g class="hero-wave-parallax">
+                <use href="#crosspilot-gentle-wave" x="-304" y="0" class="hero-wave-layer hero-wave-layer-1" />
                 <use href="#crosspilot-gentle-wave" x="48" y="0" class="hero-wave-layer hero-wave-layer-1" />
+                <use href="#crosspilot-gentle-wave" x="400" y="0" class="hero-wave-layer hero-wave-layer-1" />
+                <use href="#crosspilot-gentle-wave" x="-304" y="3" class="hero-wave-layer hero-wave-layer-2" />
                 <use href="#crosspilot-gentle-wave" x="48" y="3" class="hero-wave-layer hero-wave-layer-2" />
+                <use href="#crosspilot-gentle-wave" x="400" y="3" class="hero-wave-layer hero-wave-layer-2" />
+                <use href="#crosspilot-gentle-wave" x="-304" y="5" class="hero-wave-layer hero-wave-layer-3" />
                 <use href="#crosspilot-gentle-wave" x="48" y="5" class="hero-wave-layer hero-wave-layer-3" />
+                <use href="#crosspilot-gentle-wave" x="400" y="5" class="hero-wave-layer hero-wave-layer-3" />
+                <use href="#crosspilot-gentle-wave" x="-304" y="7" class="hero-wave-layer hero-wave-layer-4" />
                 <use href="#crosspilot-gentle-wave" x="48" y="7" class="hero-wave-layer hero-wave-layer-4" />
+                <use href="#crosspilot-gentle-wave" x="400" y="7" class="hero-wave-layer hero-wave-layer-4" />
               </g>
             </svg>
           </div>

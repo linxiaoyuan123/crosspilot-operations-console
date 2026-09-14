@@ -4,15 +4,22 @@
   "private": true,
   "description": "CrossPilot cross-border marketplace operations decision console.",
   "type": "module",
+  "packageManager": "pnpm@11.19.0",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "start": "node src/server.js",
     "launch": "node scripts/launch.mjs",
     "dev": "node --watch src/server.js",
-    "test": "node --test",
-    "check": "node --check scripts/launch.mjs && node --check src/app.js && node --check src/store.js && node --check src/metrics.js && node --check src/imports.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js && node --check public/enhancements.js"
+    "web:dev": "pnpm --dir web dev",
+    "web:build": "pnpm --dir web build",
+    "web:check": "pnpm --dir web check",
+    "build": "pnpm run web:build",
+    "test": "pnpm run web:build && node --test",
+    "check": "node --check scripts/launch.mjs && node --check src/app.js && node --check src/store.js && node --check src/content-store.js && node --check src/markdown.js && node --check src/metrics.js && node --check src/imports.js && node --check src/reports.js && node --check src/server.js && node --check public/app.js && node --check public/enhancements.js",
+    "check:all": "pnpm run check && pnpm run web:check"
   },
   "keywords": [
     "cross-border-ecommerce",
@@ -26,7 +33,9 @@
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^12.11.1",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "marked": "^18.0.13",
+    "sanitize-html": "^2.17.5"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

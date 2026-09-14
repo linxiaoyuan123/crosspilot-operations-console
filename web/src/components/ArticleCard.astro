@@ -1,0 +1,140 @@
+---
+import { CalendarDays, Clock3, Eye, Image as ImageIcon } from 'lucide-svelte';
+import { formatDate, formatNumber, splitTags } from '../lib/api';
+import type { Article } from '../lib/types';
+
+type Props = {
+  article: Article;
+  compact?: boolean;
+};
+
+const { article, compact = false } = Astro.props;
+const tags = splitTags(article.tags).slice(0, 3);
+---
+
+<article class={`article-card cp-card${compact ? ' compact' : ''}`}>
+  <a class="cover" href={`/articles/${encodeURIComponent(article.slug)}`} aria-label={`阅读 ${article.title}`}>
+    {article.cover_image
+      ? <img src={article.cover_image} alt="" loading="lazy" />
+      : <span><ImageIcon size={28} aria-hidden="true" /></span>}
+  </a>
+  <div class="body">
+    <div class="meta-top">
+      <span class="cp-kicker">{article.category}</span>
+      {article.featured ? <span class="cp-badge accent">置顶</span> : null}
+    </div>
+    <h3><a href={`/articles/${encodeURIComponent(article.slug)}`}>{article.title}</a></h3>
+    <p>{article.excerpt}</p>
+    <div class="tags">
+      {tags.map((tag) => <a href={`/tags?tag=${encodeURIComponent(tag)}`}>#{tag}</a>)}
+    </div>
+    <div class="meta">
+      <span><CalendarDays size={12} />{formatDate(article.updated_at)}</span>
+      <span><Clock3 size={12} />{article.reading_minutes || 1} 分钟</span>
+      <span><Eye size={12} />{formatNumber(article.views)}</span>
+    </div>
+  </div>
+</article>
+
+<style>
+  .article-card {
+    display: grid;
+    grid-template-rows: 178px minmax(0, 1fr);
+    min-height: 348px;
+    overflow: hidden;
+  }
+
+  .article-card.compact {
+    min-height: 310px;
+  }
+
+  .cover {
+    align-items: center;
+    background:
+      linear-gradient(145deg, var(--cp-accent-soft), color-mix(in srgb, var(--cp-bg) 82%, transparent));
+    color: var(--cp-accent);
+    display: flex;
+    justify-content: center;
+    min-height: 178px;
+    overflow: hidden;
+  }
+
+  .cover img {
+    height: 100%;
+    object-fit: cover;
+    transition: transform 260ms ease;
+    width: 100%;
+  }
+
+  .cover:hover img {
+    transform: scale(1.025);
+  }
+
+  .body {
+    display: grid;
+    gap: 9px;
+    padding: 15px;
+  }
+
+  .meta-top,
+  .meta {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  h3 {
+    font-size: 15px;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  h3 a {
+    text-decoration: none;
+  }
+
+  h3 a:hover {
+    color: var(--cp-accent);
+  }
+
+  p {
+    color: var(--cp-text-soft);
+    display: -webkit-box;
+    font-size: 11px;
+    line-height: 1.65;
+    margin: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .tags a {
+    background: var(--cp-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--cp-accent) 18%, transparent);
+    border-radius: 999px;
+    color: var(--cp-text-soft);
+    font-size: 9px;
+    padding: 4px 7px;
+    text-decoration: none;
+  }
+
+  .meta {
+    color: var(--cp-text-muted);
+    font-size: 8px;
+    justify-content: flex-start;
+    margin-top: auto;
+  }
+
+  .meta span {
+    align-items: center;
+    display: inline-flex;
+    gap: 4px;
+  }
+</style>

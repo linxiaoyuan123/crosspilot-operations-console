@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+
+const month = Astro.url.searchParams.get('month') || '';
+---
+
+<BaseLayout title="文章归档 · CrossPilot" description="按月份浏览 CrossPilot 文章。">
+  <ContentHub client:load mode="archive" initialMonth={month} />
+</BaseLayout>

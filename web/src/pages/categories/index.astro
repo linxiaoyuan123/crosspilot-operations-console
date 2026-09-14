@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+
+const category = Astro.url.searchParams.get('category') || '';
+---
+
+<BaseLayout title="文章分类 · CrossPilot" description="按运营主题浏览 CrossPilot 文章。">
+  <ContentHub client:load mode="categories" initialCategory={category} />
+</BaseLayout>

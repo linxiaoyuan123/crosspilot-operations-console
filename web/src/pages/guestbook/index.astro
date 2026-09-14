@@ -1,0 +1,8 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentCollection from '../../components/ContentCollection.svelte';
+---
+
+<BaseLayout title="反馈留言 · CrossPilot">
+  <ContentCollection client:load type="guestbook" mode="index" />
+</BaseLayout>

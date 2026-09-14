@@ -13,8 +13,8 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 }
 
 const [major, minor] = process.versions.node.split('.').map(Number);
-if (major < 22 || (major === 22 && minor < 5)) {
-  console.error(`[CrossPilot] Node.js 22.5 or newer is required. Current version: ${process.versions.node}`);
+if (major < 24) {
+  console.error(`[CrossPilot] Node.js 24 or newer is required. Current version: ${process.versions.node}`);
   process.exit(1);
 }
 

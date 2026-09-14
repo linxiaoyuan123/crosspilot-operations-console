@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentHub from '../../components/ContentHub.svelte';
+
+const tag = Astro.url.searchParams.get('tag') || '';
+---
+
+<BaseLayout title="标签索引 · CrossPilot" description="通过标签检索 CrossPilot 文章。">
+  <ContentHub client:load mode="tags" initialTag={tag} />
+</BaseLayout>
