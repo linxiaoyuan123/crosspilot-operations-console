@@ -149,6 +149,7 @@ function applyVisualSettings() {
   }
   root.dataset.wallpaperMode = settings.wallpaper;
   root.dataset.fullscreenLayout = settings.fullscreenLayout;
+  root.classList.add('cp-header-ready');
   root.style.setProperty('--cp-overlay-blur', `${settings.overlayBlur}px`);
   root.style.setProperty('--cp-card-opacity', String(settings.cardOpacity / 100));
   root.classList.toggle('cp-card-opacity-custom', settings.cardOpacity < 100);

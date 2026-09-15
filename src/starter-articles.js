@@ -7,7 +7,7 @@ export const STARTER_ARTICLES = [
     category: '广告',
     tags: 'ACOS,TACOS,利润,搜索词,投放',
     views: 86,
-    coverImage: '/assets/articles/ad-profit-stage.jpg',
+    coverImage: '/assets/articles/acos-profit-dashboard-2026.jpg',
     excerpt: '把 ACOS 放回利润结构里判断：新品看获客效率，成长款看边际利润，成熟款才收紧到目标线。',
     contentMd: `> 一句话结论：ACOS 是效率指标，不是唯一目标。先确定这个 SKU 当前要买增长、守利润，还是收流量，再决定 ACOS 应该高一点还是低一点。
 
@@ -72,7 +72,7 @@ export const STARTER_ARTICLES = [
     category: '库存',
     tags: 'FBA,补货,库存周转,安全库存,履约',
     views: 72,
-    coverImage: '/assets/articles/fba-replenishment-risk.jpg',
+    coverImage: '/assets/articles/fba-warehouse-2026.jpg',
     excerpt: '不要只看 FBA 可售库存，把在途、采购交期、入仓缓冲和销售波动一起算，才能提前发现断货风险。',
     contentMd: `> 一句话结论：补货风险不是“库存高不高”，而是未来到货日之前，现有库存能不能覆盖销售。可售、在途、交期、波动和安全期必须一起看。
 
@@ -151,7 +151,7 @@ CrossPilot 会把 FBA 可售、在途、采购交期和安全期放在同一张�
     category: 'Listing',
     tags: 'Listing,关键词,图片,属性,转化率',
     views: 64,
-    coverImage: '/assets/articles/listing-quality-score-v2.jpg',
+    coverImage: '/assets/articles/listing-wireframe-2026.jpg',
     excerpt: '把标题、五点、图片、属性、关键词和合规拆开评分，再用利润与流量优先级安排优化动作。',
     contentMd: `> 一句话结论：Listing 优化不是反复改标题，而是先找出限制曝光和转化的那一项，再按影响大小执行。
 
@@ -228,7 +228,7 @@ Listing 修改后不要当天就再次修改。至少观察 7 天，分别记录
     category: '售后',
     tags: '退货,欧洲站,售后,产品质量,履约',
     views: 51,
-    coverImage: '/assets/articles/europe-return-review-v2.jpg',
+    coverImage: '/assets/articles/europe-return-parcel-2026.jpg',
     excerpt: '按 SKU、原因和时间线复盘退货，把产品设计、页面表达和履约异常分开处理。',
     contentMd: `> 一句话结论：退货率高不是单一售后问题。先按原因归类，再判断是产品、页面还是履约造成，才能避免只改客服话术。
 
@@ -293,7 +293,7 @@ Listing 修改后不要当天就再次修改。至少观察 7 天，分别记录
     category: '数据',
     tags: '字段映射,CSV,XLSX,数据治理,PII',
     views: 43,
-    coverImage: '/assets/articles/platform-field-mapping.jpg',
+    coverImage: '/assets/articles/platform-data-mapping-2026.jpg',
     excerpt: '先统一 SKU、日期、销售、广告、库存和退货字段，再处理平台差异，让报表能够进入同一套规则。',
     contentMd: `> 一句话结论：多平台报表不需要一开始统一所有字段，但必须先统一能够支持利润、广告、库存和退货分析的最小字段集。
 

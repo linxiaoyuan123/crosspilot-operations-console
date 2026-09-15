@@ -60,7 +60,8 @@ test('knowledge articles support Markdown, publishing state and image uploads', 
   assert.equal(seeded.body.status, 'published');
   assert.equal(seeded.body.featured, true);
   assert.match(seeded.body.html, /CrossPilot 运营工具使用指南/);
-  assert.match(seeded.body.html, /\/assets\/articles\/crosspilot-home\.png/);
+  assert.match(seeded.body.html, /\/assets\/articles\/guide-operations-overview\.png/);
+  assert.match(seeded.body.html, /\/assets\/articles\/guide-studio-review\.png/);
 
   const preview = await jsonRequest('/api/knowledge/preview', 'POST', {
     markdown: '## 标题\n\n**正文** <script>alert(1)</script>\n\n![图](javascript:alert(1))'
@@ -81,11 +82,37 @@ test('knowledge articles support Markdown, publishing state and image uploads', 
   assert.equal(created.body.status, 'draft');
   assert.equal(created.body.slug, 'test-markdown-draft');
 
-  const publicList = await request('/api/knowledge');
-  assert.equal(publicList.response.status, 200);
-  assert.equal(publicList.body.items.some((item) => item.id === created.body.id), false);
+  const draftPublicList = await request('/api/knowledge');
+  assert.equal(draftPublicList.body.items.some((item) => item.id === created.body.id), false);
   const draftList = await request('/api/knowledge?status=draft&q=Markdown');
   assert.equal(draftList.body.items.some((item) => item.id === created.body.id), true);
+
+  const submitted = await jsonRequest(`/api/knowledge/${created.body.id}`, 'PATCH', {
+    reviewStatus: 'submitted'
+  });
+  assert.equal(submitted.response.status, 200);
+  assert.equal(submitted.body.display_status, 'review');
+  const reviewStats = await request('/api/knowledge?status=all&limit=1');
+  assert.equal(reviewStats.body.stats.review, 1);
+
+  const rejected = await jsonRequest(`/api/knowledge/${created.body.id}/review`, 'POST', {
+    decision: 'rejected',
+    note: '补充数据口径后再提交。'
+  });
+  assert.equal(rejected.response.status, 200);
+  assert.equal(rejected.body.status, 'draft');
+  assert.equal(rejected.body.display_status, 'rejected');
+  assert.equal(rejected.body.review_note, '补充数据口径后再提交。');
+
+  await jsonRequest(`/api/knowledge/${created.body.id}`, 'PATCH', { reviewStatus: 'submitted' });
+  const approved = await jsonRequest(`/api/knowledge/${created.body.id}/review`, 'POST', { decision: 'approved' });
+  assert.equal(approved.response.status, 200);
+  assert.equal(approved.body.status, 'published');
+  assert.equal(approved.body.review_status, 'approved');
+  assert.equal(approved.body.display_status, 'published');
+
+  const approvedPublicList = await request('/api/knowledge');
+  assert.equal(approvedPublicList.body.items.some((item) => item.id === created.body.id), true);
 
   const updated = await jsonRequest(`/api/knowledge/${created.body.id}`, 'PATCH', {
     title: '测试 Markdown 已发布',

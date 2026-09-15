@@ -435,15 +435,16 @@
     border: 0;
     cursor: zoom-in;
     display: block;
-    height: clamp(190px, 24vw, 320px);
+    height: auto;
     overflow: hidden;
     padding: 0;
     width: 100%;
   }
 
   .reading-cover img {
-    height: 100%;
-    object-fit: cover;
+    display: block;
+    height: auto;
+    object-fit: contain;
     width: 100%;
   }
 
@@ -798,7 +799,7 @@
 
   @media (max-width: 760px) {
     .reading-cover {
-      height: clamp(150px, 46vw, 220px);
+      height: auto;
     }
 
     .reading-grid {

@@ -612,6 +612,21 @@ const STUDIO_CONTENT_TYPES = {
   about: '关于页面'
 };
 
+const STUDIO_ARTICLE_STATUSES = {
+  draft: { label: '草稿', tone: 'draft' },
+  review: { label: '待审核', tone: 'review' },
+  rejected: { label: '已驳回', tone: 'rejected' },
+  pending: { label: '待发布', tone: 'pending' },
+  published: { label: '已发布', tone: 'published' }
+};
+
+function studioArticleDisplayStatus(article = {}) {
+  if (article.display_status && STUDIO_ARTICLE_STATUSES[article.display_status]) return article.display_status;
+  if (article.review_status === 'rejected') return 'rejected';
+  if (article.status === 'published') return article.publish_at && new Date(article.publish_at).getTime() > Date.now() ? 'pending' : 'published';
+  return article.review_status === 'submitted' ? 'review' : 'draft';
+}
+
 function blankStudioArticleForm() {
   return {
     title: '',
@@ -622,6 +637,9 @@ function blankStudioArticleForm() {
     contentMd: '## 背景\n\n写下问题发生的场景。\n\n## 处理过程\n\n1. 第一步\n2. 第二步\n\n## 结论\n\n记录判断标准和结果。',
     coverImage: '',
     status: 'draft',
+    reviewStatus: 'draft',
+    displayStatus: 'draft',
+    reviewNote: '',
     featured: false,
     publishAt: ''
   };
@@ -660,6 +678,9 @@ function articleToStudioForm(article) {
     contentMd: article.content_md || '',
     coverImage: article.cover_image || '',
     status: article.status === 'published' ? 'published' : 'draft',
+    reviewStatus: article.review_status === 'submitted' ? 'submitted' : 'draft',
+    displayStatus: studioArticleDisplayStatus(article),
+    reviewNote: article.review_note || '',
     featured: Boolean(article.featured),
     publishAt: studioDateTime(article.publish_at || '')
   };
@@ -723,7 +744,8 @@ function renderStudio() {
       ${metricCard('book', '文章总数', String(stats.total || 0), '全部内容', null, 'accent')}
       ${metricCard('check', '已发布', String(stats.published || 0), '文章页可见', null, 'green')}
       ${metricCard('edit', '草稿', String(stats.drafts || 0), '仅后台可见', null, 'amber')}
-      ${metricCard('message', '待审核', String(stats.comments?.pending || state.studioComments.filter((item) => item.status === 'pending').length), '读者留言', null, stats.comments?.pending ? 'amber' : 'green')}
+      ${metricCard('check', '文章待审', String(stats.review || 0), '送审后等待处理', null, stats.review ? 'amber' : 'green')}
+      ${metricCard('message', '留言待审', String(stats.comments?.pending || state.studioComments.filter((item) => item.status === 'pending').length), '读者留言', null, stats.comments?.pending ? 'amber' : 'green')}
     </div>
     <nav class="cp-article-mode-tabs cp-studio-tabs" aria-label="内容后台模块">${tabs.map(([tab, label]) => `<button type="button" class="${state.studioTab === tab ? 'is-active' : ''}" data-action="studio-tab" data-tab="${tab}"${state.studioTab === tab ? ' aria-current="page"' : ''}>${label}</button>`).join('')}</nav>
     ${state.studioTab === 'comments' ? renderStudioCommentsTab() : state.studioTab === 'media' ? renderStudioMediaTab() : state.studioTab === 'structured' ? renderStudioStructuredTab() : renderStudioArticlesTab()}`;
@@ -740,9 +762,11 @@ function renderStudioArticlesTab() {
 }
 
 function renderStudioArticleItem(article) {
+  const status = studioArticleDisplayStatus(article);
+  const statusMeta = STUDIO_ARTICLE_STATUSES[status] || STUDIO_ARTICLE_STATUSES.draft;
   return `<button type="button" class="cp-studio-sidebar-item${state.studioEditingId === article.id ? ' is-active' : ''}" data-action="studio-select-article" data-id="${article.id}">
-    <span class="cp-studio-sidebar-dot ${article.status === 'published' ? 'is-published' : ''}"></span>
-    <span><strong>${h(article.title)}</strong><small>${h(article.category || '未分类')} · ${formatDate(article.updated_at)}</small></span>
+    <span class="cp-studio-sidebar-dot is-${statusMeta.tone}"></span>
+    <span><strong>${h(article.title)}</strong><small>${h(article.category || '未分类')} · ${h(statusMeta.label)} · ${formatDate(article.updated_at)}</small></span>
   </button>`;
 }
 
@@ -750,18 +774,25 @@ function renderStudioArticleEditor() {
   const form = state.studioArticleForm || blankStudioArticleForm();
   const preview = state.studioPreview || '<p class="markdown-placeholder">Markdown 预览会显示在这里。</p>';
   const categories = (state.articleStats?.categories || []).map((item) => `<option value="${escapeAttr(item.name)}"></option>`).join('');
+  const displayStatus = STUDIO_ARTICLE_STATUSES[form.displayStatus] ? form.displayStatus : 'draft';
+  const statusMeta = STUDIO_ARTICLE_STATUSES[displayStatus];
+  const isEditing = Boolean(state.studioEditingId);
+  const canSubmitReview = isEditing && ['draft', 'rejected'].includes(displayStatus);
+  const isInReview = isEditing && displayStatus === 'review';
+  const isPublished = isEditing && displayStatus === 'published';
+  const statusHint = displayStatus === 'review' ? '文章已锁定在审核队列，通过后可按定时时间发布。' : displayStatus === 'rejected' ? '根据驳回意见修改后，可重新保存并再次送审。' : displayStatus === 'pending' ? '审核已通过，定时发布时间到达后自动公开。' : displayStatus === 'published' ? '文章已公开，保存修改会直接更新前台内容。' : '保存草稿后即可送审，审核通过前不会出现在文章区。';
   return `<form id="studio-article-form" class="panel cp-studio-editor article-editor-form">
-    <div class="cp-studio-editor-head"><div><span class="cp-kicker">${state.studioEditingId ? 'edit article' : 'new article'}</span><h2>${state.studioEditingId ? '编辑文章' : '新建文章'}</h2></div><div class="cp-studio-editor-actions">${state.studioEditingId && form.status === 'published' ? `<button class="button secondary" type="button" data-action="studio-open-preview" data-slug="${escapeAttr(form.slug)}">${icon('eye', 14)}查看文章</button>` : ''}${state.studioEditingId ? `<button class="button secondary cp-danger-button" type="button" data-action="studio-delete-article" data-id="${state.studioEditingId}">${icon('trash', 14)}删除</button>` : ''}<button class="button primary" type="submit">${icon('save', 14)}保存文章</button></div></div>
+    <div class="cp-studio-editor-head"><div><span class="cp-kicker">${isEditing ? 'edit article' : 'new article'}</span><h2>${isEditing ? '编辑文章' : '新建文章'}</h2></div><div class="cp-studio-editor-actions">${isPublished ? `<button class="button secondary" type="button" data-action="studio-open-preview" data-slug="${escapeAttr(form.slug)}">${icon('eye', 14)}查看文章</button>` : ''}${isInReview ? `<button class="button secondary" type="submit" name="intent" value="approve">${icon('check', 14)}通过并发布</button><button class="button secondary cp-danger-button" type="submit" name="intent" value="reject">${icon('x', 14)}驳回</button>` : ''}${canSubmitReview ? `<button class="button secondary" type="submit" name="intent" value="submit-review">${icon('upload', 14)}送审</button>` : ''}${isPublished ? `<button class="button secondary" type="submit" name="intent" value="unpublish">${icon('edit', 14)}转为草稿</button>` : ''}${isEditing ? `<button class="button secondary cp-danger-button" type="button" data-action="studio-delete-article" data-id="${state.studioEditingId}">${icon('trash', 14)}删除</button>` : ''}</div></div>
     <div class="article-editor-meta">
       ${field('文章标题', `<input class="cp-field" name="title" value="${escapeAttr(form.title)}" maxlength="160" required>` , true)}
       ${field('URL 标识', `<input class="cp-field" name="slug" value="${escapeAttr(form.slug)}" maxlength="80" placeholder="留空自动生成">`)}
       ${field('分类', `<input class="cp-field" name="category" value="${escapeAttr(form.category)}" list="studio-category-options" maxlength="50"><datalist id="studio-category-options">${categories}</datalist>`)}
       ${field('标签', `<input class="cp-field" name="tags" value="${escapeAttr(form.tags)}" placeholder="用逗号分隔">`)}
-      ${field('发布状态', `<select class="cp-field" name="status"><option value="draft"${form.status === 'draft' ? ' selected' : ''}>草稿</option><option value="published"${form.status === 'published' ? ' selected' : ''}>已发布</option></select>`)}
       ${field('定时发布', `<input class="cp-field" name="publishAt" type="datetime-local" value="${escapeAttr(form.publishAt)}">`)}
-      <label class="cp-check-field"><input type="checkbox" name="featured"${form.featured ? ' checked' : ''}><span>设为主页置顶文章</span></label>
+      <label class="cp-check-field span-2"><input type="checkbox" name="featured"${form.featured ? ' checked' : ''}><span>设为主页置顶文章</span></label>
       ${field('摘要', `<textarea class="cp-field cp-scroll" name="excerpt" rows="3" maxlength="320">${h(form.excerpt)}</textarea>`, true)}
     </div>
+    <div class="studio-review-strip is-${statusMeta.tone}"><span class="cp-kicker">review status</span><strong>${statusMeta.label}</strong><p>${statusHint}${form.reviewNote ? ` 驳回原因：${h(form.reviewNote)}` : ''}</p></div>
     <div class="cp-cover-editor">
       <div class="cp-cover-preview">${form.coverImage ? `<img src="${escapeAttr(form.coverImage)}" alt="">` : `<span>${icon('image', 24)}文章封面</span>`}</div>
       <input type="hidden" name="coverImage" value="${escapeAttr(form.coverImage)}">
@@ -780,7 +811,7 @@ function renderStudioArticleEditor() {
       </div><div class="markdown-toolbar-group"><label class="button secondary cp-upload-button">${icon('image', 14)}正文图片<input id="studio-body-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif"></label><button class="button secondary cp-editor-preview-button" type="button" data-action="studio-preview">${icon('eye', 14)}刷新预览</button></div></div>
       <div class="markdown-editor-grid"><label class="markdown-pane"><span>Markdown</span><textarea name="contentMd" spellcheck="false">${h(form.contentMd)}</textarea></label><div class="markdown-pane"><span>预览</span><div class="markdown-preview" data-studio-preview>${preview}</div></div></div>
     </div>
-    <div class="article-editor-actions"><span>${state.studioEditingId ? `文章 ID ${state.studioEditingId}` : '保存后会生成新的文章 ID'}</span><button class="button primary" type="submit">${icon('save', 14)}保存文章</button></div>
+    <div class="article-editor-actions"><span>${isEditing ? `文章 ID ${state.studioEditingId}` : '保存后会生成新的文章 ID'}</span><button class="button primary" type="submit" name="intent" value="save">${icon('save', 14)}${isEditing ? '保存修改' : '保存草稿'}</button></div>
   </form>`;
 }
 
@@ -814,7 +845,7 @@ function syncStudioArticleForm(form = app.querySelector('#studio-article-form'))
     excerpt: String(data.get('excerpt') || ''),
     contentMd: String(data.get('contentMd') || ''),
     coverImage: String(data.get('coverImage') || ''),
-    status: data.get('status') === 'draft' ? 'draft' : 'published',
+    status: state.studioArticleForm.status === 'published' ? 'published' : 'draft',
     publishAt: String(data.get('publishAt') || ''),
     featured: Boolean(form.elements.namedItem('featured')?.checked)
   };
@@ -1757,6 +1788,14 @@ async function handleSubmit(event) {
   try {
     if (form.id === 'studio-article-form') {
       const editingId = state.studioEditingId;
+      const intent = String(event.submitter?.value || data.intent || 'save');
+      const currentStatus = state.studioArticleForm?.displayStatus || 'draft';
+      const rejectionNote = intent === 'reject'
+        ? String(window.prompt('请填写驳回原因', state.studioArticleForm?.reviewNote || '') || '').trim()
+        : '';
+      if (intent === 'reject' && !rejectionNote) return;
+      const reviewAction = intent === 'submit-review' || intent === 'approve' || intent === 'reject';
+      const publishNow = !reviewAction && intent !== 'unpublish' && ['published', 'pending'].includes(currentStatus);
       const publishAt = String(data.publishAt || '').trim();
       const payload = {
         title: String(data.title || '').trim(),
@@ -1766,18 +1805,25 @@ async function handleSubmit(event) {
         excerpt: String(data.excerpt || '').trim(),
         contentMd: String(data.contentMd || ''),
         coverImage: String(data.coverImage || '').trim(),
-        status: data.status === 'draft' ? 'draft' : 'published',
+        status: publishNow ? 'published' : 'draft',
+        reviewStatus: reviewAction ? 'submitted' : publishNow ? undefined : 'draft',
         featured: Boolean(form.elements.namedItem('featured')?.checked),
         publishAt: publishAt ? new Date(publishAt).toISOString() : ''
       };
-      const saved = await api(editingId ? `/api/knowledge/${editingId}` : '/api/knowledge', {
+      let saved = await api(editingId ? `/api/knowledge/${editingId}` : '/api/knowledge', {
         method: editingId ? 'PATCH' : 'POST',
         body: payload
       });
+      if (intent === 'approve' || intent === 'reject') {
+        saved = await api(`/api/knowledge/${saved.id}/review`, {
+          method: 'POST',
+          body: { decision: intent === 'approve' ? 'approved' : 'rejected', note: rejectionNote }
+        });
+      }
       state.studioEditingId = saved.id;
       state.studioArticleForm = articleToStudioForm(saved);
       state.studioPreview = saved.html || await previewMarkdown(saved.content_md);
-      showToast(editingId ? '文章已保存' : '文章已创建');
+      showToast(intent === 'submit-review' ? '文章已送审' : intent === 'approve' ? '审核通过并发布' : intent === 'reject' ? '文章已驳回' : intent === 'unpublish' ? '文章已转为草稿' : editingId ? '文章已保存' : '文章已创建');
       await loadStudio();
       selectStudioArticle(state.articles.find((item) => item.id === saved.id) || saved, false);
       renderStudio();

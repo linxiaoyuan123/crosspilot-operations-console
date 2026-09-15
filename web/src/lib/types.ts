@@ -8,6 +8,10 @@ export type Article = {
   content_md: string;
   cover_image: string;
   status: 'draft' | 'published';
+  review_status?: 'none' | 'submitted' | 'approved' | 'rejected';
+  display_status?: 'draft' | 'review' | 'rejected' | 'pending' | 'published';
+  reviewed_at?: string;
+  review_note?: string;
   featured: boolean | number;
   views: number;
   reading_minutes: number;
@@ -22,6 +26,8 @@ export type ArticleStats = {
   total: number;
   published: number;
   drafts: number;
+  review?: number;
+  pending?: number;
   views: number;
   characters: number;
   categories: TaxonomyItem[];

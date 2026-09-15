@@ -44,6 +44,7 @@ import {
   registerMedia,
   replaceImportRows,
   refreshOperationalActions,
+  reviewKnowledge,
   updateAction,
   updateArticleCommentStatus,
   updateContentEntry,
@@ -514,6 +515,7 @@ async function handleApi({ db, request, response, requestUrl, uploadsDirectory }
       coverImage: validImagePath(body.coverImage),
       tags: optionalText(body.tags, 300),
       status: enumValue(body.status, ['draft', 'published'], 'published'),
+      reviewStatus: enumValue(body.reviewStatus, ['draft', 'submitted'], 'draft'),
       featured: Boolean(body.featured),
       publishAt: optionalText(body.publishAt, 40)
     }));
@@ -536,6 +538,8 @@ async function handleApi({ db, request, response, requestUrl, uploadsDirectory }
       ...(body.coverImage !== undefined ? { coverImage: validImagePath(body.coverImage) } : {}),
       ...(body.tags !== undefined ? { tags: optionalText(body.tags, 300) } : {}),
       ...(body.status !== undefined ? { status: enumValue(body.status, ['draft', 'published']) } : {}),
+      ...(body.reviewStatus !== undefined ? { reviewStatus: enumValue(body.reviewStatus, ['draft', 'submitted']) } : {}),
+      ...(body.reviewNote !== undefined ? { reviewNote: optionalText(body.reviewNote, 500) } : {}),
       ...(body.featured !== undefined ? { featured: Boolean(body.featured) } : {}),
       ...(body.publishAt !== undefined ? { publishAt: optionalText(body.publishAt, 40) } : {})
     });
@@ -547,6 +551,20 @@ async function handleApi({ db, request, response, requestUrl, uploadsDirectory }
     if (!existing) return sendJson(response, 404, { error: '文章不存在' });
     deleteKnowledge(db, existing.id);
     return sendJson(response, 200, { ok: true, id: existing.id });
+  }
+
+  const articleReviewMatch = articlePath.match(/^\/api\/knowledge\/(\d+)\/review$/);
+  if (articleReviewMatch && method === 'POST') {
+    const existing = getKnowledge(db, Number(articleReviewMatch[1]));
+    if (!existing) return sendJson(response, 404, { error: '文章不存在' });
+    const body = await readJsonBody(request);
+    const decision = enumValue(body.decision, ['approved', 'rejected']);
+    return sendJson(response, 200, reviewKnowledge(
+      db,
+      existing.id,
+      decision,
+      optionalText(body.note, 500)
+    ));
   }
 
   const reportMatch = pathname.match(/^\/api\/reports\/operations\/(\d+)$/);

@@ -1,149 +1,96 @@
-# CrossPilot · 跨境电商运营决策中台
+# CrossPilot 跨境电商运营决策中台
 
-面向跨境电商运营岗位的本地决策与执行工具。它把多平台报表导入、利润核算、Listing 优化、广告诊断、库存补货、售后处理和周期复盘串成一条可追踪的运营闭环。
+面向跨境电商运营岗位的本地决策与执行工作台。项目把报表导入、利润核算、Listing 优化、广告诊断、库存补货、售后处理和周期复盘放进同一条可追踪的运营闭环。
 
-> 仓库内置脱敏样例数据，可复现完整运营流程；项目不包含真实平台账号凭证。
+[![Node.js](https://img.shields.io/badge/node.js-%3E%3D24-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-%3E%3D11-F69220?style=for-the-badge&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Astro](https://img.shields.io/badge/Astro-7.2.10-FF5D01?style=for-the-badge&logo=astro&logoColor=white)](https://astro.build/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-![CrossPilot 当前主页](./public/assets/articles/crosspilot-home.png)
+![CrossPilot 运营总览](./public/assets/articles/guide-operations-overview.png)
 
-## 项目定位
+## 项目简介
 
-CrossPilot 不是单纯的数据看板，而是围绕运营人员每天实际要回答的问题设计：
+CrossPilot 不是一个只展示汇总数字的数据看板。它围绕运营人员每天需要回答的问题组织数据和动作：
 
-`报表怎么接 → 问题在哪里 → 单品是否赚钱 → 下一步做什么 → 谁在跟进 → 做完怎么复盘`
+`报表能不能用 -> 问题在哪里 -> SKU 是否赚钱 -> 下一步做什么 -> 谁负责执行 -> 做完后结果如何`
 
-默认案例是 Amazon 欧洲站家居收纳旗舰店，主币种为 EUR。数据结构同时兼容 TikTok Shop、Shopee 和 Walmart 的常见字段，其中演示库内置 Amazon、TikTok Shop 和 Shopee 三个模拟店铺。
+仓库内置脱敏演示数据，默认案例为 Amazon 欧洲站家居收纳店铺，同时提供 TikTok Shop 和 Shopee 模拟店铺。项目不包含真实平台账号、密钥或买家隐私数据。
 
-岗位能力覆盖：
+## 核心能力
 
-- 跨境电商报表清洗、字段映射和 Excel 数据处理
-- Listing、广告、库存、订单、退货与账号健康指标分析
-- 利润、ACOS、TACOS、ROAS、转化率和库存周转计算
-- 可解释规则引擎、问题闭环、执行证据和跨周期复盘
-- HTML、Markdown、CSV 和 XLSX 运营报告输出
+### 数据导入与治理
 
-## 界面与交互
+- 支持 CSV、XLSX 拖拽上传，单文件上限 10 MB、20,000 行。
+- 自动识别商品表现、广告搜索词、库存快照、退货与评论报表。
+- 支持中英文字段映射、必填字段校验、错误行预览和重复数据处理。
+- 买家姓名、邮箱、电话和地址等隐私字段在入库前跳过。
+- 导入批次保留映射、校验结果和提交状态，方便追溯。
 
-- 全局搜索支持直达运营模块、SKU、待办动作和运营知识，按 `Ctrl+K` 可快速聚焦。
-- 音乐播放器和首页背景视频提供完整播放控制，示例媒体仅用于本地展示，视频首次播放需要联网。
-- 支持亮色、暗色和跟随系统三种模式，切换时保留当前页面状态与响应式布局。
-- SKU 搜索会定位并高亮对应商品，动作搜索会打开目标执行表单，知识搜索会直达对应文章。
-- 主题定制覆盖主题色、内容密度、卡片样式、四种壁纸模式、经典/Hero 全屏布局、背景模糊和卡片透明度。
-- 支持水波、樱花和打字机效果开关，并保留减少动态效果设置。
+### 运营分析
 
-## 运营闭环
+- 运营总览：净销售额、净利润率、广告占比、ACOS、TACOS、库存风险、退货率、评分和待处理事项。
+- Listing 与商品：标题、五点、图片、属性、关键词覆盖和合规性六维评分。
+- 广告与流量：点击、曝光、花费、广告销售、订单、ACOS、ROAS、CVR 和 CPC 诊断。
+- 利润与定价：采购成本、平台佣金、履约费、退款损失、广告费和建议售价。
+- 库存与履约：可售、在途、预留、残次品、日均销量、覆盖天数、安全库存和建议补货量。
+- 售后与账号：退货原因、差评、买家消息、索赔、订单缺陷率、迟发率和取消率。
 
-### 1. 运营总览
+### 动作闭环与复盘
 
-集中展示净销售额、净利润率、广告占比、库存风险、退货率、评分健康、待执行动作和 SKU 异常榜。关键指标可以继续下钻到 Listing、广告、库存和售后模块。
+- 将异常转换为带分类、优先级、负责人、截止时间和推荐来源的运营动作。
+- 支持执行证据、延期、重新打开、关闭和完整时间线。
+- 日报、周报和月报可导出 HTML、Markdown、CSV 和 XLSX。
+- XLSX 报告包含 `Summary`、`SKU`、`Ads`、`Inventory`、`After-sales` 五个工作表。
+- 所有建议来自固定指标和可解释规则，不使用生成式 AI 编造经营结论。
 
-### 2. 数据导入
+### 内容后台
 
-支持拖拽上传 CSV 和 XLSX，单文件上限 10 MB、20,000 行。系统可以自动识别四类报表：
-
-- 商品表现
-- 广告搜索词
-- 库存快照
-- 退货与评论
-
-导入流程包含中英文字段自动映射、必填字段校验、重复行与错误行预览、PII 字段跳过和确认入库。买家姓名、邮箱、电话、地址等敏感字段只用于识别，不写入预览数据、数据库或报告。
-
-### 3. Listing 与商品
-
-对每个 SKU 生成标题、五点描述、图片、属性、关键词覆盖和合规性六维评分，并输出上新资料包、产品文案骨架、图片需求清单及利润定价信息。
-
-默认评分权重：
-
-| 维度 | 权重 |
-| --- | ---: |
-| 标题 | 20% |
-| 五点描述 | 20% |
-| 图片 | 20% |
-| 属性 | 15% |
-| 关键词覆盖 | 15% |
-| 合规性 | 10% |
-
-### 4. 广告与流量
-
-按广告活动和搜索词查看点击、曝光、花费、广告销售、订单、ACOS、ROAS、CVR 和 CPC。规则引擎会给出加词、否词、降价、暂停或放量建议。
-
-默认规则：
-
-- 15 次点击且无订单：精确否词候选。
-- 花费达到阈值且 ACOS 高于目标 1.5 倍：降价或暂停候选。
-- 有订单且 ACOS 达到目标：增加预算候选。
-
-### 5. 利润与定价
-
-利润口径固定为：
-
-```text
-净利润 = 不含税净销售 - 采购成本 - 平台佣金 - FBA/履约费 - 退款损失 - 广告费
-```
-
-系统同时计算单品利润、利润率、广告依赖度、盈亏平衡价和建议售价，支持采购落地成本、平台费率、履约费、退款损失及目标利润率的统一测算。
-
-### 6. 库存与履约
-
-从 FBA 可售、在途、预留、残次品、日均销量和采购交期计算可售天数、安全库存与建议补货量。默认规则：
-
-- 覆盖天数低于“采购交期 + 14 天安全期”：缺货风险。
-- 覆盖天数高于 90 天：滞销风险。
-
-```text
-可售天数 = 可售库存 / 近 30 天日均销量
-```
-
-### 7. 售后与账号
-
-集中处理差评、退货原因、买家消息、索赔、订单缺陷、迟发和取消率，按截止时间标记超时与今日到期事项，并对以下阈值生成预警：
-
-| 指标 | 默认预警线 |
-| --- | ---: |
-| 店铺评分 | 低于 4.0 |
-| 订单缺陷率 | 高于 1.0% |
-| 迟发率 | 高于 4.0% |
-| 取消率 | 高于 2.5% |
-
-### 8. 运营复盘与动作中心
-
-系统将异常转换为带负责人、优先级、截止时间、证据和执行结果的运营动作。日报、周报和月报可汇总关键指标、异常、动作结果和未关闭事项，并导出：
-
-- HTML：适合浏览器查看或打印。
-- Markdown：适合知识库和项目文档。
-- CSV：适合继续加工。
-- XLSX：包含 `Summary`、`SKU`、`Ads`、`Inventory`、`After-sales` 五个工作表。
-
-## 核心计算口径
-
-| 指标 | 公式 |
-| --- | --- |
-| 净利润 | 不含税净销售 - 采购成本 - 平台佣金 - FBA/履约费 - 退款损失 - 广告费 |
-| 净利率 | 净利润 / 不含税净销售 |
-| ACOS | 广告花费 / 广告销售 |
-| TACOS | 广告花费 / 总销售 |
-| ROAS | 广告销售 / 广告花费 |
-| 转化率 | 订单量 / 会话量 |
-| 退货率 | 退货数量 / 销量 |
-| 可售天数 | 可售库存 / 近 30 天日均销量 |
-
-所有建议均来自可解释指标与固定规则，不使用生成式 AI 生成经营结论。
+- Astro + Svelte 内容工作区与旧版运营壳共用同一套 API 和 SQLite 数据。
+- 支持 Markdown 文章、封面和正文图片、草稿保存、送审、通过、驳回、定时发布和评论审核。
+- 支持运营动态、案例项目、证据相册、资源导航和关于页面等结构化内容。
+- 文章详情页按原始比例完整显示主封面，列表缩略图保持统一裁切。
 
 ## 界面预览
 
-| 主页 | 文章工作区 | 内容后台 |
-| --- | --- | --- |
-| ![主页](./public/assets/articles/crosspilot-home.png) | ![文章工作区](./public/assets/articles/operations-navigation.png) | ![内容后台](./public/assets/articles/content-transition.png) |
+| 店铺切换 | 报表导入 |
+| --- | --- |
+| ![店铺切换](./public/assets/articles/guide-store-picker.png) | ![报表导入](./public/assets/articles/guide-import-report.png) |
 
-## 快速启动
+| Listing 评分 | 内容后台 |
+| --- | --- |
+| ![Listing 评分](./public/assets/articles/guide-listing-score.png) | ![内容后台](./public/assets/articles/guide-studio-review.png) |
+
+## 技术栈
+
+| 层级 | 技术 |
+| --- | --- |
+| Web 应用 | Astro、Svelte、TypeScript、Tailwind CSS |
+| 服务端 | Node.js、原生 HTTP Server、ES Modules |
+| 数据存储 | SQLite、better-sqlite3、WAL |
+| 数据处理 | ExcelJS、CSV/XLSX 解析、Markdown、sanitize-html |
+| 内容编辑器 | CodeMirror、marked、DOMPurify |
+| 测试 | Node.js Test Runner、Astro Check、Playwright |
+| 部署 | Docker、Docker Compose、Render 配置 |
+
+## 环境要求
+
+| 组件 | 最低要求 | 当前验证版本 |
+| --- | ---: | ---: |
+| Node.js | `>=24` | `24.19.0` |
+| pnpm | `>=11` | `11.19.0` |
+| Astro | `7.2.10` | `7.2.10` |
+| TypeScript | `6.0.3` | `6.0.3` |
+| 操作系统 | Windows、Linux 或 macOS | Windows 验证 |
+| 浏览器 | 支持 ES Modules 的现代浏览器 | Chrome、Edge |
+
+## 快速开始
 
 ### Windows 一键启动
 
-双击项目根目录的 `start-crosspilot.bat`。脚本会检查运行环境、首次自动安装依赖、启动服务，并在页面可以访问后自动打开浏览器。如果服务已经在运行，脚本会直接打开页面。
+双击项目根目录的 `start-crosspilot.bat`。脚本会检查运行环境、安装依赖、构建内容站并启动服务，页面可访问后会自动打开浏览器。
 
 ### 手动启动
-
-环境要求：Node.js 24、pnpm 11。
 
 ```bash
 corepack enable
@@ -152,23 +99,84 @@ pnpm run build
 pnpm run dev
 ```
 
-`web/` 使用 Astro + Svelte，根服务的 `/api`、`/uploads` 和 SQLite 业务层保持不变。修改内容页后需要重新执行 `pnpm run build`。
+浏览器打开：
 
-浏览器打开 `http://127.0.0.1:3100`。首次启动会自动创建 `data/crosspilot.db` 和模拟演示数据。
+```text
+http://127.0.0.1:3100
+```
+
+首次启动会自动创建：
+
+```text
+data/crosspilot.db
+data/uploads/
+```
 
 生产模式：
 
 ```bash
-npm start
+pnpm start
 ```
 
-## Docker
+## 常用脚本
 
-```bash
-docker compose up --build
+| 命令 | 说明 |
+| --- | --- |
+| `pnpm run dev` | 使用 Node.js watch 模式启动服务 |
+| `pnpm run build` | 构建 Astro 内容站 |
+| `pnpm start` | 启动生产服务 |
+| `pnpm test` | 构建内容站并运行全部 Node.js 测试 |
+| `pnpm run check` | 检查根服务和旧版前台 JavaScript |
+| `pnpm run web:check` | 运行 Astro 类型与组件检查 |
+| `pnpm run check:all` | 运行全部静态检查 |
+| `pnpm run web:dev` | 仅启动 Astro 开发服务器 |
+
+## 环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `HOST` | `127.0.0.1` | 服务监听地址 |
+| `PORT` | `3100` | 服务监听端口 |
+| `DB_PATH` | `data/crosspilot.db` | SQLite 数据库路径 |
+
+## 项目结构
+
+```text
+.
+├── docs/
+│   ├── architecture.md
+│   └── usage-guide.md
+├── public/
+│   ├── app.js
+│   ├── content-shell.css
+│   ├── enhancements.js
+│   └── assets/articles/
+├── scripts/
+│   ├── capture-guide.mjs
+│   └── launch.mjs
+├── src/
+│   ├── app.js
+│   ├── content-store.js
+│   ├── imports.js
+│   ├── markdown.js
+│   ├── metrics.js
+│   ├── reports.js
+│   ├── server.js
+│   └── store.js
+├── tests/
+│   └── api.test.js
+├── web/
+│   ├── public/assets/articles/
+│   ├── src/components/
+│   ├── src/layouts/
+│   ├── src/lib/
+│   └── src/pages/
+├── Dockerfile
+├── docker-compose.yml
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+└── package.json
 ```
-
-应用数据保存在 Docker Volume `crosspilot-data`，数据库路径为 `/app/data/crosspilot.db`。
 
 ## 主要 API
 
@@ -180,96 +188,69 @@ docker compose up --build
 | `GET` | `/api/products?storeId=1` | SKU、利润和 Listing 评分 |
 | `GET` | `/api/products/:id/listing-package` | 上新资料包 |
 | `GET` | `/api/ads?storeId=1` | 广告搜索词和规则建议 |
-| `GET` | `/api/inventory?storeId=1` | 库存风险、可售天数和补货量 |
+| `GET` | `/api/inventory?storeId=1` | 库存风险和补货建议 |
 | `GET` | `/api/after-sales?storeId=1` | 售后、SLA 和账号健康 |
 | `GET/POST` | `/api/actions` | 查询或创建运营动作 |
-| `PATCH` | `/api/actions/:id` | 执行、延期、关闭并回写证据 |
-| `POST` | `/api/actions/refresh` | 根据最新规则重新生成动作 |
-| `POST` | `/api/imports/preview` | 解析 CSV/XLSX 并返回映射预览 |
-| `PATCH` | `/api/imports/:id/mapping` | 调整字段映射并重新校验 |
-| `POST` | `/api/imports/:id/commit` | 确认入库 |
-| `GET` | `/api/reports/operations/:storeId?format=html\|md\|csv\|xlsx` | 生成运营复盘报告 |
-| `GET/POST` | `/api/articles` | 文章列表、分页、搜索和新建；兼容 `/api/knowledge` |
+| `PATCH` | `/api/actions/:id` | 执行、延期或关闭动作 |
+| `POST` | `/api/imports/preview` | 解析 CSV/XLSX 并返回预览 |
+| `POST` | `/api/imports/:id/commit` | 确认导入 |
+| `GET` | `/api/reports/operations/:storeId` | 导出运营复盘报告 |
+| `GET/POST` | `/api/articles` | 文章列表、搜索和新建 |
 | `GET/PATCH/DELETE` | `/api/articles/:idOrSlug` | 文章详情、更新和删除 |
-| `GET/POST` | `/api/articles/:id/comments` | 已审核评论与匿名留言提交 |
-| `GET/PATCH/DELETE` | `/api/comments/:id` | 后台评论审核与删除 |
-| `GET/POST/DELETE` | `/api/content` | 运营动态、案例、相册、资源和关于内容 |
+| `POST` | `/api/knowledge/:id/review` | 文章审核与发布 |
+| `GET/PATCH/DELETE` | `/api/comments/:id` | 评论审核与删除 |
 | `POST` | `/api/uploads` | 安全校验并保存图片 |
 
 ## 数据与安全
 
-- SQLite 使用 WAL、外键和 5 秒忙等待，适合本地单用户演示。
-- 单次导入最多 10 MB、20,000 行。
-- 敏感字段按字段名识别并在入库前移除。
-- 报告下载使用 `Content-Disposition: attachment` 和 `Cache-Control: no-store`。
-- 所有响应设置 CSP、`X-Content-Type-Options`、`Referrer-Policy`、`X-Frame-Options` 和同源写操作校验。
-- 上传会校验 MIME、文件头和 5 MB 上限；路径解析会阻止目录逃逸。
-- 项目没有登录、云同步和官方平台 API 直连，真实使用前需要补充权限、审计和密钥管理。
+- SQLite 启用 WAL、外键和忙等待，适合本地单用户场景。
+- 上传图片限制 5 MB，并校验 MIME、文件头和扩展名。
+- 路径解析阻止目录逃逸，媒体清理仅删除未引用文件。
+- 响应设置 CSP、`X-Content-Type-Options`、`Referrer-Policy` 和 `X-Frame-Options`。
+- 写操作执行同源校验，报告下载使用 `Content-Disposition: attachment`。
+- 项目默认不包含登录、云同步和平台 API 凭证，真实部署前需要补充权限与审计。
 
-核心数据对象包括店铺、SKU/Listing、每日指标、广告搜索词、库存快照、退货评论、售后问题、导入批次、运营动作、动作时间线、周期报告和知识文章。
-
-## 测试与工程化
+## 测试与验证
 
 ```bash
 pnpm run check:all
 pnpm test
-pnpm run build
 ```
 
-自动化测试覆盖利润与广告指标、Listing 评分、广告和库存规则、账号健康、CSV/XLSX 导入、PII 排除、动作闭环、HTML/Markdown/CSV/XLSX 报告及五工作表结构。
-静态功能测试同时校验搜索、音乐、背景视频、主题定制和日夜模式所需资源与交互入口。
+测试覆盖：
 
-界面已使用 Playwright 在 1920、1440、980 和 390 像素视口完成回归，覆盖固定导航、Hero 轮播、樱花、波浪、打字机、响应式布局和页面横向溢出检查。
+- 利润、ACOS、TACOS、ROAS、CVR、退货率和库存覆盖计算。
+- Listing 六维评分、广告规则、库存规则和账号健康阈值。
+- CSV、XLSX 导入、字段映射、错误行和 PII 跳过。
+- 动作闭环、时间线、报告证据和评论审核。
+- HTML、Markdown、CSV 和五工作表 XLSX 报告。
+- Astro 内容站构建、文章发布状态和图片引用。
+- Playwright 多视口布局与文章封面完整显示检查。
 
-## 项目结构
+## Docker
+
+```bash
+docker compose up --build
+```
+
+默认数据卷：
 
 ```text
-.
-├── docs/
-│   ├── architecture.md
-│   └── usage-guide.md
-├── web/
-│   ├── src/pages/
-│   ├── src/components/
-│   ├── astro.config.mjs
-│   └── package.json
-├── public/
-│   ├── app.js
-│   ├── enhancements.css
-│   ├── enhancements.js
-│   ├── crosspilot.css
-│   ├── final-shell.css
-│   ├── theme-controls.css
-│   ├── nav-shell.css
-│   ├── index.html
-│   └── styles.css
-├── src/
-│   ├── app.js
-│   ├── content-store.js
-│   ├── imports.js
-│   ├── markdown.js
-│   ├── metrics.js
-│   ├── reports.js
-│   ├── server.js
-│   └── store.js
-├── scripts/
-│   └── launch.mjs
-├── tests/api.test.js
-├── pnpm-workspace.yaml
-├── pnpm-lock.yaml
-├── Dockerfile
-├── docker-compose.yml
-├── render.yaml
-├── start-crosspilot.bat
-└── package.json
+crosspilot-data:/app/data
 ```
 
-## 工程亮点
+数据库路径：
 
-CrossPilot 将指标口径、规则引擎、动作追踪和报告输出放在同一条数据链路中。每条运营建议都能追溯到原始指标和固定规则，执行结果也会回写到复盘报告，形成可验证的运营闭环。
+```text
+/app/data/crosspilot.db
+```
+
+## 文档
+
+- [架构说明](./docs/architecture.md)
+- [使用指南](./docs/usage-guide.md)
+- [第三方许可](./THIRD_PARTY_NOTICES.md)
 
 ## License
 
 [MIT](./LICENSE)
-
-Firefly 等第三方来源的许可说明见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。

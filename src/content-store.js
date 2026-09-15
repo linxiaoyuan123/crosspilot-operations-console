@@ -458,6 +458,7 @@ export function getContentStats(db) {
       COUNT(*) AS total,
       SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
       SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS drafts,
+      SUM(CASE WHEN review_status = 'submitted' THEN 1 ELSE 0 END) AS review,
       COALESCE(SUM(views), 0) AS views,
       COALESCE(SUM(LENGTH(content_md)), 0) AS characters
     FROM knowledge_articles
@@ -494,6 +495,7 @@ export function getContentStats(db) {
     total: Number(articles.total || 0),
     published: Number(articles.published || 0),
     drafts: Number(articles.drafts || 0),
+    review: Number(articles.review || 0),
     views: Number(articles.views || 0),
     characters: Number(articles.characters || 0),
     categories,

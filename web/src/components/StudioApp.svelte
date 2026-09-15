@@ -52,6 +52,7 @@
   let preview = '';
   let editingId: number | null = null;
   let form = blankForm();
+  let reviewNote = '';
   let initialEdit: string | null = null;
   let editingContentId: number | null = null;
   let contentForm = blankContentForm();
@@ -66,6 +67,8 @@
       contentMd: '## 背景\n\n写下问题发生的场景。\n\n## 处理过程\n\n1. 第一步\n2. 第二步\n\n## 结论\n\n记录判断标准和结果。',
       coverImage: '',
       status: 'draft' as 'draft' | 'published',
+      reviewStatus: 'draft' as 'draft' | 'submitted',
+      displayStatus: 'draft' as 'draft' | 'review' | 'rejected' | 'pending' | 'published',
       featured: false,
       publishAt: ''
     };
@@ -121,6 +124,16 @@
     }
   }
 
+  $: selectedArticle = articles.find((item) => item.id === editingId) || null;
+
+  const articleStatusLabel = (status?: Article['display_status']) => ({
+    draft: '草稿',
+    review: '待审核',
+    rejected: '已驳回',
+    pending: '待发布',
+    published: '已发布'
+  }[status || 'draft']);
+
   function selectArticle(article: Article) {
     editingId = article.id;
     form = {
@@ -132,10 +145,13 @@
       contentMd: article.content_md,
       coverImage: article.cover_image,
       status: article.status,
+      reviewStatus: article.review_status === 'submitted' ? 'submitted' : 'draft',
       featured: Boolean(article.featured),
+      displayStatus: article.display_status,
       publishAt: toLocalDateTime((article as Article & { publish_at?: string }).publish_at)
     };
     preview = article.html || '';
+    reviewNote = article.review_note || '';
     tab = 'articles';
     scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -143,6 +159,7 @@
   function newArticle() {
     editingId = null;
     form = blankForm();
+    reviewNote = '';
     preview = '';
     tab = 'articles';
     scrollTo({ top: 0, behavior: 'smooth' });
@@ -235,14 +252,19 @@
     try {
       const payload = {
         ...form,
-        publishAt: form.publishAt ? new Date(form.publishAt).toISOString() : ''
+        publishAt: form.publishAt ? new Date(form.publishAt).toISOString() : '',
+        reviewStatus: form.status === 'published' ? 'approved' : form.reviewStatus
       };
       const saved = await api<Article>(editingId ? `/api/articles/${editingId}` : '/api/articles', {
         method: editingId ? 'PATCH' : 'POST',
         body: JSON.stringify(payload)
       });
       editingId = saved.id;
-      notice = saved.status === 'published' ? '文章已发布' : '草稿已保存';
+      notice = saved.display_status === 'review'
+        ? '已送审，等待审核'
+        : saved.display_status === 'pending'
+          ? '审核已通过，等待定时发布'
+          : saved.status === 'published' ? '文章已发布' : '草稿已保存';
       await load();
       const target = articles.find((item) => item.id === saved.id);
       if (target) selectArticle(target);
@@ -251,6 +273,16 @@
     } finally {
       saving = false;
     }
+  }
+
+  async function reviewArticle(article: Article, decision: 'approved' | 'rejected') {
+    const note = decision === 'rejected' ? prompt('请填写驳回原因', article.review_note || '') || '' : '';
+    if (decision === 'rejected' && !note.trim()) return;
+    await api(`/api/articles/${article.id}/review`, { method: 'POST', body: JSON.stringify({ decision, note }) });
+    await load();
+    const target = articles.find((item) => item.id === article.id);
+    if (target) selectArticle(target);
+    notice = decision === 'approved' ? '审核通过' : '已驳回';
   }
 
   async function removeArticle(article: Article) {
@@ -350,7 +382,8 @@
   <div class="cp-card"><BookOpen size={17} /><span>全部内容</span><strong>{stats?.total || 0}</strong></div>
   <div class="cp-card"><Send size={17} /><span>已发布</span><strong>{stats?.published || 0}</strong></div>
   <div class="cp-card"><Edit3 size={17} /><span>草稿</span><strong>{stats?.drafts || 0}</strong></div>
-  <div class="cp-card"><MessageSquare size={17} /><span>待审核</span><strong>{stats?.comments?.pending || 0}</strong></div>
+  <div class="cp-card" class:attention={(stats?.review || 0) > 0}><ShieldCheck size={17} /><span>文章待审</span><strong>{stats?.review || 0}</strong></div>
+  <div class="cp-card"><MessageSquare size={17} /><span>留言待审</span><strong>{stats?.comments?.pending || 0}</strong></div>
 </div>
 
 <nav class="studio-tabs" aria-label="内容后台模块">
@@ -373,8 +406,8 @@
         {#each articles as article (article.id)}
           <article class:active={editingId === article.id}>
             <button type="button" class="article-select" onclick={() => selectArticle(article)}>
-              <span class:published={article.status === 'published'} class="dot"></span>
-              <span><strong>{article.title}</strong><small>{article.category} · {formatDate(article.updated_at)}</small></span>
+              <span class:published={article.display_status === 'published' || article.display_status === 'pending'} class="dot"></span>
+              <span><strong>{article.title}</strong><small>{article.category} · {articleStatusLabel(article.display_status)} · {formatDate(article.updated_at)}</small></span>
             </button>
             <button class="delete" type="button" title="删除文章" aria-label={`删除 ${article.title}`} onclick={() => removeArticle(article)}><Trash2 size={13} /></button>
           </article>
@@ -386,6 +419,13 @@
           <div><span class="cp-kicker">{editingId ? 'edit article' : 'new article'}</span><h2>{editingId ? '编辑文章' : '新建文章'}</h2></div>
           <div class="editor-actions">
             <button class="cp-button secondary" type="button" onclick={refreshPreview}>刷新预览</button>
+            {#if editingId && form.status === "draft" && form.reviewStatus !== "submitted"}
+              <button class="cp-button secondary" type="button" onclick={() => (form.reviewStatus = "submitted")}><ShieldCheck size={13} />送审</button>
+            {/if}
+            {#if editingId && selectedArticle?.display_status === "review"}
+              <button class="cp-button secondary" type="button" onclick={() => reviewArticle(selectedArticle, "approved")}><Check size={13} />通过</button>
+              <button class="cp-button danger" type="button" onclick={() => reviewArticle(selectedArticle, "rejected")}><X size={13} />驳回</button>
+            {/if}
             <button class="cp-button" type="submit" disabled={saving}><Save size={13} />{saving ? '保存中' : '保存文章'}</button>
           </div>
         </div>
@@ -399,6 +439,17 @@
           <label class="cp-label">定时发布<input class="cp-field" type="datetime-local" bind:value={form.publishAt} /></label>
           <label class="featured"><input type="checkbox" bind:checked={form.featured} /><span>设为主页置顶文章</span></label>
           <label class="cp-label span-2">摘要<textarea class="cp-field cp-scroll" bind:value={form.excerpt} rows="3" maxlength="320"></textarea></label>
+        </div>
+
+        <div class="review-strip">
+          <span class="cp-kicker">review status</span>
+          <strong class:danger={form.displayStatus === "review" || form.displayStatus === "draft" && form.reviewStatus === "submitted"}>{articleStatusLabel(form.displayStatus)}</strong>
+          {#if form.displayStatus === "rejected" && reviewNote}
+            <p>驳回原因：{reviewNote}</p>
+          {/if}
+          {#if form.displayStatus === "pending"}
+            <p>审核已通过，定时发布时间到达后自动公开。</p>
+          {/if}
         </div>
 
         <div class="cover-row">
@@ -534,7 +585,7 @@
   .studio-stats {
     display: grid;
     gap: 10px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     margin-bottom: 14px;
   }
 
@@ -556,6 +607,34 @@
     color: var(--cp-text);
     font-size: 19px;
     grid-column: 2;
+  }
+
+  .studio-stats .attention {
+    border-color: color-mix(in srgb, var(--cp-warning) 38%, transparent);
+    color: var(--cp-warning);
+  }
+
+  .review-strip {
+    align-items: center;
+    background: var(--cp-surface-muted);
+    border: 1px solid var(--cp-line);
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  .review-strip strong.danger {
+    color: var(--cp-warning);
+  }
+
+  .review-strip p {
+    color: var(--cp-text-soft);
+    flex-basis: 100%;
+    font-size: 9px;
+    line-height: 1.5;
+    margin: 0;
   }
 
   .studio-tabs {
@@ -875,7 +954,7 @@
   .media-grid {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 14px;
   }
 

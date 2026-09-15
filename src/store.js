@@ -26,7 +26,8 @@ import {
 } from './content-store.js';
 
 export const DEFAULT_DB_PATH = resolve(process.env.DB_PATH || 'data/crosspilot.db');
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+const USAGE_GUIDE_REVISION = '2026-09-15-3';
 const nowIso = () => new Date().toISOString();
 const slugify = (value) => String(value || '')
   .normalize('NFKD')
@@ -53,16 +54,28 @@ const contentFromLegacy = (row = {}) => {
     .join('\n\n');
 };
 
+const normalizeReviewStatus = (value) => ['submitted', 'approved', 'rejected'].includes(value) ? value : 'none';
+
 const normalizeKnowledgeRow = (row) => {
   if (!row) return row;
   const contentMd = String(row.content_md || '').trim() || contentFromLegacy(row);
   const excerpt = String(row.excerpt || '').trim() || compactText(contentMd || row.symptom);
+  const reviewStatus = normalizeReviewStatus(row.review_status);
+  const baseStatus = row.status === 'draft' ? 'draft' : 'published';
+  const futurePublish = Boolean(row.publish_at && new Date(row.publish_at).getTime() > Date.now());
+  const displayStatus = reviewStatus === 'rejected'
+    ? 'rejected'
+    : baseStatus === 'draft'
+      ? (reviewStatus === 'submitted' ? 'review' : 'draft')
+      : (futurePublish ? 'pending' : 'published');
   return {
     ...row,
     slug: row.slug || `article-${row.id}`,
     excerpt,
     content_md: contentMd,
     status: row.status || 'published',
+    review_status: reviewStatus,
+    display_status: displayStatus,
     featured: Boolean(row.featured),
     publish_at: row.publish_at || '',
     updated_at: row.updated_at || row.created_at,
@@ -319,6 +332,9 @@ function migrate(db) {
       ,content_md TEXT NOT NULL DEFAULT ''
       ,cover_image TEXT NOT NULL DEFAULT ''
       ,status TEXT NOT NULL DEFAULT 'published'
+      ,review_status TEXT NOT NULL DEFAULT 'none'
+      ,reviewed_at TEXT NOT NULL DEFAULT ''
+      ,review_note TEXT NOT NULL DEFAULT ''
       ,featured INTEGER NOT NULL DEFAULT 0
       ,publish_at TEXT NOT NULL DEFAULT ''
       ,updated_at TEXT NOT NULL DEFAULT ''
@@ -350,6 +366,9 @@ function migrate(db) {
   ensureColumn(db, 'knowledge_articles', 'content_md', "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'knowledge_articles', 'cover_image', "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'knowledge_articles', 'status', "TEXT NOT NULL DEFAULT 'published'");
+  ensureColumn(db, 'knowledge_articles', 'review_status', "TEXT NOT NULL DEFAULT 'none'");
+  ensureColumn(db, 'knowledge_articles', 'reviewed_at', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'knowledge_articles', 'review_note', "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'knowledge_articles', 'featured', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn(db, 'knowledge_articles', 'publish_at', "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'knowledge_articles', 'updated_at', "TEXT NOT NULL DEFAULT ''");
@@ -365,6 +384,7 @@ function migrate(db) {
       WHERE content_md = '';
     CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_slug ON knowledge_articles(slug);
     CREATE INDEX IF NOT EXISTS idx_knowledge_status ON knowledge_articles(status, featured, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_knowledge_review ON knowledge_articles(review_status, updated_at DESC);
   `);
 }
 
@@ -583,57 +603,170 @@ function refreshStarterKnowledge(db) {
 function seedContent(db) {
   const slug = 'crosspilot-usage-guide';
   const existing = db.prepare('SELECT id FROM knowledge_articles WHERE slug = ?').get(slug);
-  if (existing) return;
   const contentMd = `# CrossPilot 运营工具使用指南
 
-CrossPilot 把报表导入、利润诊断、动作执行和复盘写作放在同一套工作流里。第一次使用时，建议从当前店铺开始，先导入数据，再处理动作，最后把有效方法沉淀成文章。
+<!-- crosspilot-usage-guide-revision: ${USAGE_GUIDE_REVISION} -->
 
-![CrossPilot 首页](/assets/articles/crosspilot-home.png)
+CrossPilot 把报表导入、利润诊断、动作执行和复盘写作放在同一套工作流里。第一次使用时，建议按下面的顺序走完一次完整闭环：确认店铺、导入报表、检查异常、执行动作、沉淀文章。每一步都保留可回看的证据，方便复盘时说明“发现了什么、做了什么、结果如何”。
+
+下面的截图来自当前版本的演示店铺，按钮名称和页面路径均与系统一致。先按完整流程走一遍，再回到日常高频模块单点复查。
+
+![运营总览](/assets/articles/guide-operations-overview.png)
 
 ## 1. 确认当前店铺
 
-顶部“当前店铺”会自动同步到运营总览、商品、广告、库存和售后模块。切换店铺后，页面数据、规则动作与报告都会一起切换。
+1. 打开首页或任意运营工具页面，查看右上角“当前店铺”。
+2. 点击店铺名称，选择 Amazon、TikTok Shop 或 Shopee 演示店铺。
+3. 切换后检查顶部店铺代码、币种、平台和市场是否同步变化。
+4. 运营总览、商品、广告、库存、售后和报告都会使用同一店铺数据；文章内容不随店铺切换。
+
+切换后不要立刻开始导数据，先确认左侧“当前店铺”与右上角选择器显示的是同一个店铺。否则后续动作会写入错误店铺。
+
+![店铺切换](/assets/articles/guide-store-picker.png)
+
 
 ## 2. 导入平台报表
 
-进入“运营工具 → 数据导入”，拖入 CSV 或 XLSX 文件。系统会识别商品表现、搜索词、库存和退货/评论报表，并在入库前跳过买家姓名、邮箱、电话和地址等隐私字段。
+进入“运营工具 → 数据导入”，上传 CSV 或 XLSX 文件。
 
-1. 上传文件并检查识别类型。
-2. 在字段映射中确认 SKU、日期、销售额、广告费和库存等字段。
-3. 检查错误行与 PII 跳过项。
-4. 点击“确认入库”，规则引擎会重新计算运营动作。
+1. 将文件拖入上传区，或点击选择文件。
+2. 等待系统识别“商品表现”“广告搜索词”“库存”或“退货评论”报表类型。
+3. 检查源字段与标准字段映射，重点是 SKU、日期、销售额、广告费、广告销售和库存。
+4. 查看可入库行数、错误行和 PII 跳过项。错误行不会静默入库。
+5. 如识别错误，调整映射后点击“应用映射”。
+6. 确认无误后点击“确认入库”，等待规则引擎重新生成动作。
 
-![数据导入与运营导航](/assets/articles/operations-navigation.png)
+单次文件不超过 10 MB 或 20,000 行。买家姓名、邮箱、电话、详细地址等隐私字段会标记为 PII 跳过，不会进入预览和数据库。
 
-## 3. 从指标进入动作
+入库前重点核对三件事：报表类型是否正确、SKU 与日期是否落在预期列、金额字段是否出现数量级异常。只要预览表存在错误行，就先处理错误行，不要直接确认入库。
 
-运营总览只保留需要关注的利润、ACOS、库存、退货和待处理事项。点击指标卡、SKU 异常榜或动作中心，可以继续进入对应模块。
+![报表导入与字段映射](/assets/articles/guide-import-report.png)
 
-- 商品：检查 Listing 六维评分、售价和利润空间。
-- 广告：按搜索词判断否词、降价、暂停或放量。
-- 库存：按采购交期和安全库存计算补货量。
-- 售后：关联退货原因、店铺健康阈值和超时事项。
+## 3. 从总览下钻到问题
 
-## 4. 维护文章与复盘
+进入“运营总览”，先看五个方向：
 
-进入“文章 → 内容后台”，可以新建、编辑、保存草稿或发布文章。编辑器支持标题、粗体、列表、引用、链接、代码块和 Markdown 表格，也可以直接上传正文截图或封面。
+- 净销售额、净利润率、广告占比。
+- ACOS、TACOS 和低利润 SKU。
+- 库存风险 SKU 数量和覆盖天数。
+- 退货率、评分、评论和待处理售后。
+- 待执行动作和未关闭事项。
 
-文章保存后会自动提取摘要与阅读时长；旧知识库内容会继续保留，并转换为统一正文格式。
+点击指标卡、SKU 异常榜或动作中心，可以进入对应模块继续处理。不要只看总量，至少抽查一个异常 SKU 的原始指标。
 
-![全屏壁纸内容区](/assets/articles/content-transition.png)
+![总览指标与动作](/assets/articles/guide-operations-overview.png)
 
-## 5. 常用 Markdown 语法
+## 4. 检查利润和 Listing
 
-\`\`\`markdown
+进入“Listing与商品”，左侧选择 SKU：
+
+1. 查看 Listing 六维评分：标题、五点、图片、属性、关键词、合规。
+2. 对比净利润、利润率、ACOS、TACOS、退货率和可售天数。
+3. 核对采购成本、平台佣金、履约费、退款损失和广告费。
+4. 检查盈亏平衡价和建议售价，确认当前价格能否覆盖目标利润。
+5. 点击“生成资料包”，获得标题、五点、图片需求和关键词分组。
+
+70 分以下且广告花费持续偏高的 SKU 优先处理；有曝光但转化低的 SKU，先改主图、价格和五点。
+
+![Listing 六维评分与利润](/assets/articles/guide-listing-score.png)
+
+## 5. 处理广告和库存
+
+广告模块按搜索词查看点击、花费、广告销售、订单、ACOS 和 CVR：
+
+- 有订单且 ACOS 达标：加预算或放量。
+- 有订单但 ACOS 偏高：先降价或调整匹配方式。
+- 点击多、无订单且意图不匹配：精确否词。
+- 连续两个周期亏损：暂停并记录证据。
+
+![广告搜索词决策](/assets/articles/guide-ads-search-terms.png)
+
+库存模块检查可售、在途、预留、日均销量、覆盖天数和建议补货量。覆盖天数低于采购交期加安全期时建补货动作；持续高于 90 天且销量下降时建清库存动作。
+
+![补货与库存覆盖](/assets/articles/guide-inventory-replenishment.png)
+
+## 6. 执行动作并关闭闭环
+
+动作中心汇总所有模块建议。创建或接收动作时补齐：
+
+1. 分类、标题、优先级和负责人。
+2. 截止时间和推荐来源。
+3. 执行时上传或粘贴证据链接。
+4. 完成后记录实际结果，再关闭动作。
+
+动作被延期、重新打开或关闭都会保留时间线。复盘时按这条时间线回答：发现了什么问题、采取了什么动作、结果是否改善。
+
+![动作中心](/assets/articles/guide-action-center.png)
+
+## 7. 生成运营复盘
+
+进入“运营复盘”，选择日报、周报或月报：
+
+1. 确认店铺、日期范围和数据模式。
+2. 检查关键指标、异常和未关闭事项。
+3. 选择 HTML、Markdown、CSV 或 XLSX 导出。
+4. XLSX 报告包含 Summary、SKU、Ads、Inventory、After-sales 五个工作表。
+
+导出前写明结论：哪些问题已处理，哪些需要在下一个周期继续观察。演示数据只用于项目展示，不应描述为真实店铺业绩。
+
+![运营复盘与导出](/assets/articles/guide-operations-review.png)
+
+## 8. 撰写和审核文章
+
+进入“文章 → 内容后台”：
+
+1. 点击“新建文章”，填写标题、分类、标签和摘要。
+2. 在 Markdown 编辑器写正文，支持标题、列表、表格、引用、链接、代码块和图片。
+3. 上传封面或正文截图，也可以拖拽、粘贴图片。
+4. 保存草稿后点击“送审”。
+5. 审核人在同一编辑器中查看待审文章，选择“通过并发布”或“驳回”；驳回时填写原因。
+6. 审核通过后文章进入待发布；如设置了未来定时发布时间，到达时间后自动公开。
+7. 被驳回的文章会保留审核原因，修改后再次保存并送审。
+8. 已发布文章如需重新修改，可转为草稿，完成修改后重新走审核流程。
+
+![文章编辑与送审](/assets/articles/guide-studio-review.png)
+
+审核状态在文章清单和编辑器中都会显示：草稿、待审核、待发布、已发布或已驳回。评论也默认待审核，需要在“评论审核”页通过后才会公开。
+
+![评论审核](/assets/articles/guide-comment-review.png)
+
+## 9. 常用 Markdown 语法
+
+~~~markdown
 ## 二级标题
 **重点内容**
 - 列表项
 > 引用说明
+| 字段 | 说明 |
+| --- | --- |
+| SKU | 商品唯一标识 |
 ![图片说明](/uploads/example.png)
-\`\`\`
+~~~
 
-完成后点击“预览”检查排版，再保存为草稿或直接发布。
+完成正文后点击“刷新预览”，检查标题层级、表格和图片显示，再保存或送审。
+
+## 10. 数据和备份
+
+默认数据库为 data/crosspilot.db，上传图片保存在 data/uploads/。数据库升级前会在 data/backups/ 自动备份。删除数据库后重启会重建演示数据；如需保留测试导入，请先备份数据库。
+
 `;
+  if (existing) {
+    const current = db.prepare('SELECT content_md FROM knowledge_articles WHERE id = ?').get(existing.id);
+    if (!String(current?.content_md || '').includes(`crosspilot-usage-guide-revision: ${USAGE_GUIDE_REVISION}`)) {
+      db.prepare(`
+        UPDATE knowledge_articles
+        SET excerpt = ?, content_md = ?, cover_image = ?, updated_at = ?
+        WHERE id = ?
+      `).run(
+        '从报表导入、动作处理到文章沉淀，完整走一遍 CrossPilot 的日常使用流程。',
+        contentMd,
+        '/assets/articles/guide-operations-overview.png',
+        nowIso(),
+        existing.id
+      );
+    }
+    return;
+  }
   const timestamp = nowIso();
   db.prepare(`
     INSERT INTO knowledge_articles (
@@ -649,7 +782,7 @@ CrossPilot 把报表导入、利润诊断、动作执行和复盘写作放在同
     slug,
     '从报表导入、动作处理到文章沉淀，完整走一遍 CrossPilot 的日常使用流程。',
     contentMd,
-    '/assets/articles/crosspilot-home.png',
+    '/assets/articles/guide-operations-overview.png',
     timestamp
   );
 }
@@ -1060,11 +1193,15 @@ export function createKnowledge(db, input) {
   const body = contentMd || fallbackContent;
   const slug = uniqueSlug(db, input.title, input.slug);
   const status = input.status === 'draft' ? 'draft' : 'published';
+  const reviewStatus = status === 'draft'
+    ? (input.reviewStatus === 'submitted' ? 'submitted' : 'none')
+    : 'approved';
   const result = db.prepare(`
     INSERT INTO knowledge_articles (
       title, category, symptom, solution, tags, views, created_at, slug, excerpt,
-      content_md, cover_image, status, featured, publish_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      content_md, cover_image, status, review_status, reviewed_at, review_note,
+      featured, publish_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     input.title,
     input.category || '运营复盘',
@@ -1077,6 +1214,9 @@ export function createKnowledge(db, input) {
     body,
     input.coverImage || '',
     status,
+    reviewStatus,
+    reviewStatus === 'approved' ? timestamp : '',
+    '',
     input.featured ? 1 : 0,
     input.publishAt || '',
     timestamp
@@ -1092,10 +1232,33 @@ export function updateKnowledge(db, articleId, input) {
   const contentMd = input.contentMd ?? current.content_md;
   const status = input.status === 'draft' ? 'draft' : input.status === 'published' ? 'published' : current.status;
   const slug = uniqueSlug(db, title, input.slug || current.slug, current.id);
+  const contentChanged = input.contentMd !== undefined && input.contentMd !== current.content_md;
+  let reviewStatus = current.review_status;
+  let reviewedAt = current.reviewed_at || '';
+  let reviewNote = current.review_note || '';
+  if (status === 'published' && (input.reviewStatus === 'approved' || input.status === 'published')) {
+    reviewStatus = 'approved';
+    reviewedAt = nowIso();
+    reviewNote = '';
+  } else if (input.reviewStatus === 'submitted') {
+    reviewStatus = 'submitted';
+    reviewedAt = '';
+    reviewNote = '';
+  } else if (input.reviewStatus === 'draft' || input.reviewStatus === 'none') {
+    reviewStatus = 'none';
+    reviewedAt = '';
+    reviewNote = '';
+  } else if (status === 'draft') {
+    reviewStatus = 'none';
+    reviewedAt = '';
+    reviewNote = '';
+  }
+  if (input.reviewNote !== undefined) reviewNote = String(input.reviewNote || '').slice(0, 500);
   db.prepare(`
     UPDATE knowledge_articles SET
       title = ?, category = ?, slug = ?, excerpt = ?, content_md = ?, cover_image = ?,
-      tags = ?, status = ?, featured = ?, publish_at = ?, updated_at = ?
+      tags = ?, status = ?, review_status = ?, reviewed_at = ?, review_note = ?,
+      featured = ?, publish_at = ?, updated_at = ?
     WHERE id = ?
   `).run(
     title,
@@ -1106,6 +1269,9 @@ export function updateKnowledge(db, articleId, input) {
     input.coverImage ?? current.cover_image,
     input.tags ?? current.tags,
     status,
+    reviewStatus,
+    reviewedAt,
+    reviewNote,
     input.featured === undefined ? (current.featured ? 1 : 0) : (input.featured ? 1 : 0),
     input.publishAt ?? current.publish_at,
     nowIso(),
@@ -1124,6 +1290,25 @@ export function deleteKnowledge(db, articleId) {
 
 export function incrementKnowledgeViews(db, articleId) {
   db.prepare('UPDATE knowledge_articles SET views = views + 1 WHERE id = ?').run(Number(articleId));
+}
+
+export function reviewKnowledge(db, articleId, decision, note = '') {
+  const current = getKnowledge(db, articleId);
+  if (!current) return null;
+  if (decision === 'approved') {
+    db.prepare(`
+      UPDATE knowledge_articles
+      SET status = 'published', review_status = 'approved', reviewed_at = ?, review_note = '', updated_at = ?
+      WHERE id = ?
+    `).run(nowIso(), nowIso(), current.id);
+  } else {
+    db.prepare(`
+      UPDATE knowledge_articles
+      SET status = 'draft', review_status = 'rejected', reviewed_at = ?, review_note = ?, updated_at = ?
+      WHERE id = ?
+    `).run(nowIso(), String(note || '').slice(0, 500), nowIso(), current.id);
+  }
+  return getKnowledge(db, current.id);
 }
 
 export function getKnowledgeStats(db) {
