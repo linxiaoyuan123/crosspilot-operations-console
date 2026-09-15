@@ -4,3 +4,7 @@ data
 node_modules
 *.log
 .env
+artifacts
+coverage
+playwright-report
+test-results

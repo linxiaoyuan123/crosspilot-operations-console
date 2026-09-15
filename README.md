@@ -7,7 +7,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.2.10-FF5D01?style=for-the-badge&logo=astro&logoColor=white)](https://astro.build/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-![CrossPilot 运营总览](./public/assets/articles/guide-operations-overview.png)
+![CrossPilot 最新首页](./public/assets/readme/current-home.jpg)
 
 ## 项目简介
 
@@ -53,13 +53,13 @@ CrossPilot 不是一个只展示汇总数字的数据看板。它围绕运营人
 
 ## 界面预览
 
-| 店铺切换 | 报表导入 |
+| 内容首页 | 文章列表 |
 | --- | --- |
-| ![店铺切换](./public/assets/articles/guide-store-picker.png) | ![报表导入](./public/assets/articles/guide-import-report.png) |
+| ![内容首页](./public/assets/readme/current-home.jpg) | ![文章列表](./public/assets/readme/current-articles.jpg) |
 
-| Listing 评分 | 内容后台 |
+| 内容后台 | 证据相册 |
 | --- | --- |
-| ![Listing 评分](./public/assets/articles/guide-listing-score.png) | ![内容后台](./public/assets/articles/guide-studio-review.png) |
+| ![内容后台](./public/assets/readme/current-studio.jpg) | ![证据相册](./public/assets/readme/current-gallery.jpg) |
 
 ## 技术栈
 
